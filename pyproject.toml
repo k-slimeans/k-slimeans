@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kslimeans"
+version = "0.1.0"
+description = "Pluggable re-implementation of the summaries-as-centroids text clustering method (k-NLPmeans / k-LLMmeans, arXiv:2502.09667)"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "scikit-learn>=1.4",
+    "pandas",
+    "torch",
+    "sentence-transformers",
+    "transformers",
+    "spacy>=3.7",
+    "networkx",
+    "tqdm",
+    "pyyaml",
+    "py7zr",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: needs model downloads / GPU",
+]
+addopts = '-m "not slow"'

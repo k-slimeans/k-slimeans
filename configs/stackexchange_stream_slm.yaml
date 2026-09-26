@@ -1,0 +1,31 @@
+# StackExchange streaming benchmark with an SLM summarizer (mini-batch k-LLMmeans with a local model).
+# Same protocol as stackexchange_stream.yaml; each prompt gets force_context_length=10 diverse members
+# per cluster (StackExchange clusters are thousands of posts, far too many for one prompt).
+#
+# Quick check on a slice:
+#   python scripts/run_streaming.py configs/stackexchange_stream_slm.yaml \
+#       --set years=[2023] --set dataset.limit=2000 --set max_batch_size=1000
+
+name: stackexchange_stream_slm
+dataset: {name: stackexchange, limit: null}   # year comes from `years`
+years: [2020, 2021, 2022, 2023]
+embedder: distilbert
+seeds: [0]
+max_batch_size: 10000
+eval_assign: lloyd1        # lloyd1 (paper) | nearest
+baselines:                 # name -> sklearn kwargs
+  minibatchkmeans: {}
+  seqminibatchkmeans: {}
+  kmeans: {}
+method_name: k-SLMmeans
+force_context_length: 10
+tol: 1.0e-4
+schedule: {type: fixed, n_summaries: 5, max_iter: 120}
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen2.5-0.5B-Instruct
+  max_new_tokens: 64
+  batch_size: 16
+  max_input_tokens: 4096
+cache_dir: cache
+results_dir: results

@@ -1,0 +1,31 @@
+# Config-driven equivalent of scripts/smoke_bank77.py: k-means baseline +
+# k-NLPmeans(lsa) on Bank77, single seed. Reproduces NMI 0.6541 (k-means) /
+# 0.6518 (k-NLPmeans) -- see tests/test_experiment.py's slow test.
+#
+#   python scripts/run_offline.py configs/bank77_knlpmeans.yaml
+
+name: bank77_knlpmeans
+dataset: bank77
+embedder: distilbert
+seeds: [0]
+
+baselines:
+  kmeans: {n_init: 10}
+
+method_name: k-NLPmeans
+force_context_length: 0
+tol: 1.0e-4
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 100
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: lsa
+  top_k: 5
+
+cache_dir: cache
+results_dir: results

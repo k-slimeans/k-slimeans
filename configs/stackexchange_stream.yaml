@@ -1,0 +1,32 @@
+# StackExchange streaming benchmark (paper's sequential experiment) with extractive LSA summaries.
+# Posts arrive in CreationDate order and are clustered batch by batch (mini-batch k-NLPmeans),
+# compared against MiniBatchKMeans, sequential MiniBatchKMeans and full k-means.
+#
+#   python scripts/prepare_stackexchange.py          # once
+#   python scripts/run_streaming.py configs/stackexchange_stream.yaml
+#
+# Quick check on a slice (~1-2 min):
+#   python scripts/run_streaming.py configs/stackexchange_stream.yaml \
+#       --set years=[2023] --set dataset.limit=5000 --set max_batch_size=1000
+#
+# First full run is dominated by one-time spaCy sentence splitting (~30 min for all 4 years,
+# cached afterwards in cache/) plus ~8 min of document embeddings.
+
+name: stackexchange_stream_lsa
+dataset: {name: stackexchange, limit: null}   # year comes from `years`
+years: [2020, 2021, 2022, 2023]
+embedder: distilbert
+seeds: [0]
+max_batch_size: 10000
+eval_assign: lloyd1        # lloyd1 (paper) | nearest
+baselines:                 # name -> sklearn kwargs
+  minibatchkmeans: {}
+  seqminibatchkmeans: {}
+  kmeans: {}
+method_name: k-NLPmeans
+force_context_length: 0
+tol: 1.0e-4
+schedule: {type: fixed, n_summaries: 5, max_iter: 120}
+summarizer: {type: lsa, top_k: 5}
+cache_dir: cache
+results_dir: results

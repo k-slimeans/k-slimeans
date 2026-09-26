@@ -1,0 +1,47 @@
+# Same protocol as bank77_knlpmeans.yaml, but summarizing each cluster with a
+# small instruction-tuned language model (the `hf` summarizer backend) instead
+# of extractive sentence selection. This is k-LLMmeans from the paper, scaled
+# down to models that fit on a single GPU -- hence "k-SLMmeans" here.
+#
+#   python scripts/run_offline.py configs/bank77_slm.yaml
+#
+# Qwen2.5-0.5B-Instruct on an RTX 3060: ~90 s per seed, ~3.5 GB VRAM, NMI ~0.64.
+#
+# Swap the model without touching this file, e.g.:
+#
+#   python scripts/run_offline.py configs/bank77_slm.yaml \
+#       --set summarizer.model_id=Qwen/Qwen2.5-1.5B-Instruct
+
+name: bank77_slm
+dataset: bank77
+embedder: distilbert
+seeds: [0]
+
+baselines:
+  kmeans: {n_init: 10}
+
+method_name: k-SLMmeans
+force_context_length: 0
+tol: 1.0e-4
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 100
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen2.5-0.5B-Instruct
+  max_new_tokens: 64
+  batch_size: 16
+  # Other model ids worth trying (swap via --set summarizer.model_id=...):
+  #   Qwen/Qwen2.5-1.5B-Instruct
+  #   Qwen/Qwen2.5-3B-Instruct
+  #   HuggingFaceTB/SmolLM2-1.7B-Instruct
+  #   meta-llama/Llama-3.2-1B-Instruct   (gated: `huggingface-cli login` first)
+  #   meta-llama/Llama-3.2-3B-Instruct   (gated: `huggingface-cli login` first)
+
+cache_dir: cache
+results_dir: results
