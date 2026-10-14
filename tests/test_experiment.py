@@ -154,6 +154,7 @@ def test_run_offline_writes_expected_files(tmp_path, monkeypatch):
     for row in summaries_rows:
         assert row["method"] == "k-Fakemeans"
         assert len(row["summaries"]) == N_CLUSTERS
+        assert len(row["assignments"]) == N_DOCS
 
     csv_text = summary_csv.read_text()
     assert "kmeans" in csv_text

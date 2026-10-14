@@ -4,7 +4,8 @@ Every run gets its own directory, `<results_dir>/<name>/<timestamp>/`, containin
 
 - `config.yaml`      the fully resolved config (after `--set` overrides),
 - `metrics.jsonl`    one JSON object per (seed, method[, year]) with the metrics from `metrics.cluster_metrics`,
-- `summaries.jsonl`  final cluster summaries (and their evolution) per (seed, method[, year]),
+- `summaries.jsonl`  final cluster summaries (and their evolution) and the final cluster assignments
+                     (one id per document) per (seed, method[, year]),
 
 and `summary.csv` with mean / std over seeds is written when the run finishes.
 """

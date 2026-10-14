@@ -143,6 +143,7 @@ def run_offline(cfg: dict) -> Path:
                 "seed": seed,
                 "method": method_name,
                 "summaries": result.summaries,
+                "assignments": result.assignments,
                 "summaries_evolution": result.summaries_evolution,
             }
         )

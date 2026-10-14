@@ -35,6 +35,7 @@ class Dataset:
     n_clusters: int
     prompt: str
     text_type: str
+    label_names: list[str] | None = None  # class name per label id, when the dataset has names
 
 
 def _load_bank77() -> Dataset:
@@ -47,7 +48,7 @@ def _load_bank77() -> Dataset:
         "question that represents the following cluster concisely:"
     )
     text_type = "Sentence:"
-    return Dataset("bank77", list(df["text"]), labels, 77, prompt, text_type)
+    return Dataset("bank77", list(df["text"]), labels, 77, prompt, text_type, list(categories))
 
 
 def _load_clinic() -> Dataset:
