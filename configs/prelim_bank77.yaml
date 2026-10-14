@@ -1,0 +1,43 @@
+# Preliminary experiment: does a small language model's summary make a better centroid?
+# Scope, from the professor: "One dataset, such as BANKING77, and two or three model sizes
+# should be enough to establish an initial result."
+#
+# So: Bank77, seeds 0-4, the offline protocol of configs/offline_knlpmeans.yaml (fixed schedule,
+# 5 summaries, 120 iterations), k-means baseline, and k-SLMmeans with Qwen3-0.6B / 1.7B / 4B.
+# The k-NLPmeans (LSA) row reuses configs/offline_knlpmeans.yaml with seeds 0-4. Thinking stays
+# off (HFSummarizer's default chat_template_kwargs).
+#
+# scripts/run_prelim.sh runs all four and builds the comparison table; it sets the model and the
+# per-model batch_size, so this file is the 0.6B setup:
+#
+#   scripts/run_prelim.sh
+#   python scripts/run_offline.py configs/prelim_bank77.yaml \
+#       --set summarizer.model_id=Qwen/Qwen3-1.7B --set summarizer.batch_size=BATCH --set name=prelim_bank77_qwen3-1.7b
+
+name: prelim_bank77
+dataset: bank77
+embedder: distilbert
+seeds: [0, 1, 2, 3, 4]
+
+baselines:
+  kmeans: {}
+
+method_name: k-SLMmeans
+force_context_length: 0
+tol: 1.0e-4
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 120
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-0.6B
+  max_new_tokens: 64
+  batch_size: 16
+
+cache_dir: cache
+results_dir: results

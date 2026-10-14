@@ -140,8 +140,10 @@ src/kslimeans/
   config.py        YAML loading + --set overrides
   cache.py         on-disk cache of document / sentence embeddings (cache/)
   results.py       results/<name>/<timestamp>/ writer
+  aggregate.py     combine run directories into a mean ± std table + example summaries (scripts/aggregate_results.py)
 configs/           experiment configs (YAML)
-scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_stackexchange.py
+scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_stackexchange.py,
+                   aggregate_results.py, run_prelim.sh
 data/              all datasets, checked in (see data/README.md)
 tests/             pytest suite, incl. exact-equivalence fixtures generated from the original code
 ```
@@ -182,12 +184,28 @@ Each run writes `results/<name>/<timestamp>/`:
 
 - `config.yaml`: the resolved config, after overrides
 - `metrics.jsonl`: one row per (seed, method) with `acc`, `nmi`, `ari`, the four distances, and runtime
-- `summaries.jsonl`: final summaries and how they evolved, per (seed, method)
+- `summaries.jsonl`: final summaries, how they evolved, and the final cluster assignments, per (seed, method)
 - `summary.csv`: mean and std over seeds (also printed at the end)
 
 Document and sentence embeddings are cached in `cache/`, keyed by dataset and embedder. Each entry is checked
 against a fingerprint of the texts, so editing a data file invalidates it automatically. Only the first run of
 a dataset pays for embedding. `cache/` and `results/` are git-ignored.
+
+### Preliminary Bank77 comparison (k-means, k-NLPmeans, k-SLMmeans with Qwen3 0.6B / 1.7B / 4B)
+
+`scripts/run_prelim.sh` runs the offline protocol on Bank77 with seeds 0–4 for LSA and for Qwen3-0.6B / 1.7B / 4B
+(`configs/prelim_bank77.yaml`, with a per-model `batch_size` that fits a 12 GB card), logs each run to
+`results/prelim_logs/`, and writes `results/prelim_bank77_table.md` / `.csv`. Pass step names (`lsa 0.6b 1.7b 4b`)
+to rerun a subset. `scripts/aggregate_results.py` builds the same table from any run directories, and
+`--examples` shows, for a gold class (id or name), the cluster that best matches it and its final summary.
+
+```bash
+PYTHON=.venv/bin/python scripts/run_prelim.sh
+python scripts/aggregate_results.py results/prelim_bank77_lsa/<stamp> results/prelim_bank77_qwen3-0.6b/<stamp> \
+    --examples card_arrival --seed 0
+```
+
+(Examples need runs made after assignments were added to `summaries.jsonl`.)
 
 ### Streaming (StackExchange)
 
