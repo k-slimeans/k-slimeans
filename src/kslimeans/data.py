@@ -51,6 +51,10 @@ def _load_bank77() -> Dataset:
     return Dataset("bank77", list(df["text"]), labels, 77, prompt, text_type, list(categories))
 
 
+_CLINC_PROMPT = "The following is cluster of questions. Write a question that summarizes the following cluster:"
+_CLINC_TEXT_TYPE = "Question:"
+
+
 def _load_clinic() -> Dataset:
     df = pd.read_csv(DATA_DIR / "clinc_small_test.csv")
     kept = df[df["intent"] != 42]
@@ -63,9 +67,30 @@ def _load_clinic() -> Dataset:
         remapped.append(intent_mapping[intent])
     labels = np.array(remapped, dtype=np.int64)
 
-    prompt = "The following is cluster of questions. Write a question that summarizes the following cluster:"
-    text_type = "Question:"
-    return Dataset("clinic", list(kept["text"]), labels, 150, prompt, text_type)
+    return Dataset("clinic", list(kept["text"]), labels, 150, _CLINC_PROMPT, _CLINC_TEXT_TYPE)
+
+
+def _load_clinc150(level: str) -> Dataset:
+    """Full CLINC150: 22,500 in-scope queries (train + val + test, `oos` dropped).
+
+    `level="intent"` labels each query with one of 150 intents; `level="domain"`
+    labels the same queries with one of 10 domains via clinc150_domains.csv.
+    Label ids are LabelEncoder ids over the sorted names, so they are stable.
+    """
+    df = pd.read_csv(DATA_DIR / "clinc150_full.csv")
+    if level == "intent":
+        raw_labels, n_clusters = df["intent_name"], 150
+    elif level == "domain":
+        mapping = pd.read_csv(DATA_DIR / "clinc150_domains.csv")
+        raw_labels = df["intent_name"].map(dict(zip(mapping["intent_name"], mapping["domain"])))
+        if raw_labels.isna().any():
+            raise ValueError("clinc150_domains.csv is missing intents found in clinc150_full.csv")
+        n_clusters = 10
+    else:
+        raise ValueError(f"Unknown clinc150 level '{level}', expected 'intent' or 'domain'")
+
+    labels = LabelEncoder().fit_transform(raw_labels).astype(np.int64)
+    return Dataset(f"clinc150_{level}", list(df["text"]), labels, n_clusters, _CLINC_PROMPT, _CLINC_TEXT_TYPE)
 
 
 def _load_massive_raw() -> pd.DataFrame:
@@ -188,6 +213,8 @@ def load_stackexchange(year: int | None = None, limit: int | None = None) -> Dat
 _LOADERS = {
     "bank77": _load_bank77,
     "clinic": _load_clinic,
+    "clinc150_intent": lambda: _load_clinc150("intent"),
+    "clinc150_domain": lambda: _load_clinc150("domain"),
     "massive_I": lambda: _load_massive("I"),
     "massive_D": lambda: _load_massive("D"),
     "goemo": _load_goemo,
