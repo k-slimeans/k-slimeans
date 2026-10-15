@@ -149,6 +149,14 @@ def test_run_offline_writes_expected_files(tmp_path, monkeypatch):
         assert isinstance(row["n_summary_steps"], int)
         assert isinstance(row["converged"], bool)
 
+    trace_rows = [json.loads(line) for line in (run_dir / "trace.jsonl").read_text().splitlines()]
+    assert all({"seed", "method", "step"} <= set(row) for row in trace_rows)
+    assert {row["method"] for row in trace_rows} == {"k-Fakemeans"}  # baselines have no trace
+    for row in method_rows:
+        steps = [r["step"] for r in trace_rows if r["seed"] == row["seed"]]
+        # One row per KMeans fit: the initial fit plus one per summary step, minus a tol early stop.
+        assert steps == list(range(1 + row["n_summary_steps"] - int(row["converged"])))
+
     summaries_rows = [json.loads(line) for line in summaries_path.read_text().splitlines()]
     assert len(summaries_rows) == 2  # one per seed; baselines don't produce summaries
     for row in summaries_rows:

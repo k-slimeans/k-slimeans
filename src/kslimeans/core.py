@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 from sklearn.cluster import KMeans, kmeans_plusplus
+from sklearn.metrics import pairwise_distances_argmin
 from tqdm import tqdm
 
 from .embeddings import Embedder, get_embedder
@@ -36,6 +37,10 @@ class Result:
     summaries_evolution: list[list[str]] = field(default_factory=list)
     centroids_evolution: list[np.ndarray] = field(default_factory=list)
     converged: bool = False
+    trace: list[dict] = field(default_factory=list)
+    """One plain-Python (JSON-serializable) row per KMeans fit, in order, including the initial fit
+    (step 0); see `_trace_row` for the keys. A summary step that stops on `tol` fits no KMeans, so
+    it gets no row: `len(trace) == 1 + len(centroids_evolution)`."""
 
     def as_tuple(self):
         """Upstream's 6-tuple return order, for drop-in compatibility."""
@@ -47,6 +52,43 @@ class Result:
             self.summaries_evolution,
             self.centroids_evolution,
         )
+
+
+def _objective(X: np.ndarray, centers: np.ndarray, chunk_rows: int = 65536) -> float:
+    """K-means objective of `centers` on `X`: sum of squared distances to the nearest center.
+
+    The same quantity as sklearn's `inertia_`, but RNG-free. Nearest centers come from
+    sklearn's argmin; the squared distances are then summed exactly in float64, `chunk_rows`
+    rows at a time so a large `X` is never copied whole.
+    """
+    centers64 = centers.astype(np.float64)
+    total = 0.0
+    for lo in range(0, len(X), chunk_rows):
+        chunk = X[lo : lo + chunk_rows]
+        diff = chunk.astype(np.float64) - centers64[pairwise_distances_argmin(chunk, centers)]
+        total += float(np.sum(diff**2))
+    return total
+
+
+def _trace_row(state: State, summarize: bool, summary_inertia: float | None) -> dict:
+    """One `Result.trace` row for the fit that just produced `state`.
+
+    `summarize` says whether the step that produced this fit was a summary step;
+    `summary_inertia` is the objective of the summary-embedding centroids before that
+    step's Lloyd iterations (`None` on non-summary rows), so
+    `summary_inertia - prev_inertia` is the jump the summary step caused.
+    """
+    return {
+        "step": state.step,
+        "inertia": float(state.inertia),
+        "prev_inertia": None if state.prev_inertia is None else float(state.prev_inertia),
+        "frac_changed": state.frac_changed,
+        "summary_shift": state.summary_shift,
+        "last_n_iter": int(state.last_n_iter),
+        "last_max_iter": int(state.last_max_iter),
+        "summarize": summarize,
+        "summary_inertia": summary_inertia,
+    }
 
 
 def _select_cluster(
@@ -173,11 +215,14 @@ def summary_kmeans(
         summary_shift=None,
     )
 
+    trace = [_trace_row(state, False, None)]
+
     pbar = tqdm(desc="Iterating KMeans", disable=not verbose)
     try:
         while (step := schedule.next_step(state)) is not None:
             pbar.update(1)
             shift = None
+            summary_inertia = None
             if step.summarize:
                 clusters = [
                     _select_cluster(c, labels, X, texts, force_context_length, random_state, sentences)
@@ -197,6 +242,7 @@ def summary_kmeans(
                 ref = s_emb
                 centroids_evolution.append(s_emb)
                 start = s_emb
+                summary_inertia = _objective(X, start)
             else:
                 start = km.cluster_centers_
 
@@ -217,6 +263,7 @@ def summary_kmeans(
                 last_max_iter=step.kmeans_iters,
                 summary_shift=shift,
             )
+            trace.append(_trace_row(state, step.summarize, summary_inertia))
     finally:
         pbar.close()
 
@@ -228,6 +275,7 @@ def summary_kmeans(
         summaries_evolution=summaries_evolution,
         centroids_evolution=centroids_evolution,
         converged=converged,
+        trace=trace,
     )
 
 

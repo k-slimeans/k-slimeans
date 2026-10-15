@@ -4,7 +4,7 @@
 via `scripts/run_offline.py`): load a dataset, embed it once (cached to
 disk), build the summarizer once (SLM loading is expensive), then for
 every seed run each configured baseline plus the summary-centroids method,
-logging metrics/summaries into a fresh `results/<name>/<timestamp>/` run
+logging metrics/summaries/per-step traces into a fresh `results/<name>/<timestamp>/` run
 directory (see `results.RunDir`). See `configs/*.yaml` for example configs.
 
 `_ALLOWED_KEYS`/`_REQUIRED_KEYS` feed `config.check_keys`, a flat typo-guard, not a
@@ -138,6 +138,7 @@ def run_offline(cfg: dict) -> Path:
                 "converged": result.converged,
             }
         )
+        run.log_trace({"seed": seed, "method": method_name}, result.trace)
         run.log_summaries(
             {
                 "seed": seed,

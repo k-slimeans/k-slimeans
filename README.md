@@ -185,6 +185,9 @@ Each run writes `results/<name>/<timestamp>/`:
 - `config.yaml`: the resolved config, after overrides
 - `metrics.jsonl`: one row per (seed, method) with `acc`, `nmi`, `ari`, the four distances, and runtime
 - `summaries.jsonl`: final summaries, how they evolved, and the final cluster assignments, per (seed, method)
+- `trace.jsonl`: one row per KMeans fit per (seed, method) for the summary-centroids method: `step`, `inertia`,
+  `prev_inertia`, `frac_changed`, `summary_shift`, `last_n_iter`, `last_max_iter`, `summarize`, and `summary_inertia`
+  (the objective of the summary centroids before that step's Lloyd iterations)
 - `summary.csv`: mean and std over seeds (also printed at the end)
 
 Document and sentence embeddings are cached in `cache/`, keyed by dataset and embedder. Each entry is checked

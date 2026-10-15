@@ -6,6 +6,8 @@ Every run gets its own directory, `<results_dir>/<name>/<timestamp>/`, containin
 - `metrics.jsonl`    one JSON object per (seed, method[, year]) with the metrics from `metrics.cluster_metrics`,
 - `summaries.jsonl`  final cluster summaries (and their evolution) and the final cluster assignments
                      (one id per document) per (seed, method[, year]),
+- `trace.jsonl`      one row per KMeans fit per (seed, method) from `Result.trace` (inertia, label churn,
+                     summary shift, ...), written only for summary-centroids methods,
 
 and `summary.csv` with mean / std over seeds is written when the run finishes.
 """
@@ -55,6 +57,14 @@ class RunDir:
         """Record summaries, e.g. `{"seed": 0, "method": "k-NLPmeans", "summaries": [...]}`."""
         with open(self.path / "summaries.jsonl", "a") as f:
             f.write(json.dumps(_to_jsonable(row)) + "\n")
+
+    def log_trace(self, key: dict, trace: list[dict]) -> None:
+        """Append one `trace.jsonl` line per trace row, each `{**key, **row}`; no file if `trace` is empty."""
+        if not trace:
+            return
+        with open(self.path / "trace.jsonl", "a") as f:
+            for row in trace:
+                f.write(json.dumps(_to_jsonable({**key, **row})) + "\n")
 
     def finish(self, group_by: list[str] | None = None, metrics: list[str] | None = None) -> pd.DataFrame:
         """Write `summary.csv` (mean/std over seeds) and return it for printing."""
