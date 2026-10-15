@@ -75,7 +75,8 @@ def _load_clinc150(level: str) -> Dataset:
 
     `level="intent"` labels each query with one of 150 intents; `level="domain"`
     labels the same queries with one of 10 domains via clinc150_domains.csv.
-    Label ids are LabelEncoder ids over the sorted names, so they are stable.
+    Label ids are LabelEncoder ids over the sorted intent/domain names (not the
+    Hugging Face ids in the CSV's `intent` column), so `label_names[i]` names label `i`.
     """
     df = pd.read_csv(DATA_DIR / "clinc150_full.csv")
     if level == "intent":
@@ -89,8 +90,17 @@ def _load_clinc150(level: str) -> Dataset:
     else:
         raise ValueError(f"Unknown clinc150 level '{level}', expected 'intent' or 'domain'")
 
-    labels = LabelEncoder().fit_transform(raw_labels).astype(np.int64)
-    return Dataset(f"clinc150_{level}", list(df["text"]), labels, n_clusters, _CLINC_PROMPT, _CLINC_TEXT_TYPE)
+    encoder = LabelEncoder()
+    labels = encoder.fit_transform(raw_labels).astype(np.int64)
+    return Dataset(
+        f"clinc150_{level}",
+        list(df["text"]),
+        labels,
+        n_clusters,
+        _CLINC_PROMPT,
+        _CLINC_TEXT_TYPE,
+        [str(name) for name in encoder.classes_],
+    )
 
 
 def _load_massive_raw() -> pd.DataFrame:
