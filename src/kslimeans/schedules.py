@@ -21,6 +21,10 @@ schedule could summarize only every third step, or only once
 `Step(summarize=False, kmeans_iters=...)` on the steps where it wants a
 plain k-means continuation instead of a summarize step.
 
+A summary step may also carry a `summarize_mask` to re-summarize only some clusters (the rest keep
+their k-means centers), and `State.n_calls` reports the summarizer calls spent so far, so a schedule can
+be budget-aware.
+
 One caveat for anyone building such a schedule: restarting `KMeans` with
 `init=km.cluster_centers_` is *not* bit-identical to continuing Lloyd's
 algorithm past its current iteration count, because `sklearn`'s `KMeans`
@@ -58,6 +62,7 @@ class State:
     last_n_iter: int  # KMeans.n_iter_ of the most recent fit
     last_max_iter: int  # max_iter that was requested for the most recent fit
     summary_shift: float | None  # ||ref - summary_embeddings||-sum from the most recent summarize step
+    n_calls: int = 0  # summarizer calls so far: clusters actually sent to the summarizer (memo hits are free)
 
 
 @dataclass(frozen=True)
@@ -66,6 +71,19 @@ class Step:
 
     summarize: bool
     kmeans_iters: int
+    summarize_mask: tuple[bool, ...] | None = None
+    """Which clusters (by id, length `n_clusters`) to re-summarize on a summary step. `None` means all
+    of them. Masked-off clusters keep their current k-means center as the next start centroid. Any bool
+    array-like is accepted and normalized to a tuple of Python bools (an ndarray field would make
+    `Step == Step` raise). Only valid with `summarize=True` (checked here); `summary_kmeans` checks the
+    length. An all-False mask still counts as a summary step in `State.n_summaries` but costs 0 calls, so
+    budget on `State.n_calls`, not `n_summaries`."""
+
+    def __post_init__(self) -> None:
+        if self.summarize_mask is not None:
+            if not self.summarize:
+                raise ValueError("Step.summarize_mask requires summarize=True")
+            object.__setattr__(self, "summarize_mask", tuple(bool(m) for m in self.summarize_mask))
 
 
 class SummarySchedule(ABC):

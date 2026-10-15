@@ -18,6 +18,7 @@ import yaml
 from kslimeans import experiment
 from kslimeans.config import load_config
 from kslimeans.data import Dataset
+from kslimeans.schedules import Step, SummarySchedule
 from kslimeans.summarizers.base import Cluster, Summarizer
 
 N_DOCS = 24
@@ -148,6 +149,7 @@ def test_run_offline_writes_expected_files(tmp_path, monkeypatch):
     for row in method_rows:
         assert isinstance(row["n_summary_steps"], int)
         assert isinstance(row["converged"], bool)
+        assert 0 < row["n_calls"] <= N_CLUSTERS * row["n_summary_steps"]  # cache hits are free
 
     trace_rows = [json.loads(line) for line in (run_dir / "trace.jsonl").read_text().splitlines()]
     assert all({"seed", "method", "step"} <= set(row) for row in trace_rows)
@@ -180,3 +182,31 @@ def test_bank77_config_reproduces_reference_nmi(tmp_path):
 
     assert round(kmeans_nmi, 4) == 0.6541
     assert round(knlp_nmi, 4) == 0.6518
+
+
+class _MaskedSchedule(SummarySchedule):
+    """One summary step over clusters {0, 1} only, so the other clusters are never summarized."""
+
+    def first_iters(self) -> int:
+        return 10
+
+    def next_step(self, state):
+        return Step(True, 10, [True, True] + [False] * (N_CLUSTERS - 2)) if state.step == 0 else None
+
+
+def test_run_offline_with_never_summarized_clusters(tmp_path, monkeypatch):
+    ds, X = _make_synthetic_dataset()
+    fake_embedder = _FakeEmbedder({t: X[i] for i, t in enumerate(ds.texts)})
+    monkeypatch.setattr(experiment, "load_dataset", lambda name, **kwargs: ds)
+    monkeypatch.setattr(experiment, "get_embedder", lambda name: fake_embedder)
+    monkeypatch.setattr(
+        experiment, "build_summarizer", lambda cfg, prompt=None, text_type=None: _FakeSummarizer()
+    )
+    monkeypatch.setattr(experiment, "build_schedule", lambda cfg: _MaskedSchedule())
+
+    run_dir = experiment.run_offline(_base_config(tmp_path, seeds=[0], baselines={}, tol=-1.0))
+
+    (row,) = [json.loads(line) for line in (run_dir / "metrics.jsonl").read_text().splitlines()]
+    assert row["n_calls"] == 2
+    for key in ("acc", "nmi", "ari", "cen_cen_dist", "cen_sum_dist", "sum_cen_dist", "sum_sum_dist"):
+        assert np.isfinite(row[key]), key

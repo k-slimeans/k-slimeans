@@ -28,7 +28,13 @@ from .summarizers import Cluster, Summarizer, build_summarizer
 
 @dataclass
 class Result:
-    """Everything `summary_kmeans` produces."""
+    """Everything `summary_kmeans` produces.
+
+    With per-cluster summarize masks (`Step.summarize_mask`), `summaries` and every entry of
+    `summaries_evolution` hold each cluster's latest summary, `None` for a cluster not yet summarized.
+    `summary_embeddings` likewise holds each cluster's latest summary embedding, with a NaN row for a
+    never-summarized cluster.
+    """
 
     assignments: np.ndarray
     summaries: list[str] | None
@@ -41,6 +47,9 @@ class Result:
     """One plain-Python (JSON-serializable) row per KMeans fit, in order, including the initial fit
     (step 0); see `_trace_row` for the keys. A summary step that stops on `tol` fits no KMeans, so
     it gets no row: `len(trace) == 1 + len(centroids_evolution)`."""
+    n_calls: int = 0
+    """Total summarizer calls: clusters actually sent to `summarize_batch` (memo-cache hits and empty
+    clusters are free), including those of a summary step that stopped on `tol` and so has no trace row."""
 
     def as_tuple(self):
         """Upstream's 6-tuple return order, for drop-in compatibility."""
@@ -70,13 +79,17 @@ def _objective(X: np.ndarray, centers: np.ndarray, chunk_rows: int = 65536) -> f
     return total
 
 
-def _trace_row(state: State, summarize: bool, summary_inertia: float | None) -> dict:
+def _trace_row(
+    state: State, summarize: bool, summary_inertia: float | None, n_calls: int, n_summarized: int
+) -> dict:
     """One `Result.trace` row for the fit that just produced `state`.
 
     `summarize` says whether the step that produced this fit was a summary step;
-    `summary_inertia` is the objective of the summary-embedding centroids before that
-    step's Lloyd iterations (`None` on non-summary rows), so
-    `summary_inertia - prev_inertia` is the jump the summary step caused.
+    `summary_inertia` is the objective of the start centroids before that step's Lloyd
+    iterations (`None` on non-summary rows), so `summary_inertia - prev_inertia` is the jump
+    the summary step caused. `n_calls` is the summarizer calls that step made and
+    `n_summarized` the number of clusters whose start centroid came from a summary (k on a
+    full step); both are 0 on non-summary rows and step 0.
     """
     return {
         "step": state.step,
@@ -88,6 +101,8 @@ def _trace_row(state: State, summarize: bool, summary_inertia: float | None) -> 
         "last_max_iter": int(state.last_max_iter),
         "summarize": summarize,
         "summary_inertia": summary_inertia,
+        "n_calls": n_calls,
+        "n_summarized": n_summarized,
     }
 
 
@@ -135,8 +150,11 @@ def _select_cluster(
 
 def _summarize_clusters(
     clusters: list[Cluster], summarizer: Summarizer, cache: dict[tuple[int, ...], str]
-) -> list[str]:
-    """Summary per cluster, in cluster-id order. Empty clusters get "" for free."""
+) -> tuple[list[str], int]:
+    """Summary per cluster, in input order, and the number of clusters actually sent to the summarizer.
+
+    Empty clusters get "" and memo-cache hits reuse the cached summary; neither counts as a call.
+    """
     summaries: list[str | None] = [None] * len(clusters)
     to_summarize: list[tuple[int, Cluster]] = []
     for i, cluster in enumerate(clusters):
@@ -153,7 +171,7 @@ def _summarize_clusters(
             summaries[i] = summary
             cache[cluster.doc_ids] = summary
 
-    return summaries  # type: ignore[return-value]
+    return summaries, len(to_summarize)  # type: ignore[return-value]
 
 
 def summary_kmeans(
@@ -193,12 +211,13 @@ def summary_kmeans(
     labels = km.fit_predict(X)
     ref = km.cluster_centers_
 
-    summaries: list[str] | None = None
+    summaries: list[str | None] | None = None
     s_emb: np.ndarray | None = None
     summaries_evolution: list[list[str]] = []
     centroids_evolution: list[np.ndarray] = []
     converged = False
     cache: dict[tuple[int, ...], str] = {}
+    total_calls = 0
 
     state = State(
         step=0,
@@ -213,9 +232,10 @@ def summary_kmeans(
         last_n_iter=km.n_iter_,
         last_max_iter=schedule.first_iters(),
         summary_shift=None,
+        n_calls=0,
     )
 
-    trace = [_trace_row(state, False, None)]
+    trace = [_trace_row(state, False, None, 0, 0)]
 
     pbar = tqdm(desc="Iterating KMeans", disable=not verbose)
     try:
@@ -223,12 +243,20 @@ def summary_kmeans(
             pbar.update(1)
             shift = None
             summary_inertia = None
-            if step.summarize:
+            step_calls = 0
+            n_summarized = 0
+            mask = step.summarize_mask
+            if mask is not None and len(mask) != n_clusters:
+                raise ValueError(f"summarize_mask has length {len(mask)}, expected n_clusters={n_clusters}")
+            if step.summarize and (mask is None or all(mask)):
+                # Full step (the paper's behavior): every cluster, one encode call over all k summaries.
                 clusters = [
                     _select_cluster(c, labels, X, texts, force_context_length, random_state, sentences)
                     for c in range(n_clusters)
                 ]
-                summaries = _summarize_clusters(clusters, summarizer, cache)
+                summaries, step_calls = _summarize_clusters(clusters, summarizer, cache)
+                total_calls += step_calls
+                n_summarized = n_clusters
                 summaries_evolution.append(summaries)
 
                 s_emb = embedder.encode(summaries)
@@ -242,6 +270,44 @@ def summary_kmeans(
                 ref = s_emb
                 centroids_evolution.append(s_emb)
                 start = s_emb
+                summary_inertia = _objective(X, start)
+            elif step.summarize:
+                # Partial step: only masked-on clusters are selected, summarized and encoded. The
+                # `tol` stop is skipped: a shift over a subset isn't comparable to `tol`, and one
+                # unchanged (memo-cache hit) cluster would otherwise end the run.
+                active = [c for c in range(n_clusters) if mask[c]]
+                clusters = [
+                    _select_cluster(c, labels, X, texts, force_context_length, random_state, sentences)
+                    for c in active
+                ]
+                new_summaries, step_calls = _summarize_clusters(clusters, summarizer, cache)
+                total_calls += step_calls
+                n_summarized = len(active)
+
+                latest: list[str | None] = [None] * n_clusters if summaries is None else list(summaries)
+                for c, summary in zip(active, new_summaries):
+                    latest[c] = summary
+                summaries = latest
+                summaries_evolution.append(list(latest))
+
+                # Masked-off rows keep the current k-means center. `start` copies the centers (so it
+                # keeps KMeans' own dtype, which is also what KMeans casts any `init` to); the float32
+                # summary embeddings are written into it exactly, with no precision lost.
+                start = km.cluster_centers_.copy()
+                ref = ref.copy()
+                if active:
+                    new_emb = embedder.encode(new_summaries)
+                    shift = float(np.linalg.norm(ref[active] - new_emb, axis=1).sum())
+                    ref[active] = new_emb
+                    start[active] = new_emb
+                    if s_emb is None:
+                        s_emb = np.full((n_clusters, new_emb.shape[1]), np.nan, dtype=new_emb.dtype)
+                    else:
+                        s_emb = s_emb.copy()
+                    s_emb[active] = new_emb
+                else:
+                    shift = 0.0
+                centroids_evolution.append(start)
                 summary_inertia = _objective(X, start)
             else:
                 start = km.cluster_centers_
@@ -262,8 +328,9 @@ def summary_kmeans(
                 last_n_iter=km.n_iter_,
                 last_max_iter=step.kmeans_iters,
                 summary_shift=shift,
+                n_calls=total_calls,
             )
-            trace.append(_trace_row(state, step.summarize, summary_inertia))
+            trace.append(_trace_row(state, step.summarize, summary_inertia, step_calls, n_summarized))
     finally:
         pbar.close()
 
@@ -276,6 +343,7 @@ def summary_kmeans(
         centroids_evolution=centroids_evolution,
         converged=converged,
         trace=trace,
+        n_calls=total_calls,
     )
 
 

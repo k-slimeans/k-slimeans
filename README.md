@@ -186,8 +186,9 @@ Each run writes `results/<name>/<timestamp>/`:
 - `metrics.jsonl`: one row per (seed, method) with `acc`, `nmi`, `ari`, the four distances, and runtime
 - `summaries.jsonl`: final summaries, how they evolved, and the final cluster assignments, per (seed, method)
 - `trace.jsonl`: one row per KMeans fit per (seed, method) for the summary-centroids method: `step`, `inertia`,
-  `prev_inertia`, `frac_changed`, `summary_shift`, `last_n_iter`, `last_max_iter`, `summarize`, and `summary_inertia`
-  (the objective of the summary centroids before that step's Lloyd iterations)
+  `prev_inertia`, `frac_changed`, `summary_shift`, `last_n_iter`, `last_max_iter`, `summarize`, `summary_inertia`
+  (the objective of the start centroids before that step's Lloyd iterations), `n_calls` (clusters sent to the
+  summarizer in that step), and `n_summarized` (clusters whose start centroid came from a summary)
 - `summary.csv`: mean and std over seeds (also printed at the end)
 
 Document and sentence embeddings are cached in `cache/`, keyed by dataset and embedder. Each entry is checked
@@ -324,10 +325,20 @@ It sees only a frozen `State` snapshot:
 | `labels`, `prev_labels`, `frac_changed` | current / previous assignments, fraction of points that moved |
 | `centers`, `inertia`, `prev_inertia` | current k-means centers and objective |
 | `last_n_iter`, `last_max_iter` | how many iterations the last fit took vs. was allowed (early convergence) |
-| `summary_shift` | how far the centroids moved at the last summary step |
+| `summary_shift` | how far the centroids moved at the last summary step (over the masked-on clusters only, if masked) |
+| `n_calls` | summarizer calls so far: clusters actually sent to the summarizer (memo-cache hits are free) |
 
 The paper's schedule is `FixedSchedule(n_summaries, max_iter, initial_iter, final_iter)`. It splits the
 `max_iter` budget into equal blocks and summarizes between every pair of blocks.
+
+A summary step can be limited to some clusters with `Step(True, iters, summarize_mask=...)`, one bool per
+cluster (any bool array-like; `None` means all). Masked-on clusters are re-summarized and start from their
+summary embedding; masked-off clusters start from their current k-means center and cost no summarizer call.
+`Result.summaries` and `summary_embeddings` keep each cluster's latest summary (`None` / a NaN row if it was
+never summarized). `Result.n_calls` and the trace's `n_calls` count clusters actually sent to the summarizer,
+so budget-matched comparisons are exact. An all-False mask still counts as a summary step in `n_summaries`
+(with 0 calls), so budget on `n_calls`, not `n_summaries`. A mask on a `summarize=False` step raises
+`ValueError` when the `Step` is built.
 
 A sketch of a new schedule (illustrative only, not included in the package):
 
@@ -357,7 +368,9 @@ Guidelines:
 - **Keep schedules stateless.** Decide only from `state` and your constructor arguments, so one instance can
   be reused across seeds and mini-batches.
 - **Always terminate.** Bound the number of steps, as `max_steps` does above.
-- The `tol` early stop applies to summary steps no matter which schedule you use (`tol: -1` disables it).
+- The `tol` early stop applies to full summary steps (no mask, or an all-True one) no matter which schedule
+  you use (`tol: -1` disables it). It is skipped on partial-mask steps: a shift over a subset isn't comparable
+  to `tol`, and one unchanged cluster would otherwise end the run.
 - Restarting `KMeans` from its own centers (`summarize=False`) is not bit-identical to one longer Lloyd run,
   because sklearn re-centers the data internally. Two schedules with the same total iterations can differ
   slightly. That's expected.

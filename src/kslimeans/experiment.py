@@ -125,9 +125,14 @@ def run_offline(cfg: dict) -> Path:
             random_state=seed,
         )
         elapsed = time.perf_counter() - start
-        metrics = cluster_metrics(
-            ds.labels, result.assignments, oracle, result.centroids, oracle, result.summary_embeddings
-        )
+        # Clusters a masked schedule never summarized have NaN rows; the Hungarian matching in
+        # `avg_closest_distance` handles the resulting rectangular matrix.
+        summary_pred = result.summary_embeddings
+        if summary_pred is not None:
+            summary_pred = summary_pred[np.isfinite(summary_pred).all(axis=1)]
+            if len(summary_pred) == 0:
+                summary_pred = None
+        metrics = cluster_metrics(ds.labels, result.assignments, oracle, result.centroids, oracle, summary_pred)
         run.log_metrics(
             {
                 "seed": seed,
@@ -136,6 +141,7 @@ def run_offline(cfg: dict) -> Path:
                 "runtime_s": elapsed,
                 "n_summary_steps": len(result.summaries_evolution),
                 "converged": result.converged,
+                "n_calls": result.n_calls,
             }
         )
         run.log_trace({"seed": seed, "method": method_name}, result.trace)

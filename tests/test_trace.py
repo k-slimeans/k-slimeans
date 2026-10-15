@@ -27,6 +27,8 @@ TRACE_KEYS = {
     "last_max_iter",
     "summarize",
     "summary_inertia",
+    "n_calls",
+    "n_summarized",
 }
 
 
