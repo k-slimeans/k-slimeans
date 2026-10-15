@@ -125,7 +125,7 @@ of the centroids. See `minibatch.py`.
 ```
 src/kslimeans/
   core.py          summary_kmeans() loop, Result, kNLPmeans / kLLMmeans
-  schedules.py     State, Step, SummarySchedule, FixedSchedule, build_schedule()
+  schedules.py     State, Step, SummarySchedule, FixedSchedule, AdaptiveSchedule, RandomSubsetSchedule, build_schedule()
   summarizers/
     base.py        Cluster, Summarizer
     extractive.py  lsa / centroid / textrank (+ MMR reranking), ported verbatim
@@ -327,6 +327,9 @@ It sees only a frozen `State` snapshot:
 | `last_n_iter`, `last_max_iter` | how many iterations the last fit took vs. was allowed (early convergence) |
 | `summary_shift` | how far the centroids moved at the last summary step (over the masked-on clusters only, if masked) |
 | `n_calls` | summarizer calls so far: clusters actually sent to the summarizer (memo-cache hits are free) |
+| `last_summarized` | `(k,)` int: the `step` at which each cluster was last summarized (`-1` = never) |
+| `anchor_centers`, `anchor_members` | each cluster's k-means center and member doc indices *just before* its last summary (the step-0 fit if never summarized) |
+| `cluster_rms_radius` | `(k,)`: RMS distance of each cluster's members to its center (0 if empty) |
 
 The paper's schedule is `FixedSchedule(n_summaries, max_iter, initial_iter, final_iter)`. It splits the
 `max_iter` budget into equal blocks and summarizes between every pair of blocks.
@@ -339,6 +342,26 @@ never summarized). `Result.n_calls` and the trace's `n_calls` count clusters act
 so budget-matched comparisons are exact. An all-False mask still counts as a summary step in `n_summaries`
 (with 0 calls), so budget on `n_calls`, not `n_summaries`. A mask on a `summarize=False` step raises
 `ValueError` when the `Step` is built.
+
+Two more schedules are built in, both with `FixedSchedule`'s blocks and candidate steps:
+
+- **`adaptive`**: at each candidate step, re-summarize only the clusters that moved. Cluster j is summarized
+  if it never was, if its centroid drift since its last summary exceeds `tau_drift` (displacement divided by
+  its RMS radius), if its membership churn (Jaccard distance to its members at that summary) exceeds
+  `tau_churn`, or if `s_max` is set and it has skipped `s_max - 1` candidate steps in a row (`s_max: 1`
+  summarizes every step). If nothing triggers the step is a plain k-means continuation; empty clusters never
+  trigger. `centroid_drift` and `membership_churn` in `schedules.py` are the pure helpers behind this.
+- **`random_subset`**: the control matched on summarizer calls. At candidate step c it re-summarizes
+  `counts[c - 1]` clusters drawn at random (seeded by `seed` and the step). With `changed_only: true` (default)
+  it draws only among clusters whose membership changed since their last summary, because re-summarizing an
+  unchanged cluster is a free memo-cache hit and would not spend budget; `changed_only: false` draws among all
+  non-empty clusters. Set `counts` to an adaptive run's per-step `n_calls` (from `trace.jsonl`) and compare runs
+  on `n_calls`.
+
+```yaml
+schedule: {type: adaptive, n_summaries: 5, max_iter: 120, tau_drift: 0.3, tau_churn: 0.4}
+schedule: {type: random_subset, n_summaries: 5, max_iter: 120, counts: [6, 2, 0, 1, 0], seed: 0}
+```
 
 A sketch of a new schedule (illustrative only, not included in the package):
 

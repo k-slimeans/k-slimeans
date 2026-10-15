@@ -79,6 +79,32 @@ def _objective(X: np.ndarray, centers: np.ndarray, chunk_rows: int = 65536) -> f
     return total
 
 
+def _cluster_rms_radius(
+    X: np.ndarray, labels: np.ndarray, centers: np.ndarray, chunk_rows: int = 8192
+) -> np.ndarray:
+    """Per-cluster RMS distance of its members to its center: `sqrt(mean_i ||X_i - center||^2)`.
+
+    0 for an empty cluster. Squared distances are accumulated in float64, `chunk_rows` rows at a
+    time, so a large `X` is never copied whole and no n x k matrix is built.
+    """
+    k = len(centers)
+    centers64 = centers.astype(np.float64)
+    sq_sum = np.zeros(k, dtype=np.float64)
+    for lo in range(0, len(X), chunk_rows):
+        lab = labels[lo : lo + chunk_rows]
+        diff = X[lo : lo + chunk_rows].astype(np.float64) - centers64[lab]
+        sq_sum += np.bincount(lab, weights=np.einsum("ij,ij->i", diff, diff), minlength=k)
+    counts = np.bincount(labels, minlength=k)
+    return np.sqrt(sq_sum / np.maximum(counts, 1))
+
+
+def _members_by_cluster(labels: np.ndarray, n_clusters: int) -> list[np.ndarray]:
+    """Ascending document indices of every cluster, from one stable sort (== `np.flatnonzero(labels == c)`)."""
+    order = np.argsort(labels, kind="stable")
+    bounds = np.cumsum(np.bincount(labels, minlength=n_clusters))[:-1]
+    return np.split(order, bounds)
+
+
 def _trace_row(
     state: State, summarize: bool, summary_inertia: float | None, n_calls: int, n_summarized: int
 ) -> dict:
@@ -233,6 +259,10 @@ def summary_kmeans(
         last_max_iter=schedule.first_iters(),
         summary_shift=None,
         n_calls=0,
+        last_summarized=np.full(n_clusters, -1, dtype=np.int64),
+        anchor_centers=ref,
+        anchor_members=tuple(_members_by_cluster(labels, n_clusters)),
+        cluster_rms_radius=_cluster_rms_radius(X, labels, ref),
     )
 
     trace = [_trace_row(state, False, None, 0, 0)]
@@ -246,6 +276,7 @@ def summary_kmeans(
             step_calls = 0
             n_summarized = 0
             mask = step.summarize_mask
+            summarized_now: list[int] = []  # clusters whose summary anchors move to the pre-summary state
             if mask is not None and len(mask) != n_clusters:
                 raise ValueError(f"summarize_mask has length {len(mask)}, expected n_clusters={n_clusters}")
             if step.summarize and (mask is None or all(mask)):
@@ -257,6 +288,7 @@ def summary_kmeans(
                 summaries, step_calls = _summarize_clusters(clusters, summarizer, cache)
                 total_calls += step_calls
                 n_summarized = n_clusters
+                summarized_now = list(range(n_clusters))
                 summaries_evolution.append(summaries)
 
                 s_emb = embedder.encode(summaries)
@@ -283,6 +315,7 @@ def summary_kmeans(
                 new_summaries, step_calls = _summarize_clusters(clusters, summarizer, cache)
                 total_calls += step_calls
                 n_summarized = len(active)
+                summarized_now = active
 
                 latest: list[str | None] = [None] * n_clusters if summaries is None else list(summaries)
                 for c, summary in zip(active, new_summaries):
@@ -315,6 +348,20 @@ def summary_kmeans(
             km = KMeans(n_clusters=n_clusters, init=start, max_iter=step.kmeans_iters)
             prev_labels = labels
             labels = km.fit_predict(X)
+            last_summarized = state.last_summarized
+            anchor_centers = state.anchor_centers
+            anchor_members = state.anchor_members
+            if summarized_now:
+                # Anchors are the PRE-summary state (`state` is still the previous step's snapshot).
+                last_summarized = last_summarized.copy()
+                last_summarized[summarized_now] = state.step + 1
+                anchor_centers = anchor_centers.copy()
+                anchor_centers[summarized_now] = state.centers[summarized_now]
+                pre_members = _members_by_cluster(state.labels, n_clusters)
+                renewed = set(summarized_now)
+                anchor_members = tuple(
+                    pre_members[c] if c in renewed else m for c, m in enumerate(anchor_members)
+                )
             state = State(
                 step=state.step + 1,
                 n_summaries=state.n_summaries + int(step.summarize),
@@ -329,6 +376,10 @@ def summary_kmeans(
                 last_max_iter=step.kmeans_iters,
                 summary_shift=shift,
                 n_calls=total_calls,
+                last_summarized=last_summarized,
+                anchor_centers=anchor_centers,
+                anchor_members=anchor_members,
+                cluster_rms_radius=_cluster_rms_radius(X, labels, km.cluster_centers_),
             )
             trace.append(_trace_row(state, step.summarize, summary_inertia, step_calls, n_summarized))
     finally:
