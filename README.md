@@ -239,6 +239,8 @@ calls) on the held-out seeds 3–9. The Pareto plot shows seeds 0–2 for every 
 (`pip install -e '.[plot]'`). `--set key=value` applies to every run including D's held-out runs, so use it for
 smoke tests only (e.g. Bank77 with LSA); pass the same `--set`s to `rq2_report.py`.
 
+Results write-up: `docs/results/rq2_clinc150.md`.
+
 ### Streaming (StackExchange)
 
 ```bash
