@@ -22,7 +22,11 @@ def load_config(path: str | Path, overrides: list[str] | None = None) -> dict:
     """
     with open(path) as f:
         cfg = yaml.safe_load(f) or {}
+    return apply_overrides(cfg, overrides)
 
+
+def apply_overrides(cfg: dict, overrides: list[str] | None) -> dict:
+    """Apply `key.sub=value` overrides (values parsed with `yaml.safe_load`) to `cfg` in place; returns `cfg`."""
     for override in overrides or []:
         key, sep, raw_value = override.partition("=")
         if not sep:

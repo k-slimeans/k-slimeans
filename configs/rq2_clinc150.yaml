@@ -1,0 +1,54 @@
+# RQ2 / H2: can an adaptive summary schedule match the default fixed schedule's accuracy with far fewer
+# summarizer calls? CLINC150 (22,500 queries, 150 intents), distilbert embeddings, Qwen3-0.6B summaries.
+#
+# This file is the base run: the default fixed schedule (5 summaries, 120 iterations) plus the k-means
+# baseline, seeds 0-4. scripts/run_rq2.py derives every other run from it by in-memory overrides:
+#
+#   Phase A  fixed family: n_summaries in {1..5}, seeds 0-4 (n=5 is this file; n=1..4 have no baselines)
+#   Phase B  adaptive grid: tau_drift {0.1, 0.3, 0.6} x tau_churn {0.15, 0.4, 0.7}, plus s_max=2 variants of
+#            (0.3, 0.4) and (0.6, 0.7), seeds 0-2
+#   Phase C  random control per (adaptive config, seed): RandomSubsetSchedule spending the same number
+#            of summarizer calls at every candidate step as that adaptive run, on random clusters among
+#            those whose membership changed since their last summary (unchanged ones are free cache hits)
+#   Phase D  held-out evaluation. The headline config is the adaptive one with the best ACC on seeds 0-2
+#            among those using <= 50% of fixed-n5's calls (else the best ACC among the cheapest third). It is
+#            chosen on seeds 0-2, so its numbers there are optimistically biased: it and its random controls
+#            are run on the held-out seeds 3-9, and fixed-n5 on 5-9 (`rq2_fixed_n5_ext`; 3-4 come from A).
+#            The H2 verdict is judged on seeds 3-9 only.
+#
+# Units: tau_drift is a centroid displacement in units of the cluster's RMS radius; tau_churn is a Jaccard
+# distance between a cluster's current members and its members at its last summary. s_max caps how many
+# candidate steps a cluster may go without being re-summarized. Cost is measured in summarizer calls
+# (`n_calls` in metrics.jsonl): clusters actually sent to the model.
+#
+#   python scripts/run_rq2.py --dry-run          # print the plan and which runs are already done
+#   python scripts/run_rq2.py                    # run everything not done yet (resumable)
+#   python scripts/rq2_report.py                 # table, paired comparisons and Pareto plot -> docs/results/
+
+name: rq2_fixed_n5
+dataset: clinc150_intent
+embedder: distilbert
+seeds: [0, 1, 2, 3, 4]
+
+baselines:
+  kmeans: {}
+
+method_name: fixed-n5
+force_context_length: 0
+tol: 1.0e-4
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 120
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-0.6B
+  max_new_tokens: 64
+  batch_size: 8
+
+cache_dir: cache
+results_dir: results

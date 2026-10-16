@@ -141,6 +141,7 @@ src/kslimeans/
   cache.py         on-disk cache of document / sentence embeddings (cache/)
   results.py       results/<name>/<timestamp>/ writer
   aggregate.py     combine run directories into a mean ± std table + example summaries (scripts/aggregate_results.py)
+  rq2.py           RQ2 sweep planning, resumability and report (scripts/run_rq2.py, scripts/rq2_report.py)
 configs/           experiment configs (YAML)
 scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_stackexchange.py,
                    aggregate_results.py, run_prelim.sh
@@ -210,6 +211,33 @@ python scripts/aggregate_results.py results/prelim_bank77_lsa/<stamp> results/pr
 ```
 
 (Examples need runs made after assignments were added to `summaries.jsonl`.)
+
+### RQ2: adaptive schedule on CLINC150
+
+`configs/rq2_clinc150.yaml` is the base run (fixed schedule, 5 summaries, k-means baseline, Qwen3-0.6B, seeds 0–4).
+`scripts/run_rq2.py` derives the rest of the sweep from it: **A** the fixed family (`n_summaries` 1–5, seeds 0–4),
+**B** an adaptive grid (`tau_drift` × `tau_churn`, two `s_max` variants, seeds 0–2), **C** a random control per
+(adaptive config, seed) that spends the same summarizer calls per step, drawn at random among the clusters whose
+membership changed since their last summary, and **D** the held-out evaluation. The headline adaptive config is
+selected on seeds 0–2 (best ACC at ≤ 50% of fixed-n5's calls), so its numbers there are optimistically biased;
+D runs it and its controls on seeds 3–9, and fixed-n5 on seeds 5–9, and the H2 verdict is judged on seeds 3–9 only.
+The driver is resumable: a run whose directory already holds a finished `summary.csv` with the same config is
+skipped (`[done]`), a matching directory written to within `--stale-minutes` (default 90) is assumed to be running
+elsewhere (`[running]`), and anything older is redone. The fixed n=5 run takes about 516 s/seed on an RTX 3060 with
+Qwen3-0.6B.
+
+```bash
+python scripts/run_rq2.py --dry-run                 # plan: runs per phase and which are done
+python scripts/run_rq2.py --phases A B              # or everything, in order A, B, C, D
+python scripts/rq2_report.py                        # -> docs/results/rq2_clinc150_{table,matched}.md, _pareto.png, ...
+```
+
+The report uses the planned runs only (identity-checked like the driver; stale or unplanned `rq2_*` dirs are
+warned about). It compares each adaptive config with fixed-n5, its random control and the fixed family at equal
+calls on seeds 0–2 (in-sample), and gives the overall H2 verdict (ACC within one point of fixed-n5 at ≤ 50% of its
+calls) on the held-out seeds 3–9. The Pareto plot shows seeds 0–2 for every variant and needs matplotlib
+(`pip install -e '.[plot]'`). `--set key=value` applies to every run including D's held-out runs, so use it for
+smoke tests only (e.g. Bank77 with LSA); pass the same `--set`s to `rq2_report.py`.
 
 ### Streaming (StackExchange)
 
