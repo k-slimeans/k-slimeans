@@ -24,6 +24,7 @@ _ST_MODEL_IDS = {
     "distilbert": "sentence-transformers/distilbert-base-nli-stsb-mean-tokens",
     "e5-large": "intfloat/e5-large",
     "sbert": "all-mpnet-base-v2",
+    "minilm": "sentence-transformers/all-MiniLM-L6-v2",
 }
 
 

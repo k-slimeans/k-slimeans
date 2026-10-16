@@ -20,6 +20,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 from sklearn.preprocessing import LabelEncoder
 
 DATA_DIR = Path(
@@ -36,6 +37,12 @@ class Dataset:
     prompt: str
     text_type: str
     label_names: list[str] | None = None  # class name per label id, when the dataset has names
+    # Precomputed vectors for datasets too big to embed through `cached_embeddings`: a (N, dim) .npy
+    # memmap, the rows of it belonging to this dataset (None = all rows in order), and the embedder
+    # name they came from. See `cache.dataset_embeddings`.
+    embeddings_path: Path | None = None
+    embeddings_rows: np.ndarray | None = None
+    embeddings_embedder: str | None = None
 
 
 def _load_bank77() -> Dataset:
@@ -219,7 +226,108 @@ def load_stackexchange(year: int | None = None, limit: int | None = None) -> Dat
     return Dataset(_stackexchange_name(year, limit), texts, labels, n_clusters, prompt, text_type)
 
 
-# Registry of loaders by dataset name. Add new loaders here.
+_ARXIV_PROMPT = (
+    "The following is a cluster of arXiv paper abstracts. Write a single sentence that "
+    "summarizes the cluster's topic:"
+)
+_ARXIV_TEXT_TYPE = "Topic:"
+_ARXIV_EMBEDDER = "minilm"
+_ARXIV_PREPARE_HINT = "Run `python scripts/prepare_arxiv.py` first."
+
+
+def _read_parquet_prefix(path: Path, columns: list[str], year: int | None, limit: int | None) -> pd.DataFrame:
+    """Rows of `path` in file order, optionally only those updated in `year`, stopping after `limit`.
+
+    The result has an extra `file_row` column: each row's position in `path`.
+
+    Streams record batches so a small `limit` never materializes the multi-GB full table.
+    `year` filters on the leading four characters of the `update_date` string column.
+    """
+    read_columns = columns + (["update_date"] if year is not None else [])
+    frames, count, offset = [], 0, 0
+    for batch in pq.ParquetFile(path).iter_batches(columns=read_columns):
+        df = batch.to_pandas()
+        df["file_row"] = np.arange(offset, offset + len(df), dtype=np.int64)
+        offset += len(df)
+        if year is not None:
+            df = df[df["update_date"].str[:4] == str(year)].drop(columns="update_date")
+        frames.append(df)
+        count += len(df)
+        if limit is not None and count >= limit:
+            break
+    out = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=columns + ["file_row"])
+    return out.iloc[:limit] if limit is not None else out
+
+
+def _load_arxiv(parquet_name: str, name: str, year: int | None, limit: int | None) -> Dataset:
+    arxiv_dir = DATA_DIR / "arxiv"
+    parquet_path = arxiv_dir / parquet_name
+    full_path = arxiv_dir / "arxiv.parquet"
+    embeddings_path = arxiv_dir / "embeddings_minilm_fp16.npy"
+    manifest_path = arxiv_dir / "manifest.json"
+    for path in (parquet_path, full_path, embeddings_path, manifest_path):
+        if not path.exists():
+            raise FileNotFoundError(f"{path} not found. {_ARXIV_PREPARE_HINT}")
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not manifest.get("embedding", {}).get("complete"):
+        raise ValueError(f"The arXiv embeddings in {arxiv_dir} are incomplete. {_ARXIV_PREPARE_HINT}")
+    n_rows = pq.ParquetFile(full_path).metadata.num_rows
+    shape = np.load(embeddings_path, mmap_mode="r").shape
+    if len(shape) != 2 or shape[0] != n_rows:
+        raise ValueError(
+            f"{embeddings_path} has shape {shape} but arxiv.parquet has {n_rows} rows. {_ARXIV_PREPARE_HINT}"
+        )
+
+    subsample = parquet_name != "arxiv.parquet"
+    df = _read_parquet_prefix(parquet_path, ["text", "label"] + (["row"] if subsample else []), year, limit)
+    if df.empty:
+        raise ValueError(f"{name} has no rows for year={year}, limit={limit}")
+    if subsample:
+        rows = df["row"].to_numpy(dtype=np.int64)
+    elif year is None:
+        rows = None if limit is None else df["file_row"].to_numpy(dtype=np.int64)
+    else:
+        rows = df["file_row"].to_numpy(dtype=np.int64)
+
+    encoder = LabelEncoder()
+    labels = encoder.fit_transform(df["label"]).astype(np.int64)
+    label_names = [str(c) for c in encoder.classes_]
+    if year is not None:
+        name += f"_{year}"
+    if limit is not None:
+        name += f"_limit{limit}"
+    return Dataset(
+        name,
+        df["text"].tolist(),
+        labels,
+        len(label_names),
+        _ARXIV_PROMPT,
+        _ARXIV_TEXT_TYPE,
+        label_names,
+        embeddings_path=embeddings_path,
+        embeddings_rows=rows,
+        embeddings_embedder=_ARXIV_EMBEDDER,
+    )
+
+
+def load_arxiv(year: int | None = None, limit: int | None = None) -> Dataset:
+    """The full arXiv abstracts corpus (~3.0M, primary category as label), in file order.
+
+    `year` keeps papers whose `update_date` falls in that year; `limit` then keeps the first
+    `limit` rows. Label ids are contiguous over the categories present in the returned rows.
+    Vectors are precomputed (MiniLM), see `Dataset.embeddings_path`. Unlimited, this holds ~3.0M
+    texts in RAM and the runners copy the vectors as float32 (~4.7 GB); prefer `arxiv_sub200k`.
+    """
+    return _load_arxiv("arxiv.parquet", "arxiv", year, limit)
+
+
+def load_arxiv_sub200k(year: int | None = None, limit: int | None = None) -> Dataset:
+    """The 200k random subsample of arXiv abstracts; same semantics as `load_arxiv`."""
+    return _load_arxiv("arxiv_sub200k.parquet", "arxiv_sub200k", year, limit)
+
+
+# Registry of loaders by dataset name.
 _LOADERS = {
     "bank77": _load_bank77,
     "clinic": _load_clinic,
@@ -229,6 +337,8 @@ _LOADERS = {
     "massive_D": lambda: _load_massive("D"),
     "goemo": _load_goemo,
     "stackexchange": load_stackexchange,
+    "arxiv": load_arxiv,
+    "arxiv_sub200k": load_arxiv_sub200k,
 }
 
 

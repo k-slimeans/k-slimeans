@@ -134,7 +134,7 @@ src/kslimeans/
   minibatch.py     mini-batch / streaming variant + baselines
   embeddings.py    Embedder, get_embedder()
   sentences.py     spaCy sentence splitting, SentenceCorpus (for extractive summarizers)
-  data.py          dataset loaders (bank77, clinic, massive_I, massive_D, goemo, stackexchange)
+  data.py          dataset loaders (bank77, clinic, massive_I, massive_D, goemo, stackexchange, arxiv, arxiv_sub200k)
   metrics.py       ACC (Hungarian), NMI, ARI, centroid/summary distances
   experiment.py    the offline experiment runner behind scripts/run_offline.py
   config.py        YAML loading + --set overrides
@@ -143,9 +143,9 @@ src/kslimeans/
   aggregate.py     combine run directories into a mean ± std table + example summaries (scripts/aggregate_results.py)
   rq2.py           RQ2 sweep planning, resumability and report (scripts/run_rq2.py, scripts/rq2_report.py)
 configs/           experiment configs (YAML)
-scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_stackexchange.py,
+scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_stackexchange.py, prepare_arxiv.py,
                    aggregate_results.py, run_prelim.sh
-data/              all datasets, checked in (see data/README.md)
+data/              datasets, checked in except the generated data/arxiv/ (see data/README.md)
 tests/             pytest suite, incl. exact-equivalence fixtures generated from the original code
 ```
 
@@ -257,6 +257,13 @@ above takes about 1–2 minutes. On an RTX 3060, the first full run over all fou
 document embeddings and about 30 minutes on spaCy sentence splitting (only extractive summarizers need
 sentences). Both are cached, so later runs skip them. `configs/stackexchange_stream_slm.yaml` is the same
 benchmark with the SLM summarizer and `force_context_length: 10`.
+
+For arXiv abstracts (200k subsample, MiniLM vectors precomputed once), there is no `years` key:
+
+```bash
+python scripts/prepare_arxiv.py     # one-time: download, filter and embed ~3.0M abstracts (~75 min on an RTX 3060)
+python scripts/run_streaming.py configs/arxiv_sub200k_stream.yaml --set dataset.limit=20000 --set max_batch_size=5000  # smoke
+```
 
 ---
 

@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.cluster import KMeans
 
-from .cache import cached_embeddings, cached_sentences
+from .cache import cached_sentences, dataset_embeddings
 from .config import check_keys, default_method_name
 from .core import summary_kmeans
 from .data import Dataset, load_dataset
@@ -95,7 +95,7 @@ def run_offline(cfg: dict) -> Path:
     force_context_length = cfg.get("force_context_length", 0)
     method_name = cfg.get("method_name") or default_method_name(cfg["summarizer"])
 
-    X = cached_embeddings(ds.name, ds.texts, embedder, cache_dir)
+    X = dataset_embeddings(ds, embedder, cache_dir)
     summarizer = build_summarizer(cfg["summarizer"], prompt=ds.prompt, text_type=ds.text_type)
     sentences = cached_sentences(ds.name, ds.texts, embedder, cache_dir) if summarizer.needs_sentences else None
     schedule = build_schedule(cfg["schedule"])

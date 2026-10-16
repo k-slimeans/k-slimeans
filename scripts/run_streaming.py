@@ -25,7 +25,7 @@ from pathlib import Path
 from sklearn.cluster import KMeans, MiniBatchKMeans
 
 import kslimeans
-from kslimeans.cache import cached_embeddings, cached_sentences
+from kslimeans.cache import cached_sentences, dataset_embeddings
 from kslimeans.config import check_keys, default_method_name, load_config
 from kslimeans.metrics import cluster_metrics, oracle_centroids
 from kslimeans.minibatch import assign_to_centroids, mini_batch_summary_kmeans, sequentialMiniBatchKmeans
@@ -52,7 +52,7 @@ _ALLOWED_KEYS = frozenset(
         "results_dir",
     }
 )
-_REQUIRED_KEYS = _ALLOWED_KEYS - {"method_name"}
+_REQUIRED_KEYS = _ALLOWED_KEYS - {"method_name", "years"}
 
 
 def _run_baseline(name: str, kw: dict, X, n_clusters: int, seed: int, max_batch_size: int):
@@ -87,16 +87,18 @@ def run_streaming(cfg: dict) -> Path:
 
     summarizer = None  # built once we have a Dataset's prompt/text_type -- see below
 
-    for year in cfg["years"]:
+    # `years` is optional: a dataset with no year (e.g. arxiv) streams once, unfiltered (year=None).
+    for year in cfg["years"] if "years" in cfg else [None]:
         ds = kslimeans.load_dataset(dataset_name, year=year, limit=limit)
-        print(f"=== year {year}: {len(ds.texts)} posts, {ds.n_clusters} clusters ===")
+        tag = "all" if year is None else year  # logged/grouped label (a None key would be dropped by groupby)
+        print(f"=== year {tag}: {len(ds.texts)} posts, {ds.n_clusters} clusters ===")
 
         if summarizer is None:
             # Built once (not per year): SLM summarizers are expensive to load.
             summarizer = build_summarizer(cfg["summarizer"], prompt=ds.prompt, text_type=ds.text_type)
 
         t0 = time.perf_counter()
-        X = cached_embeddings(ds.name, ds.texts, cfg["embedder"], cache_dir=cfg["cache_dir"])
+        X = dataset_embeddings(ds, cfg["embedder"], cache_dir=cfg["cache_dir"])
         embed_time = time.perf_counter() - t0
         print(f"  embeddings: {embed_time:.1f}s")
 
@@ -117,8 +119,8 @@ def run_streaming(cfg: dict) -> Path:
                 runtime = time.perf_counter() - t0
 
                 metrics = cluster_metrics(ds.labels, assignments, oracle, centroids, centroids)
-                run.log_metrics({"year": year, "seed": seed, "method": name, "runtime": runtime, **metrics})
-                print(f"  [{year} seed={seed}] {name}: {metrics} ({runtime:.1f}s)")
+                run.log_metrics({"year": tag, "seed": seed, "method": name, "runtime": runtime, **metrics})
+                print(f"  [{tag} seed={seed}] {name}: {metrics} ({runtime:.1f}s)")
 
             t0 = time.perf_counter()
             result = mini_batch_summary_kmeans(
@@ -141,7 +143,7 @@ def run_streaming(cfg: dict) -> Path:
             metrics = cluster_metrics(ds.labels, assignments, oracle, result.centroids, result.centroids)
             run.log_metrics(
                 {
-                    "year": year,
+                    "year": tag,
                     "seed": seed,
                     "method": method_name,
                     "runtime": runtime,
@@ -151,9 +153,9 @@ def run_streaming(cfg: dict) -> Path:
                 }
             )
             run.log_summaries(
-                {"year": year, "seed": seed, "method": method_name, "summaries": result.summaries}
+                {"year": tag, "seed": seed, "method": method_name, "summaries": result.summaries}
             )
-            print(f"  [{year} seed={seed}] {method_name}: {metrics} ({runtime:.1f}s)")
+            print(f"  [{tag} seed={seed}] {method_name}: {metrics} ({runtime:.1f}s)")
 
     table = run.finish(group_by=["year", "method"])
     print()

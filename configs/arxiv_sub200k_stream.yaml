@@ -1,0 +1,35 @@
+# arXiv abstracts streaming benchmark: a 200k random subsample of ~3.0M abstracts (primary category as the
+# label), MiniLM embeddings precomputed by scripts/prepare_arxiv.py, Qwen3-0.6B cluster summaries.
+# Rows stream in file order; there is no `years` key because arXiv is clustered as one stream.
+#
+#   python scripts/prepare_arxiv.py                    # once: download, filter, embed, subsample
+#   python scripts/run_streaming.py configs/arxiv_sub200k_stream.yaml
+#
+# `dataset.limit` takes the first N rows in file order (roughly arXiv-id / chronological order), not a
+# random sample, so a limited smoke run is not representative of the label mix.
+#
+# Smoke run on the first 20k rows of the subsample (~50 min on an RTX 3060, almost all of it Qwen3 summaries):
+#   python scripts/run_streaming.py configs/arxiv_sub200k_stream.yaml \
+#       --set dataset.limit=20000 --set max_batch_size=5000
+
+name: arxiv_sub200k_stream
+dataset: {name: arxiv_sub200k, limit: null}
+embedder: minilm
+seeds: [0]
+max_batch_size: 10000
+eval_assign: lloyd1        # lloyd1 (paper) | nearest
+baselines:                 # name -> sklearn kwargs
+  minibatchkmeans: {}
+  seqminibatchkmeans: {}
+  kmeans: {}
+method_name: k-SLMmeans
+force_context_length: 10
+tol: 1.0e-4
+schedule: {type: fixed, n_summaries: 5, max_iter: 120}
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-0.6B
+  max_new_tokens: 64
+  batch_size: 8
+cache_dir: cache
+results_dir: results

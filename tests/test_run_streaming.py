@@ -78,3 +78,17 @@ def test_method_name_is_allowed_but_not_required(run_streaming_module):
     check_keys(cfg, allowed, required)  # must not raise: method_name is optional
 
     check_keys(_minimal_config(method_name="k-NLPmeans"), allowed, required)  # explicit value is fine too
+
+
+def test_empty_years_list_is_not_treated_as_all_years(run_streaming_module, monkeypatch, tmp_path):
+    def fail(*args, **kwargs):
+        raise AssertionError("load_dataset must not be called for years: []")
+
+    monkeypatch.setattr(run_streaming_module.kslimeans, "load_dataset", fail)
+    cfg = _minimal_config(years=[], results_dir=str(tmp_path / "results"), cache_dir=str(tmp_path / "cache"))
+    try:
+        run_streaming_module.run_streaming(cfg)
+    except AssertionError:
+        raise
+    except Exception:
+        pass  # an empty run may fail while summarising its (empty) metrics; it must not load data

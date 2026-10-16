@@ -19,6 +19,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .data import Dataset
 from .embeddings import Embedder, get_embedder
 from .sentences import SentenceCorpus
 
@@ -63,6 +64,29 @@ def cached_embeddings(
 
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez(path, embeddings=embeddings, fingerprint=fingerprint)
+    return embeddings
+
+
+def dataset_embeddings(ds: Dataset, embedder: Embedder | str, cache_dir: str = "cache") -> np.ndarray:
+    """The embedding matrix for `ds`: its precomputed vectors if it has any, else `cached_embeddings`.
+
+    Precomputed vectors (`ds.embeddings_path`) must come from the same embedder the caller asks
+    for. They are memory-mapped, the dataset's rows selected, and returned as a float32 copy.
+    """
+    if ds.embeddings_path is None:
+        return cached_embeddings(ds.name, ds.texts, embedder, cache_dir)
+
+    name = _embedder_name(embedder)
+    if name != ds.embeddings_embedder:
+        raise ValueError(
+            f"Dataset '{ds.name}' has precomputed '{ds.embeddings_embedder}' embeddings, "
+            f"but embedder '{name}' was requested"
+        )
+    mmap = np.load(ds.embeddings_path, mmap_mode="r")
+    rows = slice(None) if ds.embeddings_rows is None else ds.embeddings_rows
+    embeddings = np.asarray(mmap[rows], dtype=np.float32)
+    if embeddings.shape[0] != len(ds.texts):
+        raise ValueError(f"{ds.embeddings_path} yields {embeddings.shape[0]} rows for {len(ds.texts)} texts")
     return embeddings
 
 
