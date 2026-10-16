@@ -22,3 +22,44 @@ Prediction", EMNLP-IJCNLP 2019 ([D19-1131](https://aclanthology.org/D19-1131/));
 
 If you use the StackExchange benchmark, cite both the summaryCentroids paper
 ([arXiv:2502.09667](https://arxiv.org/abs/2502.09667)) and the original dump.
+
+## arXiv abstracts (`data/arxiv/`, generated, git-ignored)
+
+The L4 / RQ2 scale test clusters arXiv abstracts. Nothing here is checked in; build it with
+
+    python scripts/prepare_arxiv.py [--stages download filter embed subsample] [--force {filter,embed,subsample}]
+
+Each stage is resumable and skipped when its output is complete (`--force STAGE` redoes `filter`, `embed` or
+`subsample`, and forcing `filter` also discards the embeddings and subsample; delete `raw/` to re-download).
+The embed stage checkpoints to `progress.json` after every chunk and resumes after an interruption.
+`manifest.json` records the counts below for the actual run.
+
+- **Source:** the weekly arXiv OAI metadata snapshot, via the Hugging Face parquet mirror
+  [librarian-bots/arxiv-metadata-snapshot](https://huggingface.co/datasets/librarian-bots/arxiv-metadata-snapshot),
+  license CC0-1.0, pinned to revision `5733e66fde7e840bf1dcb2d9cffa0c64f4c5654d` (3,205,432 rows, 11 shards,
+  2.7 GB) and downloaded to `data/arxiv/raw/`.
+- **Filter rules,** applied in this order, each counted in the manifest (`filter.dropped_*`):
+  1. withdrawn: the abstract matches `(?i)\b(?:has been|is|was|been) withdrawn`, or the comments match
+     `^\W*(this )?(paper|article)?\s*(has been |is |was )?withdrawn` (case-insensitive);
+  2. short: fewer than 50 whitespace-separated words;
+  3. duplicate: the normalized, lower-cased abstract was already seen (first occurrence wins).
+
+  Whitespace in the abstract is normalized (`" ".join(abstract.split())`) before any rule is applied.
+
+  Known misses: a probe of shard 10 found about 5 real withdrawals among ~250k kept rows that the regexes
+  do not catch ("has been temporarily withdrawn", "is hereby withdrawn", "-paper withdrawn"). They are left in
+  deliberately, at about 0.002% of rows.
+- **Labels:** `label` is the primary category (first token of `categories`, e.g. `cs.LG`, `hep-th`); `archive` is
+  the part before the dot (`cs`, `hep-th`, `math`).
+- **Files:** `arxiv.parquet` (`id`, `text`, `label`, `archive`, `update_date`; row i is row i of the embeddings),
+  `embeddings_minilm_fp16.npy` (N x 384 float16, L2-normalized `sentence-transformers/all-MiniLM-L6-v2` on `text`,
+  encoded in fp32), `subsample_200k.npy` (sorted int64 row indices, seed 0) and `arxiv_sub200k.parquet` (those
+  rows plus a `row` column). Parquet row groups hold at most 50,000 rows (one per 50k-row input batch,
+  fewer after filtering). Counts after the filter, the label vocabulary and the embedding throughput are in
+  `manifest.json`.
+- **Memory:** the raw shards are read with explicit `columns=` in batches and the embeddings are written through
+  a memmap, so neither stage holds the corpus in RAM.
+- **Result at the pinned revision:** 3,205,432 rows in; 5,587 withdrawn, 163,016 short and 1,185 duplicate rows
+  dropped; **3,035,644 rows out**, 171 primary categories in 38 archives (168 categories occur in the 200k
+  subsample). On an RTX 3060 the filter took 2.4 min (peak RSS 2.0 GB) and the embed + subsample stages took
+  70.5 min at 725 rows/s (peak RSS 5.8 GB); the embeddings file is 2.3 GB.
