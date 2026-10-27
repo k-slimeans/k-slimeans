@@ -277,7 +277,7 @@ summarizer:
   model_id: Qwen/Qwen2.5-0.5B-Instruct   # ← change this
   max_new_tokens: 64       # summaries are one sentence/question; keep this small for speed
   batch_size: 16           # clusters per generate() call; lower it if you run out of VRAM
-  max_input_tokens: 4096   # trailing texts are dropped to fit (a warning tells you when)
+  max_input_tokens: 4096   # an oversized cluster keeps a fixed random subset of its texts (a warning tells you when)
   dtype: auto              # auto | bfloat16 | float16 | float32
   # device: auto           # auto (cuda if available) | cuda | cpu
   # prompt: "..."          # defaults to the dataset's prompt (see data.py)

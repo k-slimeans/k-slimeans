@@ -115,13 +115,58 @@ def test_fit_texts_to_budget_is_a_noop_when_already_within_budget():
     assert truncated is False
 
 
-def test_fit_texts_to_budget_drops_trailing_texts_first():
+def _largest_fitting_prefix(texts: list[str], max_tokens: int, seed: int = 0) -> list[str]:
+    """Brute-force reference: grow the kept set along the seeded permutation until it overflows."""
+    order = np.random.default_rng(seed).permutation(len(texts))
+    best = [texts[i] for i in sorted(order[:1])]
+    for k in range(1, len(texts) + 1):
+        candidate = [texts[i] for i in sorted(order[:k])]
+        if len(_join(candidate)) > max_tokens:
+            break
+        best = candidate
+    return best
+
+
+def test_fit_texts_to_budget_keeps_the_largest_fitting_prefix_of_the_seeded_permutation():
+    texts = [f"t{i:02d}" for i in range(12)]  # 3 chars each; k texts join to 4k - 1 chars
+    for max_tokens in (3, 10, 19, 30, 43):
+        fitted, dropped, truncated = fit_texts_to_budget(texts, _join, len, max_tokens=max_tokens)
+        assert fitted == _largest_fitting_prefix(texts, max_tokens)
+        assert dropped == len(texts) - len(fitted)
+        assert truncated is False
+
+
+def test_fit_texts_to_budget_reports_how_many_texts_were_dropped():
     texts = ["aaaa", "bbbb", "cccc", "dddd"]
-    # " ".join(...) of the first two is 9 chars; three or more overflows a budget of 9.
+    # " ".join of two is 9 chars; three or more overflows a budget of 9.
     fitted, dropped, truncated = fit_texts_to_budget(texts, _join, len, max_tokens=9)
-    assert fitted == ["aaaa", "bbbb"]
+    assert len(fitted) == 2
     assert dropped == 2
     assert truncated is False
+
+
+def test_fit_texts_to_budget_samples_across_label_grouped_input_in_original_order():
+    """CLINC150-style: rows grouped by intent. A leading prefix would keep only the first
+    intents; the seeded subset must spread across (nearly) all of them (#28)."""
+    texts = [f"intent{b} question {j}" for b in range(10) for j in range(10)]
+    max_tokens = len(_join(texts)) // 2
+
+    fitted, dropped, truncated = fit_texts_to_budget(texts, _join, len, max_tokens=max_tokens)
+
+    blocks = {int(t.split()[0].removeprefix("intent")) for t in fitted}
+    assert len(blocks) >= 8
+    assert 0 < len(fitted) < len(texts)
+    assert dropped == len(texts) - len(fitted)
+    assert truncated is False
+    assert fitted == [t for t in texts if t in set(fitted)]  # original relative order
+    assert fit_texts_to_budget(texts, _join, len, max_tokens=max_tokens) == (fitted, dropped, truncated)
+
+
+def test_fit_texts_to_budget_different_seeds_keep_different_subsets():
+    texts = [f"text {i:03d}" for i in range(100)]
+    max_tokens = len(_join(texts)) // 2
+    kept = {tuple(fit_texts_to_budget(texts, _join, len, max_tokens, seed=s)[0]) for s in range(4)}
+    assert len(kept) > 1
 
 
 def test_fit_texts_to_budget_keeps_at_least_one_text_and_truncates_its_characters():
@@ -135,11 +180,13 @@ def test_fit_texts_to_budget_keeps_at_least_one_text_and_truncates_its_character
 
 
 def test_fit_texts_to_budget_drops_then_truncates_the_lone_survivor():
-    texts = ["x" * 50, "y" * 5]
+    texts = ["x" * 50, "y" * 40]  # neither fits alone in a budget of 10
     fitted, dropped, truncated = fit_texts_to_budget(texts, _join, len, max_tokens=10)
     assert dropped == 1
     assert truncated is True
-    assert fitted == ["x" * 6]  # 50 -> 25 -> 12 -> 6, the first length <= 10
+    assert len(fitted) == 1
+    assert len(fitted[0]) <= 10
+    assert len(set(fitted[0])) == 1 and fitted[0][0] in "xy"
 
 
 def test_fit_texts_to_budget_binary_search_is_logarithmic_in_cluster_size():
