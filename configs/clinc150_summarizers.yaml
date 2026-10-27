@@ -1,0 +1,47 @@
+# CLINC150 summarizer comparison (#31): the Bank77 preliminary comparison (configs/prelim_bank77.yaml, #20)
+# repeated on CLINC150, for the professor's October 28 checkpoint. Same models (Qwen3-0.6B / 1.7B / 4B), no
+# new model families.
+#
+# Protocol, shared by every method:
+# - Data: clinc150_intent, 22,500 in-scope queries, 150 intents. Out-of-scope queries are excluded: the loader
+#   drops all 1,200 `oos` queries of the original data_full.json (100 train, 100 val, 1,000 test), so k = 150.
+#   OOS is not one intent, so it has no gold cluster to recover.
+# - Encoder: distilbert, cached and shared.
+# - Initialization: KMeans(init="k-means++", random_state=seed) for the k-means baseline and for the first stage
+#   of every summary method. `step0_sha1` in metrics.jsonl checks this directly (#30).
+# - Language models, identical for all three sizes: the CLINC prompt (data.py), greedy decoding, thinking off,
+#   max_new_tokens 64, max_input_tokens 4096, all members in context; a cluster whose prompt overflows keeps a
+#   fixed random subset of its members (#28).
+# - Schedule: fixed, 5 summaries, 120 iterations, initial_iter and final_iter on, tol 1e-4. Seeds 0-4.
+#
+# The k-NLPmeans (LSA) row reuses configs/offline_knlpmeans.yaml on this dataset. scripts/run_clinc150.sh runs
+# everything; it sets the model and per-model batch_size, so this file is the 0.6B setup.
+
+name: clinc150_summarizers
+dataset: clinc150_intent
+embedder: distilbert
+seeds: [0, 1, 2, 3, 4]
+
+baselines:
+  kmeans: {}
+
+method_name: k-SLMmeans
+force_context_length: 0
+tol: 1.0e-4
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 120
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-0.6B
+  max_new_tokens: 64
+  max_input_tokens: 4096
+  batch_size: 8
+
+cache_dir: cache
+results_dir: results
