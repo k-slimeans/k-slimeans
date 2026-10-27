@@ -3,7 +3,9 @@
 Each run directory (see `results.RunDir`) holds one summary-centroids method plus the baselines
 configured for that run. `aggregate_runs` reads `config.yaml` + `metrics.jsonl` from each, labels
 the rows, and reports mean +/- sample std over seeds. `scripts/aggregate_results.py` is the CLI
-around it. `find_examples` reads `summaries.jsonl` to show, per gold class, which cluster best
+around it. `paired_differences` / `format_paired_markdown` give per-seed paired differences against
+reference methods, and `cost_table` / `format_cost_table` / `step0_sha1_summary` report summarizer
+cost (calls, tokens, time, memory) and run settings. `find_examples` reads `summaries.jsonl` to show, per gold class, which cluster best
 matches it and what that cluster's final summary says.
 
 Row labels: baselines keep their method name (`kmeans` is shown as `k-means`); the run's own
@@ -21,6 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
+from scipy import stats
 
 from .config import default_method_name
 from .experiment import _resolve_dataset
@@ -28,6 +31,20 @@ from .experiment import _resolve_dataset
 METRICS = ("acc", "nmi", "ari")
 _DISPLAY_NAMES = {"kmeans": "k-means"}
 _SAME_TOL = 1e-9
+DEFAULT_REFERENCES = ("k-NLPmeans (LSA)", "k-means")
+# Per-seed cost fields of metrics.jsonl: (column, display header, format spec).
+_COST_FIELDS = (
+    ("n_calls", "calls", ",.0f"),
+    ("input_tokens", "input tokens", ",.0f"),
+    ("output_tokens", "output tokens", ",.0f"),
+    ("summarizer_seconds", "summarizer s", ".1f"),
+    ("runtime_s", "total s", ".1f"),
+    ("n_empty_summaries", "empty summaries", ".1f"),
+    ("n_truncated_clusters", "truncated clusters", ".1f"),
+    ("n_dropped_texts", "dropped texts", ".1f"),
+    ("peak_gpu_mem_gb", "peak GPU GB", ".2f"),
+    ("peak_gpu_reserved_gb", "reserved GPU GB", ".2f"),
+)
 
 
 def _read_jsonl(path: Path) -> list[dict]:
@@ -194,6 +211,163 @@ def to_markdown(table: pd.DataFrame) -> str:
     divider = "| " + " | ".join(["---"] + ["---:"] * (len(table.columns) - 1)) + " |"
     body = ["| " + " | ".join(row) + " |" for row in table.astype(str).itertuples(index=False)]
     return "\n".join([header, divider, *body])
+
+
+def paired_differences(
+    per_seed: pd.DataFrame, references: list[str], metrics: tuple[str, ...] = METRICS
+) -> pd.DataFrame:
+    """Paired per-seed differences of every method against each reference method.
+
+    `per_seed` is `per_seed_table`'s output (`method`, `seed`, metric columns). For each reference,
+    every other method (table order) and metric, over the seeds present for both: `n`,
+    `mean_diff` (method minus reference), `sd` (sample std, ddof=1), the 95% Student-t interval
+    `ci_low` / `ci_high` of the mean (NaN when n < 2), `wins` (seeds where the method is strictly
+    higher) and `ties`. Rows are ordered by reference, method, metric. Raises `ValueError` for a
+    reference that is not in `per_seed`.
+    """
+    methods = list(dict.fromkeys(per_seed["method"]))
+    rows = []
+    for reference in references:
+        if reference not in methods:
+            raise ValueError(f"Unknown reference method '{reference}', expected one of {methods}")
+        ref = per_seed[per_seed["method"] == reference].set_index("seed")
+        for method in methods:
+            if method == reference:
+                continue
+            other = per_seed[per_seed["method"] == method].set_index("seed")
+            for metric in metrics:
+                diff = (other[metric] - ref[metric]).dropna()  # index alignment keeps common seeds only
+                n = len(diff)
+                mean = diff.mean() if n else np.nan
+                sd = diff.std(ddof=1) if n > 1 else np.nan
+                half = stats.t.ppf(0.975, n - 1) * sd / np.sqrt(n) if n > 1 else np.nan
+                rows.append(
+                    {
+                        "reference": reference,
+                        "method": method,
+                        "metric": metric,
+                        "n": n,
+                        "mean_diff": mean,
+                        "sd": sd,
+                        "ci_low": mean - half,
+                        "ci_high": mean + half,
+                        "wins": int((diff > 0).sum()),
+                        "ties": int((diff == 0).sum()),
+                    }
+                )
+    return pd.DataFrame(
+        rows,
+        columns=["reference", "method", "metric", "n", "mean_diff", "sd", "ci_low", "ci_high", "wins", "ties"],
+    )
+
+
+def format_paired_markdown(paired: pd.DataFrame) -> str:
+    """One markdown table per reference: `Method | Metric | mean diff | 95% CI | wins/n`.
+
+    Differences are signed (method minus reference) with 3 decimals; the CI is `n/a` for n < 2.
+    """
+
+    def signed(x: float) -> str:
+        return "n/a" if np.isnan(x) else f"{x:+.3f}"
+
+    sections = []
+    for reference, group in paired.groupby("reference", sort=False):
+        table = pd.DataFrame(
+            {
+                "Method": group["method"],
+                "Metric": group["metric"].str.upper(),
+                "mean diff": [signed(m) for m in group["mean_diff"]],
+                "95% CI": [
+                    "n/a" if np.isnan(lo) else f"[{signed(lo)}, {signed(hi)}]"
+                    for lo, hi in zip(group["ci_low"], group["ci_high"])
+                ],
+                "wins/n": [f"{w}/{n}" for w, n in zip(group["wins"], group["n"])],
+            }
+        )
+        sections.append(f"Paired difference vs {reference} (method minus reference):\n\n{to_markdown(table)}")
+    return "\n\n".join(sections)
+
+
+def _read_environment(run_dir: Path) -> dict:
+    path = run_dir / "environment.json"
+    if not path.exists():
+        return {}
+    with open(path) as f:
+        return json.load(f)
+
+
+def cost_table(run_dirs: list[str | Path]) -> pd.DataFrame:
+    """One row per method (order of first appearance) with mean/std over seeds of the cost fields.
+
+    Columns: `method`, `n_seeds`, `<field>_mean` / `<field>_std` for each of n_calls, input_tokens,
+    output_tokens, summarizer_seconds, runtime_s, n_empty_summaries, n_truncated_clusters,
+    n_dropped_texts, peak_gpu_mem_gb and peak_gpu_reserved_gb (std is the sample std, ddof=1), and
+    `batch_size`, `dtype`, `gpu` from the run's `environment.json`. A field a method never logged
+    (baselines, runs that predate cost logging) is NaN; the environment columns are missing (NaN) for
+    baselines and for runs without `environment.json`.
+    """
+    own_env = {}
+    for run_dir in map(Path, run_dirs):
+        env = _read_environment(run_dir)
+        own_env[method_label(_load_config(run_dir))] = env
+    records = []
+    for label, group in _collect_runs(run_dirs).items():
+        env = own_env.get(label, {})
+        summarizer = env.get("summarizer") or {}
+        record = {"method": label, "n_seeds": len(group)}
+        for field, _, _ in _COST_FIELDS:
+            values = pd.to_numeric(group[field], errors="coerce") if field in group else pd.Series(dtype=float)
+            record[f"{field}_mean"] = values.mean() if values.notna().any() else np.nan
+            record[f"{field}_std"] = values.std() if values.notna().sum() > 1 else np.nan
+        record["batch_size"] = summarizer.get("batch_size")
+        record["dtype"] = summarizer.get("dtype")
+        record["gpu"] = env.get("gpu_name")
+        records.append(record)
+    return pd.DataFrame(records)
+
+
+def format_cost_table(costs: pd.DataFrame) -> pd.DataFrame:
+    """Display table of `cost_table`: `mean ± std` strings, `n/a` for missing values."""
+
+    def cell(mean: float, std: float, spec: str) -> str:
+        if np.isnan(mean):
+            return "n/a"
+        return f"{mean:{spec}} ± " + ("n/a" if np.isnan(std) else f"{std:{spec}}")
+
+    def text(value) -> str:
+        if pd.isna(value):
+            return "n/a"
+        return str(int(value)) if isinstance(value, float) and value.is_integer() else str(value)  # NaNs make ints float
+
+    out = pd.DataFrame({"Method": costs["method"]})
+    for field, header, spec in _COST_FIELDS:
+        out[header] = [cell(m, s, spec) for m, s in zip(costs[f"{field}_mean"], costs[f"{field}_std"])]
+    out["batch size"] = [text(v) for v in costs["batch_size"]]
+    out["dtype"] = [text(v) for v in costs["dtype"]]
+    out["GPU"] = [text(v) for v in costs["gpu"]]
+    return out
+
+
+def step0_sha1_summary(run_dirs: list[str | Path]) -> str:
+    """One line saying whether `step0_sha1` (hash of the step-0 labels) agrees across all methods per seed.
+
+    Only methods that logged the hash count; runs that predate it give a "not logged" line. For a
+    shared k-means++ initialization every seed must have one distinct hash.
+    """
+    by_seed: dict[int, dict[str, str]] = {}
+    for label, group in _collect_runs(run_dirs).items():
+        if "step0_sha1" not in group:
+            continue
+        for seed, sha in group["step0_sha1"].dropna().items():
+            by_seed.setdefault(int(seed), {})[label] = sha
+    if not by_seed:
+        return "step0_sha1 not logged in these runs."
+    seeds = sorted(by_seed)
+    span = f"seed {seeds[0]}" if len(seeds) == 1 else f"seeds {seeds[0]}-{seeds[-1]}"
+    differ = [s for s in seeds if len(set(by_seed[s].values())) > 1]
+    if not differ:
+        return f"step0_sha1 shared across all methods for {span}: yes"
+    return f"step0_sha1 shared across all methods for {span}: no (differs for seeds {', '.join(map(str, differ))})"
 
 
 def _resolve_gold(gold: int | str, label_names: list[str] | None, n_classes: int) -> int:

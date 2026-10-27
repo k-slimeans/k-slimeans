@@ -212,6 +212,10 @@ a dataset pays for embedding. `cache/` and `results/` are git-ignored.
 `results/prelim_logs/`, and writes `results/prelim_bank77_table.md` / `.csv`. Pass step names (`lsa 0.6b 1.7b 4b`)
 to rerun a subset. `scripts/aggregate_results.py` builds the same table from any run directories, and
 `--examples` shows, for a gold class (id or name), the cluster that best matches it and its final summary.
+`--paired-md` / `--paired-csv` report per-seed paired differences (method minus reference, mean, 95% t-interval,
+wins/n) against `--references` (default `k-NLPmeans (LSA)` and `k-means`), and `--cost-md` writes a cost table
+(calls, tokens, summarizer and total seconds, peak GPU memory, batch size, dtype, GPU; needs runs made after
+cost logging, older ones show `n/a`) plus whether `step0_sha1` is shared across methods for every seed.
 
 ```bash
 PYTHON=.venv/bin/python scripts/run_prelim.sh

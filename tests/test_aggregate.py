@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 
 import numpy as np
+import pandas as pd
 import pytest
 import yaml
+from scipy import stats
 
 from kslimeans import aggregate
 from kslimeans.data import Dataset
@@ -285,3 +287,139 @@ def test_rank_examples_scores_min_over_runs_and_breaks_ties_by_id(tmp_path, monk
     only_beta_noisy = {**perfect, "assignments": [0, 0, 0, 0, 1, 0, 0, 0]}
     c = _write_run(tmp_path / "c", HF, "k-SLMmeans", [(0, 0.1, 0.2, 0.3, 2.0)], summaries=[only_beta_noisy])
     assert aggregate.rank_examples([a, c], seed=0) == [("alpha", 1.0), ("beta", 0.75)]
+
+
+# ----------------------------------------------------------------------------
+# paired_differences / cost_table
+# ----------------------------------------------------------------------------
+
+
+def _frame(rows):
+    """rows: [(method, seed, acc, nmi, ari)] -> per-seed frame."""
+    return pd.DataFrame(rows, columns=["method", "seed", "acc", "nmi", "ari"])
+
+
+def test_paired_differences_stats_wins_ties_and_order():
+    ref = [0.50, 0.60, 0.70, 0.80]
+    other = [0.55, 0.58, 0.70, 0.83]
+    rows = [("ref", s, a, a, a) for s, a in enumerate(ref)] + [("m", s, a, a, a) for s, a in enumerate(other)]
+    rows += [("z", s, a, a, a) for s, a in enumerate(ref)]  # identical to the reference
+    paired = aggregate.paired_differences(_frame(rows), ["ref"])
+    assert list(paired["method"]) == ["m"] * 3 + ["z"] * 3
+    assert list(paired["metric"]) == ["acc", "nmi", "ari"] * 2
+    row = paired.iloc[0]
+    diff = np.array(other) - np.array(ref)
+    sd = diff.std(ddof=1)
+    half = stats.t.ppf(0.975, 3) * sd / 2
+    assert (row["n"], row["wins"], row["ties"]) == (4, 2, 1)
+    assert row["mean_diff"] == pytest.approx(diff.mean())
+    assert row["sd"] == pytest.approx(sd)
+    assert row["ci_low"] == pytest.approx(diff.mean() - half)
+    assert row["ci_high"] == pytest.approx(diff.mean() + half)
+    zero = paired.iloc[3]
+    assert (zero["mean_diff"], zero["sd"], zero["wins"], zero["ties"]) == (0, 0, 0, 4)
+
+
+def test_paired_differences_uses_common_seeds_only_and_nan_ci_for_one_seed():
+    rows = [("ref", 0, 0.5, 0.5, 0.5), ("ref", 1, 0.6, 0.6, 0.6), ("m", 1, 0.7, 0.7, 0.7), ("m", 2, 0.9, 0.9, 0.9)]
+    paired = aggregate.paired_differences(_frame(rows), ["ref"], metrics=("acc",))
+    row = paired.iloc[0]
+    assert (row["n"], row["wins"]) == (1, 1)
+    assert row["mean_diff"] == pytest.approx(0.1)
+    assert np.isnan(row["sd"]) and np.isnan(row["ci_low"]) and np.isnan(row["ci_high"])
+
+
+def test_paired_differences_multiple_references_and_unknown_reference():
+    rows = [(m, s, v, v, v) for m, v in (("a", 0.1), ("b", 0.2), ("c", 0.3)) for s in (0, 1)]
+    paired = aggregate.paired_differences(_frame(rows), ["b", "a"], metrics=("acc",))
+    assert list(zip(paired["reference"], paired["method"])) == [("b", "a"), ("b", "c"), ("a", "b"), ("a", "c")]
+    with pytest.raises(ValueError, match="Unknown reference"):
+        aggregate.paired_differences(_frame(rows), ["nope"])
+
+
+def test_format_paired_markdown():
+    rows = [("ref", 0, 0.50, 0.5, 0.5), ("ref", 1, 0.60, 0.5, 0.5), ("m", 0, 0.505, 0.5, 0.5), ("m", 1, 0.591, 0.5, 0.5)]
+    one = aggregate.paired_differences(_frame(rows[:1] + rows[2:3]), ["ref"], metrics=("acc",))
+    assert "| m | ACC | +0.005 | n/a | 1/1 |" in aggregate.format_paired_markdown(one)
+    two = aggregate.paired_differences(_frame(rows), ["ref"], metrics=("acc",))
+    lines = aggregate.format_paired_markdown(two).splitlines()
+    assert lines[0] == "Paired difference vs ref (method minus reference):"
+    assert lines[2] == "| Method | Metric | mean diff | 95% CI | wins/n |"
+    assert lines[4].startswith("| m | ACC | -0.002 | [-0.0") and lines[4].endswith("| 1/2 |")
+    both = aggregate.paired_differences(_frame(rows), ["ref", "m"], metrics=("acc",))
+    assert aggregate.format_paired_markdown(both).count("Paired difference vs") == 2
+
+
+COST = {
+    "n_calls": 10,
+    "input_tokens": 1000,
+    "output_tokens": 100,
+    "summarizer_seconds": 4.0,
+    "n_empty_summaries": 0,
+    "n_truncated_clusters": 1,
+    "n_dropped_texts": 2,
+    "peak_gpu_mem_gb": 2.5,
+    "peak_gpu_reserved_gb": None,
+}
+
+
+def _cost_run(path, step0=("a", "a"), env=True, **kwargs):
+    """HF run with two seeds whose summary rows carry cost fields (calls 10 / 20) and step0 hashes."""
+    run = _write_run(path, HF, "k-SLMmeans", OWN, KM, **kwargs)
+    lines = [json.loads(line) for line in (run / "metrics.jsonl").read_text().splitlines()]
+    for line in lines:
+        line["step0_sha1"] = "a" if line["method"] == "kmeans" else step0[line["seed"]]
+        if line["method"] == "k-SLMmeans":
+            line.update(COST, n_calls=COST["n_calls"] * (1 + line["seed"]))
+    (run / "metrics.jsonl").write_text("".join(json.dumps(r) + "\n" for r in lines))
+    if env:
+        info = {"gpu_name": "RTX", "summarizer": {"model_id": "m", "dtype": "torch.bfloat16", "batch_size": 8}}
+        (run / "environment.json").write_text(json.dumps(info))
+    return run
+
+
+def test_cost_table_with_environment_and_nan_baseline(tmp_path):
+    costs = aggregate.cost_table([_cost_run(tmp_path / "a")]).set_index("method")
+    assert list(costs.index) == ["k-means", "k-SLMmeans (Qwen3-0.6B)"]
+    slm = costs.loc["k-SLMmeans (Qwen3-0.6B)"]
+    assert slm["n_calls_mean"] == pytest.approx(15)
+    assert slm["n_calls_std"] == pytest.approx(np.std([10, 20], ddof=1))
+    assert slm["input_tokens_mean"] == 1000 and slm["input_tokens_std"] == 0
+    assert slm["runtime_s_mean"] == pytest.approx(2.0)
+    assert np.isnan(slm["peak_gpu_reserved_gb_mean"])  # logged as null (no CUDA)
+    assert (slm["batch_size"], slm["dtype"], slm["gpu"]) == (8, "torch.bfloat16", "RTX")
+    km = costs.loc["k-means"]
+    assert np.isnan(km["n_calls_mean"]) and np.isnan(km["input_tokens_std"])
+    assert km["runtime_s_mean"] == pytest.approx(2.0)
+    assert pd.isna(km["batch_size"]) and pd.isna(km["gpu"])
+
+    table = aggregate.format_cost_table(costs.reset_index()).set_index("Method")
+    assert table.loc["k-SLMmeans (Qwen3-0.6B)", "calls"] == "15 ± 7"
+    assert table.loc["k-SLMmeans (Qwen3-0.6B)", "reserved GPU GB"] == "n/a"
+    assert table.loc["k-SLMmeans (Qwen3-0.6B)", "batch size"] == "8"
+    assert table.loc["k-means", "calls"] == "n/a" and table.loc["k-means", "GPU"] == "n/a"
+
+
+def test_cost_table_without_environment_or_cost_fields(tmp_path):
+    old = _write_run(tmp_path / "old", LSA, "k-NLPmeans", OWN, KM)
+    costs = aggregate.cost_table([old])
+    assert costs["n_calls_mean"].isna().all()
+    assert costs["batch_size"].isna().all() and costs["gpu"].isna().all()
+    assert (costs["n_seeds"] == 2).all()
+    table = aggregate.format_cost_table(costs)
+    assert (table.drop(columns=["Method", "total s"]) == "n/a").all().all()
+    no_env = aggregate.cost_table([_cost_run(tmp_path / "b", env=False)]).set_index("method")
+    assert no_env.loc["k-SLMmeans (Qwen3-0.6B)", "n_calls_mean"] == pytest.approx(15)
+    assert pd.isna(no_env.loc["k-SLMmeans (Qwen3-0.6B)", "gpu"])
+
+
+def test_step0_sha1_summary_shared_and_differing(tmp_path):
+    shared = _cost_run(tmp_path / "a")
+    assert aggregate.step0_sha1_summary([shared]) == "step0_sha1 shared across all methods for seeds 0-1: yes"
+    differing = _cost_run(tmp_path / "b", step0=("a", "b"))
+    assert (
+        aggregate.step0_sha1_summary([differing])
+        == "step0_sha1 shared across all methods for seeds 0-1: no (differs for seeds 1)"
+    )
+    old = _write_run(tmp_path / "c", LSA, "k-NLPmeans", OWN, KM)
+    assert aggregate.step0_sha1_summary([old]) == "step0_sha1 not logged in these runs."
