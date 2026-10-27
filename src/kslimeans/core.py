@@ -13,7 +13,9 @@ experiment scripts.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
+from typing import Callable
 
 import numpy as np
 from sklearn.cluster import KMeans, kmeans_plusplus
@@ -24,6 +26,20 @@ from .embeddings import Embedder, get_embedder
 from .schedules import FixedSchedule, State, SummarySchedule
 from .sentences import SentenceCorpus
 from .summarizers import Cluster, Summarizer, build_summarizer
+
+COST_KEYS = (
+    "input_tokens",
+    "output_tokens",
+    "summarizer_seconds",
+    "n_empty_summaries",
+    "n_truncated_clusters",
+    "n_dropped_texts",
+)
+"""Summarizer cost counters logged per step (`trace` rows) and per run (`Result.cost`)."""
+
+
+def _zero_cost() -> dict:
+    return {key: 0.0 if key == "summarizer_seconds" else 0 for key in COST_KEYS}
 
 
 @dataclass
@@ -50,6 +66,20 @@ class Result:
     n_calls: int = 0
     """Total summarizer calls: clusters actually sent to `summarize_batch` (memo-cache hits and empty
     clusters are free), including those of a summary step that stopped on `tol` and so has no trace row."""
+    cost: dict = field(default_factory=_zero_cost)
+    """Totals of the `COST_KEYS` counters over the whole run (`input_tokens`, `output_tokens`,
+    `summarizer_seconds`, `n_empty_summaries`, `n_truncated_clusters`, `n_dropped_texts`); like `n_calls`
+    they include a summary step that stopped on `tol` and so has no trace row, hence they can exceed
+    the sum over `trace` rows. Token and truncation counters come from `Summarizer.stats()` and stay 0
+    for summarizers that don't report them."""
+    assignments_evolution: list[np.ndarray] = field(default_factory=list)
+    """Labels after every KMeans fit, aligned 1:1 with `trace`: row `t` <-> `assignments_evolution[t]`,
+    so `len(assignments_evolution) == len(trace)` and the last entry equals `assignments`."""
+    summary_source_steps: list[int] = field(default_factory=list)
+    """One entry per `summaries_evolution` entry: the trace step whose assignments that summary step
+    was written from. Summary step `j` was written from `assignments_evolution[summary_source_steps[j]]`;
+    the assignments after its Lloyd block are `assignments_evolution[summary_source_steps[j] + 1]`,
+    which doesn't exist for a final step that stopped on `tol` (it fits no KMeans)."""
 
     def as_tuple(self):
         """Upstream's 6-tuple return order, for drop-in compatibility."""
@@ -106,7 +136,12 @@ def _members_by_cluster(labels: np.ndarray, n_clusters: int) -> list[np.ndarray]
 
 
 def _trace_row(
-    state: State, summarize: bool, summary_inertia: float | None, n_calls: int, n_summarized: int
+    state: State,
+    summarize: bool,
+    summary_inertia: float | None,
+    n_calls: int,
+    n_summarized: int,
+    cost: dict | None = None,
 ) -> dict:
     """One `Result.trace` row for the fit that just produced `state`.
 
@@ -115,7 +150,9 @@ def _trace_row(
     iterations (`None` on non-summary rows), so `summary_inertia - prev_inertia` is the jump
     the summary step caused. `n_calls` is the summarizer calls that step made and
     `n_summarized` the number of clusters whose start centroid came from a summary (k on a
-    full step); both are 0 on non-summary rows and step 0.
+    full step); both are 0 on non-summary rows and step 0. `cost` holds that step's `COST_KEYS`
+    counters (zeros when omitted, as on non-summary rows and step 0); the counters of a summary
+    step that stopped on `tol` appear in no row, only in `Result.cost`.
     """
     return {
         "step": state.step,
@@ -129,7 +166,13 @@ def _trace_row(
         "summary_inertia": summary_inertia,
         "n_calls": n_calls,
         "n_summarized": n_summarized,
+        **(_zero_cost() if cost is None else cost),
     }
+
+
+def _add_cost(total: dict, step: dict) -> None:
+    for key, value in step.items():
+        total[key] += value
 
 
 def _select_cluster(
@@ -175,11 +218,17 @@ def _select_cluster(
 
 
 def _summarize_clusters(
-    clusters: list[Cluster], summarizer: Summarizer, cache: dict[tuple[int, ...], str]
-) -> tuple[list[str], int]:
-    """Summary per cluster, in input order, and the number of clusters actually sent to the summarizer.
+    clusters: list[Cluster],
+    summarizer: Summarizer,
+    cache: dict[tuple[int, ...], str],
+    clock: Callable[[], float] = time.perf_counter,
+) -> tuple[list[str], int, dict]:
+    """Summary per cluster, in input order, the number of clusters sent to the summarizer, and the step's cost.
 
     Empty clusters get "" and memo-cache hits reuse the cached summary; neither counts as a call.
+    The cost dict (`COST_KEYS`) holds the time spent inside `summarize_batch` (measured here so
+    every summarizer gets it), the empty summaries it returned, and the delta of whatever
+    counters the summarizer reports through `Summarizer.stats()`.
     """
     summaries: list[str | None] = [None] * len(clusters)
     to_summarize: list[tuple[int, Cluster]] = []
@@ -191,13 +240,21 @@ def _summarize_clusters(
         else:
             to_summarize.append((i, cluster))
 
+    cost = _zero_cost()
     if to_summarize:
+        before = summarizer.stats()
+        start = clock()
         computed = summarizer.summarize_batch([cluster for _, cluster in to_summarize])
+        cost["summarizer_seconds"] = clock() - start
+        after = summarizer.stats()
+        for key in after.keys() & set(COST_KEYS):
+            cost[key] = after[key] - before.get(key, 0)
+        cost["n_empty_summaries"] = sum(1 for summary in computed if not summary.strip())
         for (i, cluster), summary in zip(to_summarize, computed):
             summaries[i] = summary
             cache[cluster.doc_ids] = summary
 
-    return summaries, len(to_summarize)  # type: ignore[return-value]
+    return summaries, len(to_summarize), cost  # type: ignore[return-value]
 
 
 def summary_kmeans(
@@ -214,13 +271,15 @@ def summary_kmeans(
     random_state=None,
     init="k-means++",
     verbose: bool = True,
+    clock: Callable[[], float] = time.perf_counter,
 ) -> Result:
     """Run the summary-centroids clustering loop.
 
     `embedder` may be an `Embedder` instance or a name resolved via
     `get_embedder`. `text_features`, if given, is used instead of
     embedding `texts` from scratch. `sentences`, if given, is used instead
-    of building a `SentenceCorpus` for summarizers that need one.
+    of building a `SentenceCorpus` for summarizers that need one. `clock` times the
+    summarizer (`Result.cost["summarizer_seconds"]`); tests inject a fake.
     """
     if not isinstance(texts, list):
         raise TypeError(f"Expected a list for variable texts, but got {type(texts).__name__}")
@@ -244,6 +303,8 @@ def summary_kmeans(
     converged = False
     cache: dict[tuple[int, ...], str] = {}
     total_calls = 0
+    total_cost = _zero_cost()
+    summary_source_steps: list[int] = []
 
     state = State(
         step=0,
@@ -266,6 +327,7 @@ def summary_kmeans(
     )
 
     trace = [_trace_row(state, False, None, 0, 0)]
+    assignments_evolution = [labels]
 
     pbar = tqdm(desc="Iterating KMeans", disable=not verbose)
     try:
@@ -274,6 +336,7 @@ def summary_kmeans(
             shift = None
             summary_inertia = None
             step_calls = 0
+            step_cost = None
             n_summarized = 0
             mask = step.summarize_mask
             summarized_now: list[int] = []  # clusters whose summary anchors move to the pre-summary state
@@ -285,11 +348,13 @@ def summary_kmeans(
                     _select_cluster(c, labels, X, texts, force_context_length, random_state, sentences)
                     for c in range(n_clusters)
                 ]
-                summaries, step_calls = _summarize_clusters(clusters, summarizer, cache)
+                summaries, step_calls, step_cost = _summarize_clusters(clusters, summarizer, cache, clock)
                 total_calls += step_calls
+                _add_cost(total_cost, step_cost)
                 n_summarized = n_clusters
                 summarized_now = list(range(n_clusters))
                 summaries_evolution.append(summaries)
+                summary_source_steps.append(state.step)
 
                 s_emb = embedder.encode(summaries)
                 shift = float(np.linalg.norm(ref - s_emb, axis=1).sum())
@@ -312,8 +377,9 @@ def summary_kmeans(
                     _select_cluster(c, labels, X, texts, force_context_length, random_state, sentences)
                     for c in active
                 ]
-                new_summaries, step_calls = _summarize_clusters(clusters, summarizer, cache)
+                new_summaries, step_calls, step_cost = _summarize_clusters(clusters, summarizer, cache, clock)
                 total_calls += step_calls
+                _add_cost(total_cost, step_cost)
                 n_summarized = len(active)
                 summarized_now = active
 
@@ -322,6 +388,7 @@ def summary_kmeans(
                     latest[c] = summary
                 summaries = latest
                 summaries_evolution.append(list(latest))
+                summary_source_steps.append(state.step)
 
                 # Masked-off rows keep the current k-means center. `start` copies the centers (so it
                 # keeps KMeans' own dtype, which is also what KMeans casts any `init` to); the float32
@@ -381,7 +448,8 @@ def summary_kmeans(
                 anchor_members=anchor_members,
                 cluster_rms_radius=_cluster_rms_radius(X, labels, km.cluster_centers_),
             )
-            trace.append(_trace_row(state, step.summarize, summary_inertia, step_calls, n_summarized))
+            trace.append(_trace_row(state, step.summarize, summary_inertia, step_calls, n_summarized, step_cost))
+            assignments_evolution.append(labels)
     finally:
         pbar.close()
 
@@ -395,6 +463,9 @@ def summary_kmeans(
         converged=converged,
         trace=trace,
         n_calls=total_calls,
+        cost=total_cost,
+        assignments_evolution=assignments_evolution,
+        summary_source_steps=summary_source_steps,
     )
 
 

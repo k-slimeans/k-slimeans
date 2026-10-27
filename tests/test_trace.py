@@ -29,6 +29,12 @@ TRACE_KEYS = {
     "summary_inertia",
     "n_calls",
     "n_summarized",
+    "input_tokens",
+    "output_tokens",
+    "summarizer_seconds",
+    "n_empty_summaries",
+    "n_truncated_clusters",
+    "n_dropped_texts",
 }
 
 

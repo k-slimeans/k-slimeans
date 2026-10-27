@@ -84,6 +84,18 @@ def supports_system_role(tokenizer, chat_template_kwargs: dict) -> bool:
         return False
 
 
+def count_generated_tokens(new_tokens: torch.Tensor, eos_token_id: int | list[int] | None) -> int:
+    """Generated tokens in a `(batch, new_len)` block: per sequence, everything up to and including
+    its first EOS (what the model actually produced), excluding the padding after it. A sequence
+    with no EOS counts all `new_len` tokens. `eos_token_id` may be an int, a list or None.
+    """
+    eos_ids = [] if eos_token_id is None else [eos_token_id] if isinstance(eos_token_id, int) else list(eos_token_id)
+    is_eos = torch.isin(new_tokens, torch.tensor(eos_ids, dtype=new_tokens.dtype, device=new_tokens.device))
+    first_eos = is_eos.int().argmax(dim=1)
+    lengths = torch.where(is_eos.any(dim=1), first_eos + 1, new_tokens.shape[1])
+    return int(lengths.sum())
+
+
 def fit_texts_to_budget(
     texts: list[str],
     render: Callable[[list[str]], str],
@@ -215,6 +227,7 @@ class HFSummarizer(Summarizer):
 
         self._fold_system = not supports_system_role(self.tokenizer, self.chat_template_kwargs)
         self._warned_trim = False
+        self._stats = {"input_tokens": 0, "output_tokens": 0, "n_truncated_clusters": 0, "n_dropped_texts": 0}
 
     def _render(self, texts: list[str]) -> str:
         """Render one cluster's texts, trimming to `max_input_tokens` if needed."""
@@ -229,6 +242,8 @@ class HFSummarizer(Summarizer):
             return len(self.tokenizer(rendered, add_special_tokens=False)["input_ids"])
 
         fitted, n_dropped, truncated = fit_texts_to_budget(texts, render, count_tokens, self.max_input_tokens)
+        self._stats["n_truncated_clusters"] += int(bool(n_dropped or truncated))
+        self._stats["n_dropped_texts"] += n_dropped
         if (n_dropped or truncated) and not self._warned_trim:
             self._warned_trim = True
             detail = f"dropped {n_dropped} of {len(texts)} text(s)"
@@ -262,6 +277,11 @@ class HFSummarizer(Summarizer):
                 )
 
             new_tokens = generated[:, enc["input_ids"].shape[1] :]
+            self._stats["input_tokens"] += int(enc["attention_mask"].sum())
+            eos = self.model.generation_config.eos_token_id
+            self._stats["output_tokens"] += count_generated_tokens(
+                new_tokens, self.tokenizer.eos_token_id if eos is None else eos
+            )
             decoded = self.tokenizer.batch_decode(new_tokens, skip_special_tokens=True)
             for i, text in enumerate(decoded):
                 outputs[start + i] = text.strip()
@@ -269,3 +289,19 @@ class HFSummarizer(Summarizer):
 
     def summarize(self, cluster: Cluster) -> str:
         return self.summarize_batch([cluster])[0]
+
+    def stats(self) -> dict[str, int]:
+        return dict(self._stats)
+
+    def describe(self) -> dict:
+        return {
+            "class": type(self).__name__,
+            "model_id": self.model_id,
+            "dtype": str(next(self.model.parameters()).dtype),
+            "batch_size": self.batch_size,
+            "padding_side": self.tokenizer.padding_side,
+            "max_new_tokens": self.max_new_tokens,
+            "max_input_tokens": self.max_input_tokens,
+            "chat_template_kwargs": self.chat_template_kwargs,
+            "device": self.device,
+        }

@@ -184,13 +184,22 @@ summarizer: {type: lsa, top_k: 5}
 Each run writes `results/<name>/<timestamp>/`:
 
 - `config.yaml`: the resolved config, after overrides
-- `metrics.jsonl`: one row per (seed, method) with `acc`, `nmi`, `ari`, the four distances, and runtime
-- `summaries.jsonl`: final summaries, how they evolved, and the final cluster assignments, per (seed, method)
+- `environment.json`: git commit and dirty flag, Python/OS/WSL, torch/CUDA/cuDNN, GPU and driver, package versions, and
+  the summarizer's settings (model, resolved dtype, batch size, padding side, token limits)
+- `metrics.jsonl`: one row per (seed, method) with `acc`, `nmi`, `ari`, the four distances, runtime, and `step0_sha1`
+  (hash of the step-0 labels; equal across methods for a seed means they share the initialization). The
+  summary-centroids row adds the cost: `n_calls`, `input_tokens`, `output_tokens`, `summarizer_seconds`,
+  `n_empty_summaries`, `n_truncated_clusters`, `n_dropped_texts`, `peak_gpu_mem_gb`, `peak_gpu_reserved_gb`
+- `summaries.jsonl`: final summaries, how they evolved, and the final cluster assignments, per (seed, method), plus
+  `assignments_evolution` (labels after every KMeans fit, aligned with the `trace.jsonl` rows) and
+  `summary_source_steps` (for each summary step, the trace step whose assignments it was written from)
 - `trace.jsonl`: one row per KMeans fit per (seed, method) for the summary-centroids method: `step`, `inertia`,
   `prev_inertia`, `frac_changed`, `summary_shift`, `last_n_iter`, `last_max_iter`, `summarize`, `summary_inertia`
   (the objective of the start centroids before that step's Lloyd iterations), `n_calls` (clusters sent to the
-  summarizer in that step), and `n_summarized` (clusters whose start centroid came from a summary)
-- `summary.csv`: mean and std over seeds (also printed at the end)
+  summarizer in that step), `n_summarized` (clusters whose start centroid came from a summary), and that step's
+  cost deltas (`input_tokens`, `output_tokens`, `summarizer_seconds`, `n_empty_summaries`, `n_truncated_clusters`,
+  `n_dropped_texts`)
+- `summary.csv`: mean and std over seeds of the accuracy metrics and cost columns (also printed at the end)
 
 Document and sentence embeddings are cached in `cache/`, keyed by dataset and embedder. Each entry is checked
 against a fingerprint of the texts, so editing a data file invalidates it automatically. Only the first run of
