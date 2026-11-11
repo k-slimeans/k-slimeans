@@ -379,3 +379,11 @@ def test_run_offline_on_a_machine_without_nvidia_smi_still_writes_gpu_json(tmp_p
 def test_run_offline_rejects_a_bad_gpu_check_block(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="require_idle"):
         _offline(tmp_path, monkeypatch, gpu_check={"require_idle": "sometimes"})
+
+
+def test_run_offline_with_gpu_check_off_makes_no_gpu_calls_and_files(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(gpu_monitor, "_run_cmd", lambda cmd: calls.append(cmd) or "")
+    run_dir = _offline(tmp_path, monkeypatch, gpu_check={"require_idle": "off"})
+    assert calls == []
+    assert not (run_dir / "gpu.json").exists() and not (run_dir / "gpu_samples.csv").exists()

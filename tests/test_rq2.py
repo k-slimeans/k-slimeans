@@ -549,3 +549,17 @@ def test_heldout_uses_planned_brackets_even_if_heldout_calls_cross_a_boundary(po
 def test_empty_seed_tuple_renders_none():
     assert rq2._seed_cells([()]) == ["none"] and rq2._fmt_seeds(()) == "none"
     assert rq2._seed_cells([(0, 1, 2), "3-9", None]) == ["0-2", "3-9", "n/a"]
+
+
+def test_gpu_monitor_files_do_not_keep_a_hung_run_looking_alive(base, tmp_path):
+    spec = rq2.plan_phase_a(base)[0]
+    run = _write_run(tmp_path, spec.cfg, rows=[_row("fixed-n5", 0, 0.5, 1)], done=False)
+    (run / "gpu_samples.csv").write_text("timestamp\n")  # the sampler keeps appending while the process hangs
+    (run / "gpu.json").write_text("{}\n")
+    old = time.time() - 3 * 3600
+    for f in [run, *run.iterdir()]:
+        if f.name not in ("gpu_samples.csv", "gpu.json"):
+            os.utime(f, (old, old))  # the directory itself only changes when files are created
+    assert rq2.run_status(tmp_path, spec.cfg) == ("todo", None)
+    (run / "metrics.jsonl").touch()  # real progress still counts
+    assert rq2.run_status(tmp_path, spec.cfg) == ("running", run)

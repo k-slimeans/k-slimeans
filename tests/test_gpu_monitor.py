@@ -8,8 +8,12 @@ from __future__ import annotations
 import csv
 import json
 import subprocess
+import sys
+import threading
+import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -163,7 +167,7 @@ def test_load_seen_before_clinc150_is_flagged():
 
 @pytest.mark.parametrize(
     "row, key",
-    [(gpu_row(used=1400), "memory_used_mib"), (gpu_row(util=30), "utilization_pct"), (gpu_row(power=90), "power_w")],
+    [(gpu_row(used=1450), "memory_used_mib"), (gpu_row(util=30), "utilization_pct"), (gpu_row(power=90), "power_w")],
 )
 def test_each_threshold_alone_flags(row, key):
     result = idle([row])
@@ -173,6 +177,7 @@ def test_each_threshold_alone_flags(row, key):
 
 def test_thresholds_are_configurable():
     assert idle([gpu_row(used=1500)], thresholds={"max_memory_used_mib": 2000})["idle"] is True
+    assert DEFAULT_THRESHOLDS["max_memory_used_mib"] == 1400
     assert idle([gpu_row()], thresholds={"max_memory_used_mib": 500})["idle"] is False
     with pytest.raises(ValueError, match="Unknown idle threshold"):
         idle([gpu_row()], thresholds={"max_gpu": 1})
@@ -391,14 +396,133 @@ def test_session_fail_policy_passes_on_an_idle_gpu_and_ignores_missing_gpu(tmp_p
     assert not (other / "gpu_samples.csv").exists()
 
 
-def test_session_off_and_monitor_false(tmp_path):
+def test_session_off_is_fully_off_even_with_monitor_at_its_default(tmp_path):
     smi = FakeSmi()
-    with GpuSession({"require_idle": "off", "monitor": False}, run=smi) as gpu:
+    with GpuSession({"require_idle": "off"}, run=smi) as gpu:
         gpu.attach(tmp_path)
     assert smi.calls == []
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_session_monitor_false_still_checks_and_writes_gpu_json(tmp_path, no_sleep):
+    with GpuSession({"monitor": False}, run=FakeSmi(), sleep=no_sleep) as gpu:
+        gpu.attach(tmp_path)
     data = json.loads((tmp_path / "gpu.json").read_text())
-    assert data["idle_check"] is None and data["monitor"] is None
+    assert data["idle_check"]["idle"] is True and data["monitor"] is None
     assert not (tmp_path / "gpu_samples.csv").exists()
+
+
+def test_windows_processes_are_read_once_per_run_not_per_sample(tmp_path, no_sleep):
+    smi = FakeSmi()
+    monitor_cfg = {"interval_s": 1e6}
+    with GpuSession(monitor_cfg, run=smi, sleep=no_sleep) as gpu:
+        gpu.attach(tmp_path)
+    assert not any(c[0] == EXE for c in smi.calls)  # conftest: no exe on this "machine"
+    smi = FakeSmi()
+    check_idle(smi, windows_smi=EXE, sleep=no_sleep)
+    assert sum(c[0] == EXE for c in smi.calls) == 1
+    with GpuMonitor(tmp_path / "s.csv", interval_s=1e6, run=smi, reserved=lambda: None):
+        pass
+    assert sum(c[0] == EXE for c in smi.calls) == 1
+
+
+def test_gpu_json_records_raw_max_baseline_and_excess_over_baseline(tmp_path, no_sleep):
+    # pre-run: 4 samples at 1000 MiB; then the monitor sees 1900 MiB used with 500 reserved by torch
+    outputs = [gpu_row(used=1000)] * 4 + [gpu_row(used=1900)]
+    with GpuSession({"interval_s": 1e6}, run=FakeSmi(outputs), sleep=no_sleep) as gpu:
+        gpu.attach(tmp_path)
+        gpu.monitor._reserved = lambda: 500.0
+        gpu.monitor.sample()
+    data = json.loads((tmp_path / "gpu.json").read_text())
+    assert data["baseline_memory_used_mib"] == 1000.0
+    assert data["monitor"]["max_foreign_mib_est"] == 1400.0
+    assert data["non_torch_above_baseline_mib"] == 400.0
+
+
+def test_no_baseline_means_no_excess(tmp_path):
+    with GpuSession({"require_idle": "warn"}, run=missing) as gpu:
+        gpu.attach(tmp_path)
+    data = json.loads((tmp_path / "gpu.json").read_text())
+    assert data["baseline_memory_used_mib"] is None and data["non_torch_above_baseline_mib"] is None
+
+
+def test_unreadable_gpu_fails_under_fail_and_warns_under_warn(tmp_path, no_sleep):
+    def broken(cmd):
+        raise subprocess.CalledProcessError(9, cmd)
+
+    with pytest.raises(GpuNotIdleError, match="Cannot verify"):
+        with GpuSession({"require_idle": "fail"}, run=broken, sleep=no_sleep):
+            raise AssertionError("body must not run")
+    with pytest.warns(UserWarning, match="Cannot verify"):
+        with GpuSession({"require_idle": "warn"}, run=broken, sleep=no_sleep) as gpu:
+            gpu.attach(tmp_path)
+    assert json.loads((tmp_path / "gpu.json").read_text())["idle_check"]["gpu_missing"] is False
+
+
+def test_missing_nvidia_smi_is_not_an_error_even_under_fail(no_sleep):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with GpuSession({"require_idle": "fail"}, run=missing, sleep=no_sleep):
+            pass
+
+
+def test_timeout_counts_as_a_failed_query_not_a_missing_one():
+    def hung(cmd):
+        raise subprocess.TimeoutExpired(cmd, 5)
+
+    snap = gpu_snapshot(hung)
+    assert snap["available"] is False and snap["missing"] is False and "TimeoutExpired" in snap["error"]
+    assert gpu_snapshot(missing)["missing"] is True
+
+
+def test_monitor_loop_survives_a_raising_reserved_probe(tmp_path):
+    def reserved():
+        raise RuntimeError("cuda gone")
+
+    monitor = GpuMonitor(tmp_path / "s.csv", interval_s=1e6, run=FakeSmi(), reserved=reserved)
+    with monitor:
+        assert monitor._thread.is_alive()
+        assert monitor.sample() is None
+    assert monitor.n_errors >= 3 and monitor.rows == []
+    assert monitor.summary["available"] is False
+
+
+def test_monitor_closes_its_file_if_entry_fails(tmp_path, monkeypatch):
+    monitor = GpuMonitor(tmp_path / "s.csv", run=FakeSmi())
+    monkeypatch.setattr(threading.Thread, "start", lambda self: (_ for _ in ()).throw(RuntimeError("no threads")))
+    with pytest.raises(RuntimeError, match="no threads"):
+        monitor.__enter__()
+    assert monitor._file.closed
+
+
+def test_session_writes_gpu_json_even_if_the_monitor_exit_raises(tmp_path, no_sleep):
+    with pytest.raises(RuntimeError, match="exit failed"):
+        with GpuSession({"interval_s": 1e6}, run=FakeSmi(), sleep=no_sleep) as gpu:
+            gpu.attach(tmp_path)
+            real_exit = gpu.monitor.__exit__
+
+            class FailingExit:
+                summary = gpu.monitor.summary
+
+                def __exit__(self, *exc):
+                    real_exit(*exc)
+                    raise RuntimeError("exit failed")
+
+            gpu.monitor = FailingExit()
+    assert json.loads((tmp_path / "gpu.json").read_text())["idle_check"]["idle"] is True
+
+
+def test_torch_reserved_never_initializes_cuda(monkeypatch):
+    calls = []
+    fake_cuda = SimpleNamespace(
+        is_initialized=lambda: False, is_available=lambda: calls.append("avail"), memory_reserved=lambda d: 2**20 * 7
+    )
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(cuda=fake_cuda))
+    assert gpu_monitor._torch_reserved_mib() is None and calls == []
+    fake_cuda.is_initialized = lambda: True
+    assert gpu_monitor._torch_reserved_mib() == 7.0
+    monkeypatch.delitem(sys.modules, "torch")
+    assert gpu_monitor._torch_reserved_mib() is None
 
 
 def test_session_writes_gpu_json_when_the_run_raises(tmp_path, no_sleep):

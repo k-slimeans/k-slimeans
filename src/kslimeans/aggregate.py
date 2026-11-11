@@ -305,19 +305,20 @@ def _read_gpu(run_dir: Path) -> dict:
 
 
 def _gpu_summary(gpu_records: list[dict]) -> tuple[bool | None, float | None]:
-    """`(verified idle, max foreign MiB)` over the `gpu.json` contents of one method's runs.
+    """`(verified idle, max MiB above baseline)` over the `gpu.json` contents of one method's runs.
 
     Verified idle is True only if every run has a pre-run check that found the GPU idle, False if any
-    found it busy, None if some run has no verdict (old run, check off or no GPU). The foreign memory is
-    the largest monitor estimate, None if no run was monitored.
+    found it busy, None if some run has no verdict (old run, check off or no GPU). The memory is the
+    largest `non_torch_above_baseline_mib` (non-torch card memory during the run minus the pre-run
+    idle-check median; it still includes our own CUDA context, ~0.3-0.5 GB), None if no run has a baseline.
     """
     verdicts = [(record.get("idle_check") or {}).get("idle") for record in gpu_records]
     idle = None if not verdicts or None in verdicts else all(verdicts)
     if False in verdicts:
         idle = False
-    foreign = [(record.get("monitor") or {}).get("max_foreign_mib_est") for record in gpu_records]
-    foreign = [v for v in foreign if v is not None]
-    return idle, max(foreign, default=None)
+    above = [record.get("non_torch_above_baseline_mib") for record in gpu_records]
+    above = [v for v in above if v is not None]
+    return idle, max(above, default=None)
 
 
 def cost_table(run_dirs: list[str | Path]) -> pd.DataFrame:
@@ -329,7 +330,7 @@ def cost_table(run_dirs: list[str | Path]) -> pd.DataFrame:
     `batch_size`, `dtype`, `gpu` from the run's `environment.json`. A field a method never logged
     (baselines, runs that predate cost logging) is NaN; the environment columns are missing (NaN) for
     baselines and for runs without `environment.json`. `gpu_idle` (True / False / None) and
-    `gpu_max_foreign_mib` come from the runs' `gpu.json` (see `gpu_monitor`; None for old runs).
+    `gpu_above_baseline_mib` come from the runs' `gpu.json` (see `gpu_monitor`; None for old runs).
     """
     own_env = {}
     own_gpu: dict[str, list[dict]] = {}
@@ -350,7 +351,7 @@ def cost_table(run_dirs: list[str | Path]) -> pd.DataFrame:
         record["batch_size"] = summarizer.get("batch_size")
         record["dtype"] = summarizer.get("dtype")
         record["gpu"] = env.get("gpu_name")
-        record["gpu_idle"], record["gpu_max_foreign_mib"] = _gpu_summary(own_gpu.get(label, []))
+        record["gpu_idle"], record["gpu_above_baseline_mib"] = _gpu_summary(own_gpu.get(label, []))
         records.append(record)
     return pd.DataFrame(records)
 
@@ -375,9 +376,9 @@ def format_cost_table(costs: pd.DataFrame) -> pd.DataFrame:
     out["dtype"] = [text(v) for v in costs["dtype"]]
     out["GPU"] = [text(v) for v in costs["gpu"]]
     # Only for tables with GPU monitoring data (runs from before it have blanks, not "n/a").
-    if costs["gpu_idle"].notna().any() or costs["gpu_max_foreign_mib"].notna().any():
+    if costs["gpu_idle"].notna().any() or costs["gpu_above_baseline_mib"].notna().any():
         out["GPU idle"] = ["" if pd.isna(v) else ("yes" if v else "no") for v in costs["gpu_idle"]]
-        out["max foreign GPU MiB"] = ["" if pd.isna(v) else f"{v:.0f}" for v in costs["gpu_max_foreign_mib"]]
+        out["GPU MiB above pre-run baseline (non-torch)"] = ["" if pd.isna(v) else f"{v:.0f}" for v in costs["gpu_above_baseline_mib"]]
     return out
 
 

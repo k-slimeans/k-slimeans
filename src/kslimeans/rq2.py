@@ -394,8 +394,13 @@ def find_done_run(results_dir: str | Path, cfg: dict) -> Path | None:
     return next((p for p in _stamp_dirs(results_dir, cfg["name"]) if is_done(p, cfg)), None)
 
 
+# Rewritten by the GPU monitor's sampler for as long as the process lives, hung or not.
+_BACKGROUND_FILES = frozenset({"gpu_samples.csv", "gpu.json"})
+
+
 def _last_touched(run_dir: Path) -> float:
-    return max([run_dir.stat().st_mtime, *(f.stat().st_mtime for f in run_dir.iterdir())])
+    files = (f for f in run_dir.iterdir() if f.name not in _BACKGROUND_FILES)
+    return max([run_dir.stat().st_mtime, *(f.stat().st_mtime for f in files)])
 
 
 def find_running_run(

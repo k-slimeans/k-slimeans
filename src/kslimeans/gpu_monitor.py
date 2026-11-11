@@ -39,9 +39,10 @@ _GPU_QUERY = ["--query-gpu=" + ",".join(_GPU_FIELDS), "--format=csv,noheader,nou
 _APPS_QUERY = ["--query-compute-apps=pid,process_name,used_gpu_memory", "--format=csv,noheader,nounits"]
 _WINDOWS_SMI = "/mnt/c/Windows/System32/nvidia-smi.exe"
 
-DEFAULT_THRESHOLDS = {"max_memory_used_mib": 1300, "max_utilization_pct": 15, "max_power_w": 65}
+DEFAULT_THRESHOLDS = {"max_memory_used_mib": 1400, "max_utilization_pct": 15, "max_power_w": 65}
 """Idle limits on the median sample. Calibrated on this machine: the Windows desktop alone is ~1.0-1.1 GB,
-2-3 % and ~43 W; the load seen before the CLINC150 run was ~1.5 GB, 43 % and 85 W."""
+2-3 % and ~43 W (a browser tab can add 200-500 MiB); the load seen before the CLINC150 run was ~1.5 GB, 43 %
+and 85 W."""
 
 SAMPLE_COLUMNS = ("timestamp", "memory_used_mib", "utilization_pct", "power_w", "torch_reserved_mib", "foreign_mib_est")
 
@@ -50,8 +51,12 @@ class GpuNotIdleError(RuntimeError):
     """Raised by a `require_idle: fail` policy when the pre-run check finds the GPU busy."""
 
 
+_TIMEOUT_S = 5
+_JOIN_TIMEOUT_S = 2 * _TIMEOUT_S
+
+
 def _run_cmd(cmd: list[str]) -> str:
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=15, check=True).stdout
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=_TIMEOUT_S, check=True).stdout
 
 
 def _find_windows_smi() -> str | None:
@@ -116,12 +121,24 @@ def parse_compute_apps(text: str) -> list[dict]:
     return rows
 
 
+def _windows_processes(run: Runner, windows_smi: str | None = None) -> list[dict] | None:
+    """Rows from the Windows `nvidia-smi.exe`, or None if it is not reachable or fails."""
+    exe = windows_smi or _find_windows_smi()
+    if not exe:
+        return None
+    try:
+        return parse_compute_apps(run([exe, *_APPS_QUERY]))
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+
+
 def gpu_snapshot(run: Runner | None = None, processes: bool = True, windows_smi: str | None = None) -> dict:
     """Card-level state of every GPU, now.
 
     Returns `{"available": True, "gpus": [{index, name, timestamp, memory_used_mib, memory_total_mib,
     utilization_pct, power_w}, ...], "foreign_processes": [...] | None}`, or `{"available": False,
-    "error": ...}` if `nvidia-smi` is missing or fails. `foreign_processes` is the Windows-side list from
+    "missing": bool, "error": ...}` if `nvidia-smi` is missing (`missing` True: a CPU-only machine) or fails
+    (`missing` False: it exists but could not be queried). `foreign_processes` is the Windows-side list from
     `nvidia-smi.exe` (best effort; None if unreachable or `processes=False`). Under WDDM it contains the
     desktop's own graphics processes with `used_memory_mib` None, so it is evidence, not a verdict.
     """
@@ -129,17 +146,12 @@ def gpu_snapshot(run: Runner | None = None, processes: bool = True, windows_smi:
     try:
         gpus = parse_gpu_query(run(["nvidia-smi", *_GPU_QUERY]))
     except (OSError, subprocess.SubprocessError, ValueError) as err:
-        return {"available": False, "error": f"{type(err).__name__}: {err}"}
+        missing = isinstance(err, FileNotFoundError)
+        return {"available": False, "missing": missing, "error": f"{type(err).__name__}: {err}"}
     if not gpus:
-        return {"available": False, "error": "nvidia-smi listed no GPUs"}
-    snapshot = {"available": True, "gpus": gpus, "foreign_processes": None}
-    exe = windows_smi or _find_windows_smi() if processes else None
-    if exe:
-        try:
-            snapshot["foreign_processes"] = parse_compute_apps(run([exe, *_APPS_QUERY]))
-        except (OSError, subprocess.SubprocessError, ValueError):
-            pass
-    return snapshot
+        return {"available": False, "missing": False, "error": "nvidia-smi listed no GPUs"}
+    foreign = _windows_processes(run, windows_smi) if processes else None
+    return {"available": True, "gpus": gpus, "foreign_processes": foreign}
 
 
 def _first_gpu(snapshot: dict) -> dict:
@@ -159,10 +171,11 @@ def check_idle(
     """Sample GPU 0 `samples` times, `interval_s` apart, and compare the median of each quantity to `thresholds`.
 
     `thresholds` overrides entries of `DEFAULT_THRESHOLDS`. Returns `{"available", "idle", "reason",
-    "samples", "median", "thresholds", "foreign_processes"}`: `idle` is True/False, or None when the GPU
-    cannot be read (then `reason` says why; a CPU-only machine is not a failure). The median keeps one
-    transient spike from failing a run, while a sustained load still shows. Power or utilization that
-    `nvidia-smi` does not report (None) is not checked.
+    "samples", "median", "thresholds", "foreign_processes", "gpu_missing"}`: `idle` is True/False, or None
+    when the GPU cannot be read (then `reason` says why, and `gpu_missing` tells a machine without
+    `nvidia-smi` from one whose query failed). The Windows process list is read once, after the samples.
+    The median keeps one transient spike from failing a run, while a sustained load still shows.
+    Power or utilization that `nvidia-smi` does not report (None) is not checked.
     """
     if samples < 1:
         raise ValueError(f"samples must be >= 1, got {samples}")
@@ -178,8 +191,8 @@ def check_idle(
             sleep(interval_s)
         last = gpu_snapshot(run, processes=False)
         if not last["available"]:
-            return {"available": False, "idle": None, "reason": last["error"], "samples": taken,
-                    "median": None, "thresholds": limits, "foreign_processes": None}  # fmt: skip
+            return {"available": False, "idle": None, "reason": last["error"], "samples": taken, "median": None,
+                    "thresholds": limits, "foreign_processes": None, "gpu_missing": last["missing"]}  # fmt: skip
         taken.append(_first_gpu(last))
 
     def median(key: str) -> float | None:
@@ -196,17 +209,18 @@ def check_idle(
         if med[key] is not None and med[key] > limits[limit_key]:
             breaches.append(f"{key} {med[key]:g} {unit} > {limits[limit_key]:g}")
     reason = "GPU busy: " + "; ".join(breaches) if breaches else "median sample within all thresholds"
-    processes = gpu_snapshot(run, windows_smi=windows_smi)["foreign_processes"]
+    processes = _windows_processes(run or _run_cmd, windows_smi)
     return {"available": True, "idle": not breaches, "reason": reason, "samples": taken, "median": med,
-            "thresholds": limits, "foreign_processes": processes}  # fmt: skip
+            "thresholds": limits, "foreign_processes": processes, "gpu_missing": False}  # fmt: skip
 
 
 def _torch_reserved_mib() -> float | None:
     """This process's `torch.cuda.memory_reserved()` in MiB; None unless torch is loaded and CUDA initialized."""
     torch = sys.modules.get("torch")
-    if torch is None or not torch.cuda.is_available() or not torch.cuda.is_initialized():
+    # `is_initialized` first: the sampler thread must never be the one to probe or initialize CUDA.
+    if torch is None or not torch.cuda.is_initialized():
         return None
-    return torch.cuda.memory_reserved() / 2**20
+    return torch.cuda.memory_reserved(0) / 2**20
 
 
 class GpuMonitor:
@@ -215,7 +229,8 @@ class GpuMonitor:
     One sample is taken on entry and one on exit, so even a short run has two rows. The thread stops on
     normal exit and on exception alike. `foreign_mib_est` = card memory used - this process's reserved
     memory (never below 0); it includes the desktop baseline and the CUDA context, so compare it with the
-    idle-check median rather than reading it as pure interference. Without `nvidia-smi` nothing is written
+    idle-check median rather than reading it as pure interference. A sample that fails for any reason is
+    counted in `n_errors` and skipped; the thread keeps going. Without `nvidia-smi` nothing is written
     and `summary` is `{"available": False, ...}`. `reserved` and `clock` are injectable for tests.
     """
 
@@ -242,26 +257,29 @@ class GpuMonitor:
         self.n_errors = 0
 
     def sample(self) -> dict | None:
-        """Take one sample, append it to the csv and to `rows`; None (and `n_errors` += 1) if the read failed."""
-        snapshot = gpu_snapshot(self._run, processes=False)
-        if not snapshot["available"]:
+        """Take one sample, append it to the csv and to `rows`; None (and `n_errors` += 1) if anything failed."""
+        try:
+            snapshot = gpu_snapshot(self._run, processes=False)
+            if not snapshot["available"]:
+                raise RuntimeError(snapshot["error"])
+            gpu = _first_gpu(snapshot)
+            reserved = self._reserved()
+            used = gpu["memory_used_mib"]
+            row = {
+                "timestamp": self._clock().isoformat(timespec="seconds"),
+                "memory_used_mib": used,
+                "utilization_pct": gpu["utilization_pct"],
+                "power_w": gpu["power_w"],
+                "torch_reserved_mib": reserved,
+                "foreign_mib_est": None if used is None or reserved is None else max(used - reserved, 0.0),
+            }
+            if self._writer is not None:
+                self._writer.writerow({k: "" if v is None else v for k, v in row.items()})
+                self._file.flush()
+        except Exception:
             self.n_errors += 1
             return None
-        gpu = _first_gpu(snapshot)
-        reserved = self._reserved()
-        used = gpu["memory_used_mib"]
-        row = {
-            "timestamp": self._clock().isoformat(timespec="seconds"),
-            "memory_used_mib": used,
-            "utilization_pct": gpu["utilization_pct"],
-            "power_w": gpu["power_w"],
-            "torch_reserved_mib": reserved,
-            "foreign_mib_est": None if used is None or reserved is None else max(used - reserved, 0.0),
-        }
         self.rows.append(row)
-        if self._writer is not None:
-            self._writer.writerow({k: "" if v is None else v for k, v in row.items()})
-            self._file.flush()
         return row
 
     def _loop(self) -> None:
@@ -272,20 +290,27 @@ class GpuMonitor:
         if not gpu_snapshot(self._run, processes=False)["available"]:
             return self  # CPU-only machine: no file, no thread
         self._file = open(self.path, "w", newline="")
-        self._writer = csv.DictWriter(self._file, fieldnames=SAMPLE_COLUMNS)
-        self._writer.writeheader()
-        self.sample()
-        self._thread = threading.Thread(target=self._loop, name="gpu-monitor", daemon=True)
-        self._thread.start()
+        try:
+            self._writer = csv.DictWriter(self._file, fieldnames=SAMPLE_COLUMNS)
+            self._writer.writeheader()
+            self.sample()
+            self._thread = threading.Thread(target=self._loop, name="gpu-monitor", daemon=True)
+            self._thread.start()
+        except BaseException:
+            self._file.close()
+            raise
         return self
 
     def __exit__(self, *exc) -> None:
         self._stop.set()
-        if self._thread is not None:
-            self._thread.join()
-            self.sample()
-        if self._file is not None:
-            self._file.close()
+        try:
+            if self._thread is not None:
+                self._thread.join(timeout=_JOIN_TIMEOUT_S)
+                if not self._thread.is_alive():  # else it is stuck in a query; leave the file to it
+                    self.sample()
+        finally:
+            if self._file is not None and (self._thread is None or not self._thread.is_alive()):
+                self._file.close()
 
     @property
     def summary(self) -> dict:
@@ -356,7 +381,9 @@ class GpuSession:
     `gpu.attach(run.path)` once its run directory exists. On exit (normal or exception) the monitor is
     stopped and `gpu.json` is written into the run directory with the config, the idle-check result and the
     monitor summary. `require_idle: fail` raises `GpuNotIdleError` on entry, before any model is loaded;
-    `warn` emits a `UserWarning`; `off` skips the check. A machine without `nvidia-smi` is never an error.
+    `warn` emits a `UserWarning`; `off` switches everything off (no `nvidia-smi` call, no files). A machine
+    without `nvidia-smi` is never an error, but one where it exists and cannot be queried is: the run cannot
+    be verified idle, so `fail` raises and `warn` warns.
     """
 
     def __init__(
@@ -379,15 +406,24 @@ class GpuSession:
             thresholds={k: self.cfg[k] for k in DEFAULT_THRESHOLDS},
             sleep=self._sleep,
         )
+        message = None
         if self.idle_check["idle"] is False:
             message = f"GPU is not idle before the run ({self.idle_check['reason']}); timings may be inflated"
+        elif self.idle_check["idle"] is None and not self.idle_check["gpu_missing"]:
+            message = f"Cannot verify the GPU is idle: nvidia-smi query failed ({self.idle_check['reason']})"
+        if message is not None:
             if self.cfg["require_idle"] == "fail":
                 raise GpuNotIdleError(message)
             warnings.warn(message, stacklevel=2)
         return self
 
     def attach(self, run_dir: str | Path) -> None:
-        """Bind to the run directory: write `gpu.json` and start the monitor (if enabled and a GPU is readable)."""
+        """Bind to the run directory: write `gpu.json` and start the monitor (if enabled and a GPU is readable).
+
+        Does nothing under `require_idle: off`, which switches the whole feature off.
+        """
+        if self.cfg["require_idle"] == "off":
+            return
         self._run_dir = Path(run_dir)
         self._write()
         if self.cfg["monitor"]:
@@ -395,16 +431,27 @@ class GpuSession:
             self.monitor.__enter__()
 
     def __exit__(self, *exc) -> None:
-        if self.monitor is not None:
-            self.monitor.__exit__(*exc)
-        if self._run_dir is not None:
-            self._write()
+        try:
+            if self.monitor is not None:
+                self.monitor.__exit__(*exc)
+        finally:
+            if self._run_dir is not None:
+                self._write()
 
     def _write(self) -> None:
+        monitor = None if self.monitor is None else self.monitor.summary
+        median = (self.idle_check or {}).get("median")
+        baseline = median["memory_used_mib"] if median else None
+        raw_max = None if monitor is None else monitor["max_foreign_mib_est"]
+        # Non-torch card memory beyond what the card held before the run. It still contains our own CUDA
+        # context (~0.3-0.5 GB here), so only values clearly above that point at another process.
+        above = None if baseline is None or raw_max is None else max(raw_max - baseline, 0.0)
         data = {
             "gpu_check": self.cfg,
             "idle_check": self.idle_check,
-            "monitor": None if self.monitor is None else self.monitor.summary,
+            "monitor": monitor,
+            "baseline_memory_used_mib": baseline,
+            "non_torch_above_baseline_mib": above,
         }
         with open(self._run_dir / "gpu.json", "w") as f:
             json.dump(data, f, indent=2)

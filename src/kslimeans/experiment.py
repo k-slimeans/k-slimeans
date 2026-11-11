@@ -131,7 +131,6 @@ def run_offline(cfg: dict) -> Path:
 
 
 def _run_offline(cfg: dict, gpu: GpuSession) -> Path:
-
     ds = _resolve_dataset(cfg["dataset"])
     embedder = _resolve_embedder(cfg["embedder"])
     cache_dir = cfg.get("cache_dir", "cache")
