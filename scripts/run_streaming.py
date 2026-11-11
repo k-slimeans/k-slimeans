@@ -22,11 +22,13 @@ import argparse
 import time
 from pathlib import Path
 
+import numpy as np
 from sklearn.cluster import KMeans, MiniBatchKMeans
 
 import kslimeans
 from kslimeans.cache import cached_sentences, dataset_embeddings
 from kslimeans.config import check_keys, default_method_name, load_config
+from kslimeans.embeddings import get_embedder
 from kslimeans.metrics import cluster_metrics, oracle_centroids
 from kslimeans.minibatch import assign_to_centroids, mini_batch_summary_kmeans, sequentialMiniBatchKmeans
 from kslimeans.results import RunDir
@@ -71,6 +73,29 @@ def _run_baseline(name: str, kw: dict, X, n_clusters: int, seed: int, max_batch_
     else:
         raise ValueError(f"Unknown baseline '{name}', expected one of "
                           "('minibatchkmeans', 'seqminibatchkmeans', 'kmeans')")
+
+
+def _final_batch_summary_embeddings(summaries: list[str | None] | None, embedder) -> np.ndarray | None:
+    """Embed the last batch's per-cluster summaries, or None if it has none.
+
+    Entries that are None (a cluster never summarized) are dropped, like the NaN rows the offline
+    runner drops; an empty-cluster summary ("") is embedded, as `summary_kmeans` does.
+    """
+    kept = [s for s in summaries or [] if s is not None]
+    return embedder.encode(kept) if kept else None
+
+
+def _streaming_metrics(labels, assignments, oracle, centroids, summary_pred) -> dict:
+    """`cluster_metrics` against the oracle centroids, as `kslimeans.experiment.run_offline` calls it.
+
+    `summary_pred` is the method's summary embeddings, or None for a method without summaries (the
+    baselines, or a k-SLMmeans run whose last batch has none). Then `sum_cen_dist` and `sum_sum_dist`
+    are None (null in `metrics.jsonl`) instead of falling back to the centroids.
+    """
+    metrics = cluster_metrics(labels, assignments, oracle, centroids, oracle, summary_pred)
+    if summary_pred is None:
+        metrics["sum_cen_dist"] = metrics["sum_sum_dist"] = None
+    return metrics
 
 
 def run_streaming(cfg: dict) -> Path:
@@ -118,16 +143,17 @@ def run_streaming(cfg: dict) -> Path:
                 assignments, centroids = _run_baseline(name, kw, X, ds.n_clusters, seed, max_batch_size)
                 runtime = time.perf_counter() - t0
 
-                metrics = cluster_metrics(ds.labels, assignments, oracle, centroids, centroids)
+                metrics = _streaming_metrics(ds.labels, assignments, oracle, centroids, None)
                 run.log_metrics({"year": tag, "seed": seed, "method": name, "runtime": runtime, **metrics})
                 print(f"  [{tag} seed={seed}] {name}: {metrics} ({runtime:.1f}s)")
 
+            embedder = get_embedder(cfg["embedder"])
             t0 = time.perf_counter()
             result = mini_batch_summary_kmeans(
                 ds.texts,
                 ds.n_clusters,
                 summarizer,
-                cfg["embedder"],
+                embedder,
                 schedule,
                 text_features=X,
                 sentences=sentences,
@@ -140,7 +166,11 @@ def run_streaming(cfg: dict) -> Path:
             assignments = assign_to_centroids(X, result.centroids, cfg["eval_assign"])
             runtime = time.perf_counter() - t0
 
-            metrics = cluster_metrics(ds.labels, assignments, oracle, result.centroids, result.centroids)
+            # Deliberately differs from upstream, whose notebook passed the predicted centroids as both
+            # the "true" and the predicted summaries (so cen_sum_dist was 0): the reference is the oracle
+            # and summary_pred is the final batch's summaries, embedded -- see README "Streaming".
+            summary_pred = _final_batch_summary_embeddings(result.summaries[-1], embedder)
+            metrics = _streaming_metrics(ds.labels, assignments, oracle, result.centroids, summary_pred)
             run.log_metrics(
                 {
                     "year": tag,

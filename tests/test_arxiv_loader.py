@@ -174,7 +174,7 @@ def test_run_streaming_without_years(arxiv_dir, tmp_path, monkeypatch):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     monkeypatch.setattr(module, "build_summarizer", lambda *a, **k: _StubSummarizer())
-    monkeypatch.setattr("kslimeans.minibatch.get_embedder", lambda name: _StubEmbedder())
+    monkeypatch.setattr(module, "get_embedder", lambda name: _StubEmbedder())
     cfg = {
         "name": "arxiv_stream",
         "dataset": {"name": "arxiv_sub200k", "limit": 12},

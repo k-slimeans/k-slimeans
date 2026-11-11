@@ -271,6 +271,16 @@ document embeddings and about 30 minutes on spaCy sentence splitting (only extra
 sentences). Both are cached, so later runs skip them. `configs/stackexchange_stream_slm.yaml` is the same
 benchmark with the SLM summarizer and `force_context_length: 10`.
 
+The distance columns in `metrics.jsonl` follow the offline runner: the reference is the oracle (per-class mean
+embedding), `cen_*` use the final running centroids and `sum_*` use summary embeddings. For k-SLMmeans the
+summaries are those of the **last batch** (embedded with the run's embedder; `None` entries are dropped), not of
+the running centroids. The baselines have no summaries, so their `sum_cen_dist` and `sum_sum_dist` are `null`.
+As in the offline runner, `cen_sum_dist` equals `cen_cen_dist` for every method (both compare the centroids
+with the oracle). These columns are not in `summary.csv` or the aggregator tables, which only report
+acc/nmi/ari. Upstream's notebook passed the predicted centroids as both the reference and the summaries, so
+its streaming `cen_sum_dist` and `sum_sum_dist` were always 0 and `sum_cen_dist` equalled `cen_cen_dist`. We
+deliberately differ (issue #29), so these columns are not comparable with upstream's streaming numbers.
+
 For arXiv abstracts (200k subsample, MiniLM vectors precomputed once), there is no `years` key:
 
 ```bash
@@ -512,7 +522,8 @@ configs), and the StackExchange download notebooks (the cleaned archive is check
 - `miniBatchKLLMmeans` crashed (it called `.items()` on `text_sentences=None`). The mini-batch centroid
   average divided by zero for clusters that were still empty. The GoEmotions loader read from the working
   directory. `load_dataset("massive_I")` crashed without an extra argument. The streaming notebook's k-means
-  baseline stored the wrong assignments.
+  baseline stored the wrong assignments. Streaming summary-distance metrics were degenerate (always 0 or
+  equal to the centroid distance); they now use the oracle and the last batch's summary embeddings.
 
 **Changed:** Bank77 and CLINC are read from checked-in CSVs, because `datasets` dropped the script loaders
 upstream relied on. Dataset prompts, label mappings, and all numerics are unchanged. `max_iter` and baseline
