@@ -1,0 +1,41 @@
+# CLINC150 prompt test (#46): does a clearer prompt change the Qwen3 results? This is configs/clinc150_summarizers.yaml
+# (#31) with ONE change, the instruction in `summarizer.prompt`. Everything else is the #31 protocol, unchanged:
+# the system prompt (hf.py default, "You are a helpful assistant summarizing text clusters."), the `Question:`
+# prefill, greedy decoding, thinking off, max_new_tokens 64, max_input_tokens 4096, the #28 member selection,
+# the encoder, seeds 0-4, the schedule, and the per-model batch sizes set by scripts/run_clinc150_prompt_v2.sh.
+#
+# The old prompt ("The following is cluster of questions. Write a question that summarizes the following cluster:")
+# read as "ask about the cluster": 34% of the 4B's summaries talked about the cluster (#31, section 2.4). The new one
+# asks for one question a user could have asked, covering what the members have in common, and never names the
+# cluster, the questions or a topic. It was fixed before any run; there is no prompt search.
+#
+# Not here: k-means and LSA. Their outputs do not depend on the prompt and the #31 runs already have them, with
+# the same step0_sha1 per seed. `name` and `method_name` differ from #31's so outputs and tables never collide
+# (the table labels these rows "k-SLMmeans-v2 (Qwen3-<size>)").
+
+name: clinc150_prompt_v2
+dataset: clinc150_intent
+embedder: distilbert
+seeds: [0, 1, 2, 3, 4]
+
+method_name: k-SLMmeans-v2
+force_context_length: 0
+tol: 1.0e-4
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 120
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-0.6B
+  prompt: "The following questions were asked by users. Write one new question that a user could have asked, in the same style, that covers what these questions have in common. Write only the question. Do not mention the questions, a group, a cluster or a topic."
+  max_new_tokens: 64
+  max_input_tokens: 4096
+  batch_size: 8
+
+cache_dir: cache
+results_dir: results
