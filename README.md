@@ -275,8 +275,9 @@ The distance columns in `metrics.jsonl` follow the offline runner: the reference
 embedding), `cen_*` use the final running centroids and `sum_*` use summary embeddings. For k-SLMmeans the
 summaries are those of the **last batch** (embedded with the run's embedder; `None` entries are dropped), not of
 the running centroids. The baselines have no summaries, so their `sum_cen_dist` and `sum_sum_dist` are `null`.
-As in the offline runner, `cen_sum_dist` equals `cen_cen_dist` for every method (both compare the centroids
-with the oracle). These columns are not in `summary.csv` or the aggregator tables, which only report
+As in the offline runner, `cen_sum_dist` equals `cen_cen_dist` and `sum_sum_dist` equals `sum_cen_dist` for
+every method (the oracle is both references), so the four columns carry two numbers: centroids vs oracle and
+summaries vs oracle. These columns are not in `summary.csv` or the aggregator tables, which only report
 acc/nmi/ari. Upstream's notebook passed the predicted centroids as both the reference and the summaries, so
 its streaming `cen_sum_dist` and `sum_sum_dist` were always 0 and `sum_cen_dist` equalled `cen_cen_dist`. We
 deliberately differ (issue #29), so these columns are not comparable with upstream's streaming numbers.
