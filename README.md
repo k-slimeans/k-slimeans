@@ -144,9 +144,11 @@ src/kslimeans/
   rq2.py           RQ2 sweep planning, resumability and report (scripts/run_rq2.py, scripts/rq2_report.py)
   runlog.py        load a run directory back: per-(method, seed) summaries, partitions, and the summarizer inputs of a step
   surface.py       surface checks on logged summaries (length, "?", mentions of the cluster, duplicates; scripts/surface_counts.py)
+  workload.py      re-summarize one logged step's inputs with any summarizer setup, timed per batch (scripts/fixed_workload.py)
 configs/           experiment configs (YAML)
 scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_stackexchange.py, prepare_arxiv.py,
-                   aggregate_results.py, surface_counts.py (summary surface-check table), run_prelim.sh
+                   aggregate_results.py, surface_counts.py (summary surface-check table), run_prelim.sh,
+                   fixed_workload.py, compare_workloads.py, run_clinc150_prompt_v2.sh
 data/              datasets, checked in except the generated data/arxiv/ (see data/README.md)
 tests/             pytest suite, incl. exact-equivalence fixtures generated from the original code
 ```
@@ -363,6 +365,29 @@ gpu_check:
 `nvidia-smi.exe` lists the desktop's graphics processes but, under WDDM, not their memory, so the process list is
 evidence for a human, not an input to the verdict. The check reads the card, not the run's own jobs: start only
 one run at a time.
+
+### Prompt test and fixed workloads (#46)
+
+`configs/clinc150_prompt_v2.yaml` is the #31 CLINC150 config with one change: a clearer instruction in
+`summarizer.prompt` (it never mentions the cluster, the questions or a topic). `scripts/run_clinc150_prompt_v2.sh`
+runs the Qwen3 4B, 0.6B and 1.7B under it (k-means and LSA are not rerun: they do not depend on the prompt) and
+builds a table next to the #31 runs. The rows are labelled `k-SLMmeans-v2 (Qwen3-<size>)`.
+
+`scripts/fixed_workload.py` re-summarizes the inputs of one summary step of a logged run (default: seed 0, the first
+step, which every method shares for a seed) with a chosen summarizer setup, so prompts, models and batch sizes can be
+compared on identical work. It needs the GPU. Embeddings come from the cache; nothing is encoded.
+
+```bash
+python scripts/fixed_workload.py results/clinc150_qwen3-4b/<stamp> --name old_4b            # the logged settings
+python scripts/fixed_workload.py results/clinc150_qwen3-4b/<stamp> --name v2_4b \
+    --summarizer-config configs/clinc150_prompt_v2.yaml --set model_id=Qwen/Qwen3-4B --set batch_size=1
+python scripts/fixed_workload.py RUN_DIR --name time_bs4 --set batch_size=4 --repeat 3 --warmup   # timing
+python scripts/compare_workloads.py results/fixed_workload/old_4b/<stamp> results/fixed_workload/v2_4b/<stamp>
+```
+
+Each output directory holds `config.yaml`, `environment.json`, `outputs.jsonl`, `cost.jsonl` (seconds per repeat and
+per batch, tokens, truncation, peak GPU memory) and `surface.json` (share mentioning the cluster, duplicate groups,
+mean words, share ending in "?"), and `compare_workloads.py` puts several side by side.
 
 ---
 
