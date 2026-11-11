@@ -429,10 +429,9 @@ def test_windows_processes_are_read_once_per_run_not_per_sample(tmp_path, no_sle
 def test_gpu_json_records_raw_max_baseline_and_excess_over_baseline(tmp_path, no_sleep):
     # pre-run: 4 samples at 1000 MiB; then the monitor sees 1900 MiB used with 500 reserved by torch
     outputs = [gpu_row(used=1000)] * 4 + [gpu_row(used=1900)]
-    with GpuSession({"interval_s": 1e6}, run=FakeSmi(outputs), sleep=no_sleep) as gpu:
+    session = GpuSession({"interval_s": 1e6}, run=FakeSmi(outputs), sleep=no_sleep, reserved=lambda: 500.0)
+    with session as gpu:
         gpu.attach(tmp_path)
-        gpu.monitor._reserved = lambda: 500.0
-        gpu.monitor.sample()
     data = json.loads((tmp_path / "gpu.json").read_text())
     assert data["baseline_memory_used_mib"] == 1000.0
     assert data["monitor"]["max_foreign_mib_est"] == 1400.0

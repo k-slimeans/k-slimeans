@@ -387,10 +387,15 @@ class GpuSession:
     """
 
     def __init__(
-        self, spec: dict | None = None, run: Runner | None = None, sleep: Callable[[float], None] | None = None
+        self,
+        spec: dict | None = None,
+        run: Runner | None = None,
+        sleep: Callable[[float], None] | None = None,
+        reserved: Callable[[], float | None] = _torch_reserved_mib,
     ):
         self.cfg = parse_gpu_check(spec)
         self._run = run
+        self._reserved = reserved
         self._sleep = sleep
         self.idle_check: dict | None = None
         self.monitor: GpuMonitor | None = None
@@ -427,7 +432,9 @@ class GpuSession:
         self._run_dir = Path(run_dir)
         self._write()
         if self.cfg["monitor"]:
-            self.monitor = GpuMonitor(self._run_dir / "gpu_samples.csv", self.cfg["interval_s"], run=self._run)
+            self.monitor = GpuMonitor(
+                self._run_dir / "gpu_samples.csv", self.cfg["interval_s"], run=self._run, reserved=self._reserved
+            )
             self.monitor.__enter__()
 
     def __exit__(self, *exc) -> None:
