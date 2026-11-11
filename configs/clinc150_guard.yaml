@@ -1,0 +1,52 @@
+# CLINC150 summary-guard diagnostic (#47, stage 2): does the 4B's lower final score come from its flagged summaries?
+# This is configs/clinc150_summarizers.yaml (#31) for the Qwen3-4B only, with ONE change: `summary_guard`. At every
+# summary step a flagged summary does not become its cluster's centroid; the cluster starts that step's Lloyd block
+# from its previous k-means center instead. Flags: (i) the summary is identical to another cluster's at that step
+# (all members of the group), (ii) it talks about the cluster (the section 2.4 rule: "cluster" or "summar", any case).
+# The summaries are still generated and logged as they are; ref/summary_embeddings and the `tol` shift keep using the
+# summary embeddings, so the stopping rule is the unguarded one. The flag rules were fixed before any run.
+#
+# This is a DIAGNOSTIC VARIANT, not a method: it asks whether flagged summaries cause the drop, and is labelled so
+# ("k-SLMmeans-guard (Qwen3-4B)"). Everything else is the #31 protocol, unchanged: the #31 prompt, system prompt
+# and `Question:` prefill, greedy decoding, thinking off, max_new_tokens 64, max_input_tokens 4096, the #28 member
+# selection, the encoder, seeds 0-4, the schedule, and batch size 1 for the 4B (batch 2 overflows the 12 GB card, and
+# under WSL2 an overflow hangs). (`gpu_check` is the one other addition: #31 predates the GPU monitor and it changes
+# no result.)
+#
+# Not here: k-means and the unguarded 4B. The #31 runs have them, with the same step0_sha1 per seed, and the table
+# built by scripts/run_clinc150_guard.sh reads them from there. `name` and `method_name` differ from #31's so
+# outputs and tables never collide.
+
+name: clinc150_guard_qwen3-4b
+dataset: clinc150_intent
+embedder: distilbert
+seeds: [0, 1, 2, 3, 4]
+
+method_name: k-SLMmeans-guard
+force_context_length: 0
+tol: 1.0e-4
+
+summary_guard:
+  duplicate: true
+  mentions_cluster: true
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 120
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-4B
+  max_new_tokens: 64
+  max_input_tokens: 4096
+  batch_size: 1
+
+# Stated, not new: the default policy of PR #53 (3-4 s idle check before the model loads, GPU monitor during the run).
+gpu_check:
+  require_idle: warn
+
+cache_dir: cache
+results_dir: results

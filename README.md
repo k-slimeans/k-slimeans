@@ -406,6 +406,22 @@ Each output directory holds `config.yaml`, `environment.json`, `outputs.jsonl`, 
 per batch, tokens, truncation, peak GPU memory), `gpu.json` and `surface.json` (share mentioning the cluster, duplicate groups,
 mean words, share ending in "?"), and `compare_workloads.py` puts several side by side.
 
+### Summary guard (#47, diagnostic variant)
+
+`summary_guard: {duplicate: true, mentions_cluster: true}` in a config (or `summary_guard=` in `summary_kmeans`) tests whether
+flagged summaries cause the Qwen3-4B's lower CLINC150 scores. It is a diagnostic variant, not a method, and is off by
+default (outputs are then unchanged). At every summary step a cluster is flagged when its summary is an exact duplicate of
+another cluster's (all members of the group) and/or mentions the cluster (the same rules as `kslimeans.surface`). A flagged
+cluster starts that step's Lloyd block from its previous k-means center instead of its summary embedding. The summaries are
+still generated and logged as they are, and the stopping rule is unchanged: `ref`, `summary_embeddings` and the `tol` shift
+keep using the summary embeddings of all clusters. With the guard on, `trace.jsonl` rows gain `n_guarded`,
+`n_guarded_duplicate` and `n_guarded_mentions`, and `summaries.jsonl` gains `guarded_evolution` (the flagged cluster ids per
+summary step); `centroids_evolution` holds the start centers actually used.
+
+`configs/clinc150_guard.yaml` is the #31 protocol for the 4B (batch size 1, seeds 0-4) with the guard on, named
+`k-SLMmeans-guard`. `scripts/run_clinc150_guard.sh` runs it and builds a table next to the #31 4B and k-means rows, which it
+reads from `results/` (run `scripts/run_clinc150.sh` first if they are missing). Roughly 1.5 h on an idle card.
+
 ---
 
 ## Swapping the SLM
