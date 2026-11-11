@@ -1,0 +1,35 @@
+{
+  "sample_size": 2000,
+  "seed": 0,
+  "source": "arxiv_sub200k.parquet",
+  "tokenizer": "Qwen/Qwen3-0.6B (shared by the 1.7B and 4B)",
+  "mean_words": 152.4255,
+  "mean_abstract_tokens": 210.045,
+  "abstract_tokens_p5_p50_p95_p99": [
+    90.0,
+    201.0,
+    368.0,
+    449.05999999999995
+  ],
+  "prompt_overhead_tokens": 53.0,
+  "check_prompts": {
+    "n": 300,
+    "members": 10,
+    "mean_tokens": 2133.59,
+    "max_tokens": 3091,
+    "n_truncated": 0
+  },
+  "lsa": {
+    "spacy_model": "en_core_web_sm, nlp.pipe(disable=[ner, lemmatizer]), 1 process",
+    "spacy_docs_per_s": 89.65768467096561,
+    "sentences_per_abstract": 6.3085,
+    "sentences_per_abstract_p5_p50_p95": [
+      3.0,
+      6.0,
+      11.0
+    ],
+    "mean_sentence_chars": 165.61789648886423,
+    "minilm_sentence_tokens_per_abstract": 233.8155,
+    "minilm_abstract_tokens": 199.5075
+  }
+}
