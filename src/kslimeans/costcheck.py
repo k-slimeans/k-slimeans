@@ -43,6 +43,11 @@ SECONDS_TOL = 1e-6
 TOKEN_KEYS = ("input_tokens", "n_truncated_clusters", "n_dropped_texts")
 """The `COUNT_KEYS` that need a tokenizer to rebuild."""
 
+OUTPUT_TOL = 0.003
+"""Default relative tolerance of the output-token comparison per seed. The observed residual on the CLINC150 runs is
+at most 0.096%; an error above 0.3% of a seed's output tokens (roughly one token on every 15th to 25th call at 14-26
+tokens per summary) is always flagged, and an undercount of one token per call (EOS missed) is 4-7%."""
+
 COUNT_KEYS = ("n_calls", "input_tokens", "n_truncated_clusters", "n_dropped_texts", "n_empty_summaries")
 """Counters this module recomputes exactly (everything in `COST_KEYS` + `n_calls` except seconds and outputs)."""
 
@@ -63,9 +68,13 @@ class PromptSettings:
     def from_run(cls, summarizer_cfg: dict, dataset_prompt: str, dataset_text_type: str) -> PromptSettings:
         """Settings as `experiment.run_offline` + `build_summarizer` + `HFSummarizer.__init__` resolve them."""
         kwargs = summarizer_cfg.get("chat_template_kwargs")
+        # `build_summarizer` passes `cfg.get(k) or dataset_value`; `HFSummarizer` falls back to its default only
+        # for `None`, so a dataset's empty-string `text_type` stays empty (no assistant prefill).
+        prompt = summarizer_cfg.get("prompt") or dataset_prompt
+        text_type = summarizer_cfg.get("text_type") or dataset_text_type
         return cls(
-            prompt=summarizer_cfg.get("prompt") or dataset_prompt or DEFAULT_PROMPT,
-            text_type=summarizer_cfg.get("text_type") or dataset_text_type or DEFAULT_TEXT_TYPE,
+            prompt=DEFAULT_PROMPT if prompt is None else prompt,
+            text_type=DEFAULT_TEXT_TYPE if text_type is None else text_type,
             system_prompt=summarizer_cfg.get("system_prompt", DEFAULT_SYSTEM_PROMPT),
             max_input_tokens=summarizer_cfg.get("max_input_tokens", 4096),
             max_new_tokens=summarizer_cfg.get("max_new_tokens", 128),
@@ -218,7 +227,7 @@ def _summary_steps_with_rows(rc: RecordCheck) -> list[StepCheck]:
     return [s for s in rc.steps if s.logged is not None]
 
 
-def run_checks(checks: list[RecordCheck], output_tol: float = 0.01) -> list[Check]:
+def run_checks(checks: list[RecordCheck], output_tol: float = OUTPUT_TOL) -> list[Check]:
     """The pass/fail checks over every record (seed) of one method in one run.
 
     `output_tol` is the relative tolerance of the output-token comparison per record (the other counters must
@@ -251,7 +260,10 @@ def run_checks(checks: list[RecordCheck], output_tol: float = 0.01) -> list[Chec
             check.compare(rc.metrics[key], sum(s.counts[key] for s in rc.steps))
         out.append(check)
 
-    extra = sorted({k for rc in checks for k in embed_keys(rc.metrics)})
+    extra = sorted(
+        {k for rc in checks for k in embed_keys(rc.metrics)}
+        | {k for rc in checks for s in rc.steps if s.logged for k in s.logged if k.startswith("embed_")}
+    )
     for key in ("n_calls", *COST_KEYS, *extra):
         check = Check(f"per run: `{key}` in metrics = sum of trace rows")
         n_tol = 0
@@ -326,13 +338,13 @@ def verify_run(
     runlog: RunLog,
     cache_dir=None,
     load_tokenizer=None,
-    output_tol: float = 0.01,
+    output_tol: float = OUTPUT_TOL,
 ) -> RunReport:
     """Run every check on every summary method of `runlog`.
 
-    `load_tokenizer(model_id)` supplies the tokenizer of an `hf` summarizer (the script loads it from the local
-    Hugging Face cache only); it is not called for extractive summarizers. Dataset and embeddings come from the
-    cache through `runlog.load_run_dataset`, which never encodes.
+    `load_tokenizer(model_id, trust_remote_code)` supplies the tokenizer of an `hf` summarizer (the script loads it
+    from the local Hugging Face cache only); it is not called for extractive summarizers. Dataset and embeddings
+    come from the cache through `runlog.load_run_dataset`, which never encodes.
     """
     start = time.perf_counter()
     cfg = runlog.config
@@ -340,7 +352,7 @@ def verify_run(
     ds, X = load_run_dataset(runlog, cache_dir)
     tokenizer = settings = None
     if scfg.get("type") == "hf":
-        tokenizer = load_tokenizer(scfg["model_id"])
+        tokenizer = load_tokenizer(scfg["model_id"], bool(scfg.get("trust_remote_code", False)))
         settings = PromptSettings.from_run(scfg, ds.prompt, ds.text_type)
     fcl = cfg.get("force_context_length", 0)
     methods = []
@@ -363,6 +375,40 @@ def verify_run(
 
 def _fmt(x: float) -> str:
     return f"{x:.3g}" if x != int(x) or abs(x) < 1e-3 else f"{int(x)}"
+
+
+MEAN_COLUMNS = (
+    ("n_calls", "calls", ",.0f"),
+    ("input_tokens", "input tokens", ",.0f"),
+    ("output_tokens", "output tokens", ",.0f"),
+    ("summarizer_seconds", "summarizer s", ".1f"),
+    ("runtime_s", "total s", ".1f"),
+    ("n_empty_summaries", "empty summaries", ".1f"),
+    ("n_truncated_clusters", "truncated clusters", ".1f"),
+    ("n_dropped_texts", "dropped texts", ".1f"),
+    ("peak_gpu_mem_gb", "peak GPU GB", ".2f"),
+    ("peak_gpu_reserved_gb", "reserved GPU GB", ".2f"),
+)
+"""`metrics.jsonl` fields of the per-method mean table, labelled and formatted as in `clinc150_summarizers.md` §3."""
+
+
+def format_means(records: list[RecordCheck]) -> list[str]:
+    """Markdown rows: mean ± standard deviation (ddof=1, over seeds) of the logged per-seed totals.
+
+    Recomputed straight from `metrics.jsonl`, formatted like the cost table of `clinc150_summarizers.md` §3 so
+    its entries can be compared one by one. Fields a run does not log (e.g. GPU memory without CUDA) are omitted.
+    """
+    columns = [c for c in MEAN_COLUMNS if all(isinstance(rc.metrics.get(c[0]), (int, float)) for rc in records)]
+    cells = []
+    for key, _, fmt in columns:
+        values = np.array([rc.metrics[key] for rc in records], dtype=float)
+        std = values.std(ddof=1) if len(values) > 1 else 0.0
+        cells.append(f"{values.mean():{fmt}} ± {std:{fmt}}")
+    return [
+        "| " + " | ".join(label for _, label, _ in columns) + " |",
+        "| " + " | ".join("---:" for _ in columns) + " |",
+        "| " + " | ".join(cells) + " |",
+    ]
 
 
 def format_report(reports: list[RunReport]) -> str:
@@ -414,5 +460,7 @@ def format_report(reports: list[RunReport]) -> str:
                 row = f"| {rc.seed} | {s:.1f} | {t:.1f} | {t - s:.1f} |"
                 lines.append(row + (f" {rc.rebuild_seconds:.1f} |" if tokenized else ""))
             lines.append("")
+            lines += ["Means ± std over seeds, recomputed from `metrics.jsonl` (compare with §3):", ""]
+            lines += [*format_means(mrep.records), ""]
         lines += [f"Verification time for this run: {rep.seconds:.1f} s.", ""]
     return "\n".join(lines)

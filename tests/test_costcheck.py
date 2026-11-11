@@ -9,7 +9,9 @@ test uses the real Qwen3 tokenizer from the local Hugging Face cache.
 
 from __future__ import annotations
 
+import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -18,9 +20,11 @@ import pytest
 from kslimeans.cache import cached_embeddings
 from kslimeans.core import COST_KEYS, summary_kmeans
 from kslimeans.costcheck import (
+    OUTPUT_TOL,
     PromptSettings,
     check_record,
     count_tokens,
+    format_means,
     format_report,
     rebuild_prompt,
     run_checks,
@@ -73,7 +77,8 @@ class FakeHFSummarizer(Summarizer):
 
     needs_sentences = False
 
-    def __init__(self, embed, settings):
+    def __init__(self, embed, settings, eos=1):
+        self.eos = eos
         self.inner = ClosestToMeanSummarizer(embed)
         self.tokenizer = WordTokenizer()
         self.settings = settings
@@ -94,7 +99,7 @@ class FakeHFSummarizer(Summarizer):
         )
         summary = self.inner.summarize(cluster)
         self._stats["input_tokens"] += len(rendered.split())
-        self._stats["output_tokens"] += len(summary.split()) + 1
+        self._stats["output_tokens"] += len(summary.split()) + self.eos
         self._stats["n_truncated_clusters"] += int(bool(n_dropped or truncated))
         self._stats["n_dropped_texts"] += n_dropped
         return summary
@@ -154,10 +159,10 @@ def run(noisy, synthetic, tmp_path):
 
     def make(
         settings=SETTINGS, tol=-1.0, extractive=False, fcl=NOISY_FCL, max_iter=5, separated=False, corpus=None,
-        embedder_cls=LookupEmbedder,
+        embedder_cls=LookupEmbedder, eos=1,
     ):
         texts, X, embed = corpus or (synthetic if separated else noisy)
-        summarizer = ClosestToMeanSummarizer(embed) if extractive else FakeHFSummarizer(embed, settings)
+        summarizer = ClosestToMeanSummarizer(embed) if extractive else FakeHFSummarizer(embed, settings, eos)
         result = summary_kmeans(
             texts,
             N_BLOBS,
@@ -368,10 +373,11 @@ def test_verify_run_and_report_on_a_logged_run(run, noisy, tmp_path, monkeypatch
         "max_input_tokens": SETTINGS.max_input_tokens,
         "max_new_tokens": SETTINGS.max_new_tokens,
         "batch_size": 4,
+        "trust_remote_code": True,
     }
     loaded = []
-    report = verify_run(log, cache_dir, lambda model_id: loaded.append(model_id) or WordTokenizer())
-    assert loaded == ["fake/model"]
+    report = verify_run(log, cache_dir, lambda model_id, trust: loaded.append((model_id, trust)) or WordTokenizer())
+    assert loaded == [("fake/model", True)]
     assert _failed(report.methods[0].checks) == []
 
     markdown = format_report([report])
@@ -379,7 +385,7 @@ def test_verify_run_and_report_on_a_logged_run(run, noisy, tmp_path, monkeypatch
     assert "batch size 4" in markdown and "logged input" in markdown and "runtime - summarizer" in markdown
 
     log.record("k-test", SEED).trace[1]["n_calls"] += 1
-    broken = format_report([verify_run(log, cache_dir, lambda model_id: WordTokenizer())])
+    broken = format_report([verify_run(log, cache_dir, lambda model_id, trust: WordTokenizer())])
     assert "FAIL" in broken
 
 
@@ -441,3 +447,66 @@ def test_embedder_counters_are_summed_and_older_rows_without_them_pass(run):
     plain, texts, X, _ = run()
     names = [c.name for c in run_checks([_check(plain, texts, X)])]
     assert not any("embed_" in n for n in names)
+
+
+def test_a_missed_eos_on_every_call_fails_at_the_default_tolerance(run, wordy):
+    # A counter that forgets the EOS undercounts by one token per call: 1 in 13 here.
+    record, texts, X, result = run(corpus=wordy, eos=0)
+    rc = _check(record, texts, X)
+    expected = sum(s.output_model for s in rc.steps)
+    assert OUTPUT_TOL == 0.003 and result.cost["output_tokens"] == expected - result.n_calls
+    failed = _failed(run_checks([rc]))
+    assert [n for n in failed if "output_tokens` in metrics ~" in n]
+    # And an honest run on the same corpus passes at that tolerance.
+    honest, texts, X, _ = run(corpus=wordy)
+    assert _failed(run_checks([_check(honest, texts, X)])) == []
+
+
+def test_a_tol_ended_run_with_embedder_counters_is_one_sided(run):
+    # The stopped step encodes its summaries (counters in the total) but fits no KMeans (no trace row).
+    record, texts, X, result = run(tol=1e9, embedder_cls=StatsEmbedder)
+    assert result.cost["embed_tokens"] > 0 and all(r.get("embed_tokens", 0) == 0 for r in record.trace)
+    rc = _check(record, texts, X)
+    name = "per run: `embed_tokens` in metrics = sum of trace rows"
+    checks = _by_name(run_checks([rc]))
+    assert checks[name].passed and checks[name].n == 1
+    record.metrics["embed_tokens"] = -1  # a total below the trace sum can never be right
+    assert name in _failed(run_checks([rc]))
+
+
+def test_embed_keys_only_in_the_trace_are_still_checked(run):
+    record, texts, X, _ = run(embedder_cls=StatsEmbedder)
+    del record.metrics["embed_tokens"]
+    names = [c.name for c in run_checks([_check(record, texts, X)])]
+    assert "per run: `embed_tokens` in metrics = sum of trace rows" in names
+    assert "per run: `embed_tokens` in metrics = sum of trace rows" in _failed(run_checks([_check(record, texts, X)]))
+
+
+def test_an_empty_dataset_text_type_stays_empty_like_the_live_call_path():
+    # build_summarizer: `cfg.get("text_type") or ds.text_type`; HFSummarizer defaults only on None.
+    assert PromptSettings.from_run({}, "p", "").text_type == ""
+    assert PromptSettings.from_run({"text_type": ""}, "p", "").text_type == ""
+    assert PromptSettings.from_run({"text_type": "T:"}, "p", "").text_type == "T:"
+    assert PromptSettings.from_run({}, "", "t").prompt == ""
+    assert PromptSettings.from_run({}, None, None).text_type == "Sentence:"
+
+
+def test_means_are_formatted_like_the_published_cost_table(run):
+    record, texts, X, _ = run()
+    rc = _check(record, texts, X)
+    low, high = dict(rc.metrics), dict(rc.metrics)
+    low["n_calls"], high["n_calls"] = 100, 104
+    low["input_tokens"], high["input_tokens"] = 1_000_000, 1_002_000
+    pair = [replace(rc, seed=0, metrics=low), replace(rc, seed=1, metrics=high)]
+    header, _, row = format_means(pair)
+    assert header.startswith("| calls | input tokens | output tokens | summarizer s | total s |")
+    cells = [c.strip() for c in row.strip("|").split("|")]
+    assert cells[0] == "102 ± 3"  # std with ddof=1: sqrt(8) = 2.83
+    assert cells[1] == "1,001,000 ± 1,414"
+    assert "GPU" not in header  # fields the run did not log are omitted
+
+
+def test_script_help_states_the_detectable_error_size():
+    script = Path(__file__).resolve().parents[1] / "scripts" / "verify_cost.py"
+    out = subprocess.run([sys.executable, str(script), "--help"], capture_output=True, text=True, check=True).stdout
+    assert "0.003" in out and "0.3%" in out

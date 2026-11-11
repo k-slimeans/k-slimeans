@@ -18,14 +18,16 @@ import sys
 import time
 from pathlib import Path
 
-from kslimeans.costcheck import format_report, verify_run
+from kslimeans.costcheck import OUTPUT_TOL, format_report, verify_run
 from kslimeans.runlog import load_run
 
 
-def load_local_tokenizer(model_id: str):
+def load_local_tokenizer(model_id: str, trust_remote_code: bool = False):
     from transformers import AutoTokenizer
 
-    return AutoTokenizer.from_pretrained(model_id, padding_side="left", local_files_only=True)
+    return AutoTokenizer.from_pretrained(
+        model_id, padding_side="left", local_files_only=True, trust_remote_code=trust_remote_code
+    )
 
 
 def main() -> int:
@@ -34,7 +36,12 @@ def main() -> int:
     parser.add_argument("--cache-dir", help="the embeddings cache (default: each run's cache_dir)")
     parser.add_argument("--out", help="write the report here (default: stdout)")
     parser.add_argument(
-        "--output-tol", type=float, default=0.01, help="relative tolerance of the output-token comparison per seed"
+        "--output-tol",
+        type=float,
+        default=OUTPUT_TOL,
+        help="relative tolerance of the output-token comparison per seed (default %(default)s, i.e. 0.3%%). "
+        "Any error above 0.3%% of a seed's output tokens is flagged, e.g. one token missing on every ~20th call; "
+        "a missed EOS on every call (4-7%%) fails by a wide margin. The observed residual is at most 0.1%%.",
     )
     args = parser.parse_args()
 
