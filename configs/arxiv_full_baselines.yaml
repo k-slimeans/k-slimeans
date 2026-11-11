@@ -10,7 +10,9 @@
 #     which sklearn needs (it would upcast float16 to float64, 9.3 GB).
 #   - `kmeans: {copy_x: false}`: sklearn otherwise centers a second 4.7 GB copy of X. With it, KMeans
 #     centers X in place and restores it afterwards, which is exact up to float32 rounding (~1e-7).
-# Peak RSS is logged per baseline as `peak_rss_mb` in metrics.jsonl (a process-wide high-water mark).
+# Peak RSS is logged per baseline as `peak_rss_mb` in metrics.jsonl (a process-wide high-water mark). It includes
+# the clean mapped float16 pages touched while X is filled, so it may read ~7.5-8 GB although the steady state
+# is ~5.7 GB; stop if it passes 10 GB.
 #
 # `max_batch_size` is the batch size of `seqminibatchkmeans` (one pass of partial_fit over batches) and the
 # batch size of `minibatchkmeans`. The summary-method runs (#49) use their own batch size.
@@ -22,6 +24,9 @@ dataset: {name: arxiv, limit: null, load_texts: false}
 embedder: minilm
 seeds: [0, 1, 2]
 max_batch_size: 10000
+# `kmeans` is last on purpose: `copy_x: false` centers X in place and restores it to within ~1e-7 per value,
+# so a baseline that runs after it sees a slightly perturbed X. Within a seed that is none of the others;
+# seeds 1 and 2 start from the X that seed 0's kmeans restored (a difference far below the clustering noise).
 baselines:                 # name -> sklearn kwargs
   minibatchkmeans: {}
   seqminibatchkmeans: {}
