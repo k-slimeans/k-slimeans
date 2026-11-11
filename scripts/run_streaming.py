@@ -29,6 +29,7 @@ import kslimeans
 from kslimeans.cache import cached_sentences, dataset_embeddings
 from kslimeans.config import check_keys, default_method_name, load_config
 from kslimeans.embeddings import get_embedder
+from kslimeans.gpu_monitor import GpuSession
 from kslimeans.metrics import cluster_metrics, oracle_centroids
 from kslimeans.minibatch import assign_to_centroids, mini_batch_summary_kmeans, sequentialMiniBatchKmeans
 from kslimeans.results import RunDir
@@ -52,9 +53,10 @@ _ALLOWED_KEYS = frozenset(
         "summarizer",
         "cache_dir",
         "results_dir",
+        "gpu_check",
     }
 )
-_REQUIRED_KEYS = _ALLOWED_KEYS - {"method_name", "years"}
+_REQUIRED_KEYS = _ALLOWED_KEYS - {"method_name", "years", "gpu_check"}
 
 
 def _run_baseline(name: str, kw: dict, X, n_clusters: int, seed: int, max_batch_size: int):
@@ -99,10 +101,18 @@ def _streaming_metrics(labels, assignments, oracle, centroids, summary_pred) -> 
 
 
 def run_streaming(cfg: dict) -> Path:
-    """Run the streaming benchmark described by `cfg`. Returns the run directory."""
-    check_keys(cfg, _ALLOWED_KEYS, _REQUIRED_KEYS)
+    """Run the streaming benchmark described by `cfg`. Returns the run directory.
 
+    Wraps the run in the config's `gpu_check` policy (pre-run idle check, `gpu_samples.csv` / `gpu.json`).
+    """
+    check_keys(cfg, _ALLOWED_KEYS, _REQUIRED_KEYS)
+    with GpuSession(cfg.get("gpu_check")) as gpu:
+        return _run_streaming(cfg, gpu)
+
+
+def _run_streaming(cfg: dict, gpu: GpuSession) -> Path:
     run = RunDir(cfg["results_dir"], cfg["name"], cfg)
+    gpu.attach(run.path)
 
     schedule = build_schedule(cfg["schedule"])
     max_batch_size = cfg["max_batch_size"]

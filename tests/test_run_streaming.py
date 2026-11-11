@@ -200,3 +200,12 @@ def test_streaming_metrics_without_summaries_are_none_not_centroid_fallback(run_
     assert metrics["cen_cen_dist"] == pytest.approx(0.5)
     with_summaries = run_streaming_module._streaming_metrics(labels, labels, oracle, centroids, oracle + 1)
     assert with_summaries["sum_cen_dist"] == pytest.approx(np.sqrt(2))
+def test_gpu_check_is_an_optional_key(run_streaming_module):
+    assert "gpu_check" in run_streaming_module._ALLOWED_KEYS
+    assert "gpu_check" not in run_streaming_module._REQUIRED_KEYS
+
+
+def test_bad_gpu_check_block_raises_before_touching_any_dataset(run_streaming_module):
+    cfg = _minimal_config(gpu_check={"require_idle": "sometimes"})
+    with pytest.raises(ValueError, match="require_idle"):
+        run_streaming_module.run_streaming(cfg)

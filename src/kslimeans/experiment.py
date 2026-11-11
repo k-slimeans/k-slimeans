@@ -29,6 +29,7 @@ from .core import summary_kmeans
 from .data import Dataset, load_dataset
 from .embeddings import Embedder, get_embedder
 from .environment import collect_environment, peak_gpu_memory_gb, reset_peak_gpu_memory
+from .gpu_monitor import GpuSession
 from .metrics import cluster_metrics, oracle_centroids
 from .results import RunDir
 from .schedules import build_schedule
@@ -48,6 +49,7 @@ _ALLOWED_KEYS = frozenset(
         "summarizer",
         "cache_dir",
         "results_dir",
+        "gpu_check",
     }
 )
 _REQUIRED_KEYS = frozenset({"name", "dataset", "embedder", "schedule", "summarizer"})
@@ -119,8 +121,16 @@ def _step0_labels(X: np.ndarray, n_clusters: int, first_iters: int, seed: int) -
 
 
 def run_offline(cfg: dict) -> Path:
-    """Run the offline experiment described by `cfg`. Returns the run directory."""
+    """Run the offline experiment described by `cfg`. Returns the run directory.
+
+    Wraps the run in the config's `gpu_check` policy (pre-run idle check, `gpu_samples.csv` / `gpu.json`).
+    """
     _check_keys(cfg)
+    with GpuSession(cfg.get("gpu_check")) as gpu:
+        return _run_offline(cfg, gpu)
+
+
+def _run_offline(cfg: dict, gpu: GpuSession) -> Path:
 
     ds = _resolve_dataset(cfg["dataset"])
     embedder = _resolve_embedder(cfg["embedder"])
@@ -139,6 +149,7 @@ def run_offline(cfg: dict) -> Path:
     oracle = oracle_centroids(X, ds.labels, ds.n_clusters)
 
     run = RunDir(results_dir, cfg["name"], cfg)
+    gpu.attach(run.path)
     run.log_environment(collect_environment(summarizer, getattr(embedder, "name", type(embedder).__name__), ds))
 
     for seed in seeds:

@@ -17,7 +17,7 @@ import pandas as pd
 import pytest
 import torch
 
-from kslimeans import experiment
+from kslimeans import experiment, gpu_monitor
 from kslimeans.core import COST_KEYS, summary_kmeans
 from kslimeans.schedules import FixedSchedule, Step, SummarySchedule
 from kslimeans.summarizers.base import Cluster, Summarizer
@@ -334,3 +334,48 @@ def test_environment_json_written_with_expected_keys(tmp_path, monkeypatch):
     assert env["embedder"] == "fake"
     assert env["dataset"] == {"name": "synth", "n_texts": N_DOCS, "n_clusters": N_CLUSTERS}
     assert isinstance(env["is_wsl"], bool)
+
+
+# --- gpu_check hook ---------------------------------------------------------------------------
+
+_GPU_ROW = "0, 2026/11/11 09:45:31.398, NVIDIA GeForce RTX 3060, {used}, 12288, {util}, 42.6\n"
+
+
+def _fake_nvidia_smi(monkeypatch, used=1003, util=2):
+    monkeypatch.setattr(gpu_monitor, "_run_cmd", lambda cmd: _GPU_ROW.format(used=used, util=util))
+    monkeypatch.setattr(gpu_monitor, "time", SimpleNamespace(sleep=lambda s: None))
+
+
+def test_run_offline_writes_gpu_files(tmp_path, monkeypatch):
+    _fake_nvidia_smi(monkeypatch)
+    run_dir = _offline(tmp_path, monkeypatch, gpu_check={"interval_s": 1e6})
+    data = json.loads((run_dir / "gpu.json").read_text())
+    assert data["idle_check"]["idle"] is True
+    assert data["monitor"]["n_samples"] >= 2 and data["monitor"]["max_memory_used_mib"] == 1003.0
+    assert (run_dir / "gpu_samples.csv").read_text().startswith("timestamp,memory_used_mib,utilization_pct")
+
+
+def test_run_offline_warns_on_a_busy_gpu_and_fail_policy_stops_before_loading(tmp_path, monkeypatch):
+    _fake_nvidia_smi(monkeypatch, used=1500, util=43)
+    with pytest.warns(UserWarning, match="not idle"):
+        run_dir = _offline(tmp_path, monkeypatch, gpu_check={"interval_s": 1e6})
+    assert json.loads((run_dir / "gpu.json").read_text())["idle_check"]["idle"] is False
+
+    def fail_load(name, **kwargs):
+        raise AssertionError("dataset must not load")
+
+    monkeypatch.setattr(experiment, "load_dataset", fail_load)
+    with pytest.raises(gpu_monitor.GpuNotIdleError):
+        experiment.run_offline(_base_config(tmp_path, gpu_check={"require_idle": "fail"}))
+
+
+def test_run_offline_on_a_machine_without_nvidia_smi_still_writes_gpu_json(tmp_path, monkeypatch):
+    run_dir = _offline(tmp_path, monkeypatch)  # conftest: nvidia-smi missing
+    data = json.loads((run_dir / "gpu.json").read_text())
+    assert data["idle_check"]["idle"] is None and data["monitor"]["available"] is False
+    assert not (run_dir / "gpu_samples.csv").exists()
+
+
+def test_run_offline_rejects_a_bad_gpu_check_block(tmp_path, monkeypatch):
+    with pytest.raises(ValueError, match="require_idle"):
+        _offline(tmp_path, monkeypatch, gpu_check={"require_idle": "sometimes"})

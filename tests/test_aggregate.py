@@ -423,3 +423,40 @@ def test_step0_sha1_summary_shared_and_differing(tmp_path):
     )
     old = _write_run(tmp_path / "c", LSA, "k-NLPmeans", OWN, KM)
     assert aggregate.step0_sha1_summary([old]) == "step0_sha1 not logged in these runs."
+
+
+def _gpu_json(run, idle, foreign):
+    (run / "gpu.json").write_text(
+        json.dumps({"idle_check": {"idle": idle}, "monitor": {"max_foreign_mib_est": foreign}})
+    )
+
+
+def test_cost_table_gpu_columns(tmp_path):
+    run = _cost_run(tmp_path / "a")
+    _gpu_json(run, True, 120.4)
+    costs = aggregate.cost_table([run]).set_index("method")
+    assert bool(costs.loc["k-SLMmeans (Qwen3-0.6B)", "gpu_idle"])
+    assert costs.loc["k-SLMmeans (Qwen3-0.6B)", "gpu_max_foreign_mib"] == pytest.approx(120.4)
+    assert pd.isna(costs.loc["k-means", "gpu_idle"])  # baselines carry no GPU verdict
+    table = aggregate.format_cost_table(costs.reset_index()).set_index("Method")
+    assert table.loc["k-SLMmeans (Qwen3-0.6B)", "GPU idle"] == "yes"
+    assert table.loc["k-SLMmeans (Qwen3-0.6B)", "max foreign GPU MiB"] == "120"
+    assert table.loc["k-means", "GPU idle"] == "" and table.loc["k-means", "max foreign GPU MiB"] == ""
+
+
+def test_cost_table_gpu_busy_run_wins_and_old_runs_have_no_gpu_columns(tmp_path):
+    busy = _cost_run(tmp_path / "busy")
+    _gpu_json(busy, False, 800.0)
+    table = aggregate.format_cost_table(aggregate.cost_table([busy])).set_index("Method")
+    assert table.loc["k-SLMmeans (Qwen3-0.6B)", "GPU idle"] == "no"
+
+    old = aggregate.format_cost_table(aggregate.cost_table([_cost_run(tmp_path / "old")]))
+    assert "GPU idle" not in old.columns and "max foreign GPU MiB" not in old.columns
+
+
+def test_gpu_summary_combines_runs():
+    both_idle = aggregate._gpu_summary([{"idle_check": {"idle": True}}, {"idle_check": {"idle": True}}])
+    assert both_idle == (True, None)
+    assert aggregate._gpu_summary([{"idle_check": {"idle": True}}, {}])[0] is None  # one run unverified
+    mixed = aggregate._gpu_summary([{"idle_check": {"idle": False}}, {}, {"monitor": {"max_foreign_mib_est": 5.0}}])
+    assert mixed == (False, 5.0)

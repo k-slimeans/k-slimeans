@@ -202,6 +202,7 @@ Each run writes `results/<name>/<timestamp>/`:
   cost deltas (`input_tokens`, `output_tokens`, `summarizer_seconds`, `n_empty_summaries`, `n_truncated_clusters`,
   `n_dropped_texts`)
 - `summary.csv`: mean and std over seeds of the accuracy metrics and cost columns (also printed at the end)
+- `gpu.json` and `gpu_samples.csv`: the GPU idle check and monitor, see [GPU idle check](#gpu-idle-check)
 
 Document and sentence embeddings are cached in `cache/`, keyed by dataset and embedder. Each entry is checked
 against a fingerprint of the texts, so editing a data file invalidates it automatically. Only the first run of
@@ -290,6 +291,42 @@ For arXiv abstracts (200k subsample, MiniLM vectors precomputed once), there is 
 python scripts/prepare_arxiv.py     # one-time: download, filter and embed ~3.0M abstracts (~75 min on an RTX 3060)
 python scripts/run_streaming.py configs/arxiv_sub200k_stream.yaml --set dataset.limit=20000 --set max_batch_size=5000  # smoke
 ```
+
+### GPU idle check
+
+A process on the same card (on WSL2, anything on the Windows desktop) slows a run without leaving a trace in
+its logs; it inflated the CLINC150 timings by about 1.7x. Both runners therefore check the GPU and record what
+they find. The optional `gpu_check` block controls it; the defaults below apply when it is absent:
+
+```yaml
+gpu_check:
+  require_idle: warn       # off | warn | fail: what to do if the GPU is busy before the run
+  monitor: true            # sample the GPU during the run
+  interval_s: 5            # seconds between monitor samples
+  idle_samples: 4          # pre-run samples, idle_interval_s apart (1 s)
+  max_memory_used_mib: 1300   # thresholds on the median pre-run sample
+  max_utilization_pct: 15
+  max_power_w: 65
+```
+
+- **Pre-run check** (before any dataset or model is loaded): the median of `idle_samples` readings of GPU 0 must
+  stay under all three thresholds. The defaults tolerate this machine's Windows-desktop baseline (about 1.0 to
+  1.1 GB, 2 to 3 %, 43 W) and flag the load seen before the CLINC150 run (about 1.5 GB, 43 %, 85 W). Tune them for
+  another machine. `warn` emits a warning and runs anyway; `fail` raises `GpuNotIdleError`.
+- **Monitor**: `gpu_samples.csv` in the run directory, one row per `interval_s`: card memory used, utilization,
+  power, this process's `torch.cuda.memory_reserved()` (blank until CUDA is initialized) and
+  `foreign_mib_est` = card memory minus our reserved memory. That estimate also contains the desktop baseline and
+  the CUDA context, so read it relative to the idle-check median.
+- **`gpu.json`**: the resolved `gpu_check` settings, the idle-check result (idle or not, the samples, the
+  thresholds, the reason, and the Windows-side process list from `nvidia-smi.exe` when it is reachable) and the
+  monitor summary (sample count, max and mean utilization, max power, max card memory, max foreign memory
+  estimate). `scripts/aggregate_results.py --cost-md` adds "GPU idle" and "max foreign GPU MiB" columns to the
+  cost table when any run has this file; older runs show blanks.
+
+Without `nvidia-smi` (a CPU-only machine) nothing is sampled and `gpu.json` records the check as unavailable;
+that is never an error. `nvidia-smi.exe` lists the desktop's graphics processes but, under WDDM, not their
+memory, so the process list is evidence for a human, not an input to the verdict. The check reads the card, not
+the run's own jobs: start only one run at a time.
 
 ---
 
