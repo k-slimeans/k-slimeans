@@ -1,12 +1,12 @@
 """Agreement between the hand ratings of the summary audit and the automatic flags (issue #34).
 
 Reads a filled `summary_audit_sheet_<dataset>.csv` and its `summary_audit_key_<dataset>.csv` (which stores the
-automatic flags of the same summaries) and prints, per property, the 2 x 2 table, the raw agreement and Cohen's
+automatic flags of the same summaries; made by `make_audit_sheet.py --write-key`, not kept in the repo) and prints, per property, the 2 x 2 table, the raw agreement and Cohen's
 kappa. One rater. Empty rating cells are dropped. The hand labels and their rules are in
 `docs/summary_audit_rubric.md`.
 
     python scripts/audit_agreement.py docs/results/summary_audit_sheet_clinc150_intent.csv \\
-        docs/results/summary_audit_key_clinc150_intent.csv
+        results/audit_keys/summary_audit_key_clinc150_intent.csv
 """
 
 from __future__ import annotations

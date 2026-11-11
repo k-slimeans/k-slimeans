@@ -5,14 +5,16 @@ the audited gold intents by the rule in `kslimeans.summary_audit`, and writes
 
 - `summary_audit_sheet_<dataset>.csv`: fillable, one row per summary with its cluster's size and members, method
   hidden (letters shuffled per item); `.md` is the same sheet for reading;
-- `summary_audit_key_<dataset>.csv`: row id -> method, run, seed, step, cluster, plus the automatic scores and flags
-  of `summary_quality.py`, which `audit_agreement.py` compares the filled sheet with. Do not open it while rating.
+- with `--write-key DIR`, `summary_audit_key_<dataset>.csv` in DIR: row id -> method, run, seed, step, cluster, plus
+  the automatic scores and flags of `summary_quality.py`, which `audit_agreement.py` compares the filled sheet with.
+  The key is NOT kept in the repo, so the rater cannot see it: write it to an untracked place (for example
+  `results/audit_keys/`) after rating, or before and do not open it. It regenerates deterministically.
 
 Runs without per-step assignments (BANKING77 before #30) are shown against their FINAL assignments, an
 approximation (`approx_partition` in the key). The rubric is `docs/summary_audit_rubric.md`.
 
     python scripts/make_audit_sheet.py RUN_DIR... --scores results/summary_quality/summary_quality_per_cluster.csv \\
-        --cache-dir ../k-slimeans/cache --out-dir docs/results
+        --cache-dir ../k-slimeans/cache --out-dir docs/results --write-key results/audit_keys
 """
 
 from __future__ import annotations
@@ -56,6 +58,7 @@ def main() -> None:
     parser.add_argument("--scores", required=True, help="summary_quality_per_cluster.csv from summary_quality.py")
     parser.add_argument("--cache-dir", required=True)
     parser.add_argument("--out-dir", required=True)
+    parser.add_argument("--write-key", metavar="DIR", help="also write the keys here (keep it out of the repo)")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
@@ -93,7 +96,9 @@ def main() -> None:
             on=["dataset", "method", "seed", "step", "cluster"], how="left", validate="one_to_one",
         )  # fmt: skip
         pd.DataFrame(sheet).to_csv(out / f"summary_audit_sheet_{dataset}.csv", index=False)
-        key_df.to_csv(out / f"summary_audit_key_{dataset}.csv", index=False, float_format="%.6g")
+        if args.write_key:
+            Path(args.write_key).mkdir(parents=True, exist_ok=True)
+            key_df.to_csv(Path(args.write_key) / f"summary_audit_key_{dataset}.csv", index=False, float_format="%.6g")
         (out / f"summary_audit_sheet_{dataset}.md").write_text(
             sheet_markdown(dataset, sheet, any(p.approx for p in partitions))
         )

@@ -2,8 +2,8 @@
 
 Written before any summary was read for this audit. (The only summaries seen earlier were the three hand-read
 examples already in `docs/results/prelim_bank77.md` section 6.) One rater; the audit says so wherever it is
-reported. Do not look at the key files (`*_key.csv`) while rating: the sheet hides which method wrote which
-summary.
+reported. The key files (`summary_audit_key_*.csv`) are not in the repo; do not generate them (`make_audit_sheet.py
+--write-key`) until the rating is done: the sheet hides which method wrote which summary.
 
 ## What you get
 
