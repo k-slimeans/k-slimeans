@@ -165,6 +165,7 @@ def md_table(df: pd.DataFrame, formats: dict[str, str] | None = None) -> str:
             return "n/a" if np.isnan(value) else format(value, formats.get(col, ".3g"))
         return str(value)
 
+    df = df.rename(columns=str)
     header = "| " + " | ".join(df.columns) + " |"
     rule = "| " + " | ".join("---:" if pd.api.types.is_numeric_dtype(df[c]) else "---" for c in df.columns) + " |"
     rows = ["| " + " | ".join(cell(c, v) for c, v in zip(df.columns, row)) + " |" for row in df.itertuples(index=False)]
@@ -184,7 +185,14 @@ def build_tables(frames: dict[str, pd.DataFrame]) -> str:
     parts = []
 
     objective = ["j_before", "jump_rel", "end_vs_before_rel", "end_vs_cf_rel", "n_iter"]
-    movement = ["drift_median", "cosine_median", "own_nearest_share", "to_end_radii_median", "pulled_back_median"]
+    movement = [
+        "drift_median",
+        "cosine_median",
+        "own_nearest_share",
+        "to_end_radii_median",
+        "end_vs_pre_radii_median",
+        "pulled_back_median",
+    ]
     movers = [
         "frac_moved_replacement",
         "frac_moved_end",
@@ -211,7 +219,7 @@ def build_tables(frames: dict[str, pd.DataFrame]) -> str:
             ("Objective (J_before; relative jump at replacement; relative change at block end vs before and vs the "
              "no-replacement counterfactual; iterations run)", objective),
             ("Centroid movement (per-cluster medians in pre RMS radii, cosine, share whose nearest pre center is its own, "
-             "distance from summary to block-end center in radii, share of the displacement undone)", movement),
+             "distance from summary to block-end center in radii, distance from block-end center to the pre center in radii, fraction by which the block shortens the summary-to-center distance)", movement),
             ("Partition change (fraction of points moved at the replacement and over the block; ARI and mean cluster "
              "Jaccard against the pre partition)", movers),
             ("Movers at the replacement (counts toward/away from the gold majority, ends in own majority, total, "
@@ -302,22 +310,28 @@ def build_figures(frames: dict[str, pd.DataFrame], out: Path) -> None:
     runs = list(dict.fromkeys(it.run))
     n_steps = int(it.step.max())
 
-    fig, axes = plt.subplots(1, n_steps, figsize=(3.1 * n_steps, 3.6), sharey=False)
-    for ax, step in zip(np.atleast_1d(axes), range(1, n_steps + 1)):
-        for run in runs:
-            sel = it[(it.run == run) & (it.seed == 0) & (it.step == step)]
-            before = steps[(steps.run == run) & (steps.seed == 0) & (steps.step == step)].j_before.iloc[0]
-            color = PALETTE[label(run)]
-            rep = sel[sel.kind == "replay"]
-            cf = sel[sel.kind == "counterfactual"]
-            ax.plot(np.r_[-1, rep.t], np.r_[before, rep.objective] / before, color=color, label=label(run))
-            ax.plot(np.r_[-1, cf.t], np.r_[before, cf.objective] / before, color=color, ls="--", lw=1, alpha=0.8)
-        ax.set_yscale("log")
-        ax.set_title(f"step {step}", fontsize=10)
-        ax.set_xlabel("Lloyd iteration (-1: before)")
-        ax.grid(alpha=0.25)
-    np.atleast_1d(axes)[0].set_ylabel("objective / objective before")
-    np.atleast_1d(axes)[0].legend(fontsize=8, title="solid: replacement\ndashed: plain Lloyd", title_fontsize=7)
+    fig, grid = plt.subplots(2, n_steps, figsize=(3.1 * n_steps, 6.4))
+    for col, step in enumerate(range(1, n_steps + 1)):
+        for row, ax in enumerate(grid[:, col]):
+            for run in runs:
+                sel = it[(it.run == run) & (it.seed == 0) & (it.step == step)]
+                before = steps[(steps.run == run) & (steps.seed == 0) & (steps.step == step)].j_before.iloc[0]
+                color = PALETTE[label(run)]
+                for kind, style in (("replay", "-"), ("counterfactual", "--")):
+                    part = sel[sel.kind == kind]
+                    part = part if row == 0 else part[part.t >= 2]
+                    t = np.r_[-1, part.t] if row == 0 else part.t.to_numpy()
+                    j = np.r_[before, part.objective] if row == 0 else part.objective.to_numpy()
+                    ratio = j / before if row == 0 else 100 * (j / before - 1)
+                    ax.plot(t, ratio, color=color, ls=style, lw=1.6 if kind == "replay" else 1, label=label(run) if kind == "replay" else None)
+            if row == 0:
+                ax.set_yscale("log")
+                ax.set_title(f"step {step}", fontsize=10)
+            ax.set_xlabel("Lloyd iteration" + (" (-1: before)" if row == 0 else ""))
+            ax.grid(alpha=0.25)
+    grid[0, 0].set_ylabel("objective / objective before")
+    grid[1, 0].set_ylabel("objective vs before (%), iteration >= 2")
+    grid[0, 0].legend(fontsize=8, title="solid: replacement\ndashed: plain Lloyd", title_fontsize=7)
     fig.suptitle("Objective at each Lloyd iteration around each replacement (seed 0)", fontsize=11)
     fig.tight_layout()
     fig.savefig(out / f"{PREFIX}_objective.png", dpi=150)
@@ -337,6 +351,7 @@ def build_figures(frames: dict[str, pd.DataFrame], out: Path) -> None:
         if log:
             ax.set_yscale("log")
         ax.set_ylabel(ylabel)
+        ax.tick_params(axis="x", labelsize=8)
         ax.grid(alpha=0.25, axis="y")
     fig.suptitle("Centroid movement at the replacement: all clusters, steps and seeds", fontsize=11)
     fig.tight_layout()
