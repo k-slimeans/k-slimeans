@@ -228,6 +228,35 @@ python scripts/aggregate_results.py results/prelim_bank77_lsa/<stamp> results/pr
 
 (Examples need runs made after assignments were added to `summaries.jsonl`.)
 
+### BBC News in a TF-IDF space (high-dimensional dataset)
+
+`bbc500` is 500 BBC News articles (100 each of business, entertainment, politics, sport, tech; source and citation
+in `data/README.md`; near-duplicates removed before sampling; the article text is not in the repository, so run
+`python scripts/prepare_bbc.py` once), clustered with k = 5. Its embedder is TF-IDF fit once on those 500 articles: English stop words
+out, terms in fewer than 20 articles out, L2-normalized rows, which gives a 500 x 784 matrix. Fitting raises if fewer
+than 700 terms survive. Summaries are transformed with the same fitted vectorizer and never refit, so a summary word
+outside the vocabulary counts for nothing and a summary with no vocabulary word is an all-zero vector (a degenerate
+centroid). Because the embedder depends on the corpus, the config gives it as a dict,
+`embedder: {name: tfidf, min_df: 20}`; its settings and the scikit-learn version are part of its name and so of the embedding cache key.
+
+Embedders that keep counters (`Embedder.stats()`, as `TfidfEmbedder` does) have the change across each summary
+encoding added to the per-step and per-run cost fields: `embed_tokens`, `embed_oov_tokens` (the out-of-vocabulary
+share is `embed_oov_tokens / embed_tokens`) and `embed_zero_vectors`. They appear in `trace.jsonl`,
+`metrics.jsonl` and `summary.csv` only for such embedders.
+
+Articles average ~380 words, so a cluster of ~100 never fits in `max_input_tokens`. `summarizer.max_words_per_text`
+(default `null`: whole articles) cuts every member to its first N words before the token budget is applied; the
+BBC configs use 30 (headline and lead), so nearly all members fit, and the #28 seeded random subset only takes
+over for what still overflows. Set it to `null` for the #28 behaviour alone (a random handful of whole articles).
+
+```bash
+python scripts/prepare_bbc.py                      # first: downloads the archive, builds data/bbc500.csv (git-ignored)
+PYTHON=.venv/bin/python scripts/run_bbc.sh tfidf   # k-means, LSA, Qwen3 0.6B / 1.7B / 4B, seeds 0-4, + table
+PYTHON=.venv/bin/python scripts/run_bbc.sh dense   # the same with all-MiniLM-L6-v2 embeddings (dense control)
+```
+
+Steps and the member-selection ablation (`0.6b-random`) are described in `scripts/run_bbc.sh`.
+
 ### RQ2: adaptive schedule on CLINC150
 
 `configs/rq2_clinc150.yaml` is the base run (fixed schedule, 5 summaries, k-means baseline, Qwen3-0.6B, seeds 0–4).
@@ -513,7 +542,7 @@ Guidelines:
   text_type)` and add it to `_LOADERS`. `prompt` and `text_type` are what SLM summarizers use for that
   dataset. Put the data file in `data/` and document its source in `data/README.md`. If the loader takes
   options, fold them into `name` (e.g. `stackexchange_2023_limit5000`), because caches are keyed by name.
-- **Embedder:** any sentence-transformers model id already works (`embedder: BAAI/bge-small-en-v1.5`). For
+- **Embedder:** any sentence-transformers model id already works (`embedder: BAAI/bge-small-en-v1.5`); `tfidf` is fit on the dataset's texts (see above). For
   anything else, subclass `Embedder` in `embeddings.py` and hook it into `get_embedder()`. Always encode a whole
   list in one call and return float32.
 

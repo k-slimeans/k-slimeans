@@ -96,6 +96,13 @@ def count_generated_tokens(new_tokens: torch.Tensor, eos_token_id: int | list[in
     return int(lengths.sum())
 
 
+def truncate_words(text: str, max_words: int) -> str:
+    """The first `max_words` whitespace-separated words of `text`; a text that is not longer is returned
+    unchanged (whitespace included)."""
+    words = text.split()
+    return text if len(words) <= max_words else " ".join(words[:max_words])
+
+
 def fit_texts_to_budget(
     texts: list[str],
     render: Callable[[list[str]], str],
@@ -163,6 +170,7 @@ class HFSummarizer(Summarizer):
     """
 
     needs_sentences = False
+    max_words_per_text: int | None = None
 
     def __init__(
         self,
@@ -173,6 +181,7 @@ class HFSummarizer(Summarizer):
         max_new_tokens: int = 128,
         batch_size: int = 16,
         max_input_tokens: int = 4096,
+        max_words_per_text: int | None = None,
         dtype: str = "auto",
         device: str = "auto",
         chat_template_kwargs: dict | None = None,
@@ -185,6 +194,7 @@ class HFSummarizer(Summarizer):
         self.max_new_tokens = max_new_tokens
         self.batch_size = batch_size
         self.max_input_tokens = max_input_tokens
+        self.max_words_per_text = max_words_per_text
         self.chat_template_kwargs = (
             {"enable_thinking": False} if chat_template_kwargs is None else chat_template_kwargs
         )
@@ -230,7 +240,13 @@ class HFSummarizer(Summarizer):
         self._stats = {"input_tokens": 0, "output_tokens": 0, "n_truncated_clusters": 0, "n_dropped_texts": 0}
 
     def _render(self, texts: list[str]) -> str:
-        """Render one cluster's texts, trimming to `max_input_tokens` if needed."""
+        """Render one cluster's texts, trimming to `max_input_tokens` if needed.
+
+        With `max_words_per_text`, every member is first cut to its leading words, so a long-document
+        cluster keeps (almost) all its members instead of a few whole ones.
+        """
+        if self.max_words_per_text is not None:
+            texts = [truncate_words(text, self.max_words_per_text) for text in texts]
 
         def render(candidate_texts: list[str]) -> str:
             messages = build_messages(
@@ -302,6 +318,7 @@ class HFSummarizer(Summarizer):
             "padding_side": self.tokenizer.padding_side,
             "max_new_tokens": self.max_new_tokens,
             "max_input_tokens": self.max_input_tokens,
+            "max_words_per_text": self.max_words_per_text,
             "chat_template_kwargs": self.chat_template_kwargs,
             "device": self.device,
         }

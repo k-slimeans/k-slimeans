@@ -362,4 +362,5 @@ def test_load_run_embedder_uses_the_experiment_resolver(noisy, tmp_path, monkeyp
     path, _, _ = _run_and_log(noisy, tmp_path)
     sentinel = object()
     monkeypatch.setattr("kslimeans.experiment.get_embedder", lambda name: (name, sentinel))
-    assert load_run_embedder(load_run(path)) == ("fake", sentinel)
+    ds = Dataset("synth", noisy[0], np.zeros(len(noisy[0]), dtype=int), N_BLOBS, "p", "t")
+    assert load_run_embedder(load_run(path), ds) == ("fake", sentinel)

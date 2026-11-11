@@ -27,7 +27,7 @@ from .cache import cached_sentences, dataset_embeddings
 from .config import check_keys, default_method_name
 from .core import summary_kmeans
 from .data import Dataset, load_dataset
-from .embeddings import Embedder, get_embedder
+from .embeddings import Embedder, build_corpus_embedder, get_embedder
 from .environment import collect_environment, peak_gpu_memory_gb, reset_peak_gpu_memory
 from .gpu_monitor import GpuSession
 from .metrics import cluster_metrics, oracle_centroids
@@ -73,7 +73,11 @@ def _resolve_dataset(spec) -> Dataset:
     raise TypeError(f"'dataset' must be a string or a dict, got {type(spec).__name__}")
 
 
-def _resolve_embedder(spec) -> Embedder:
+def _resolve_embedder(spec, corpus: list[str]) -> Embedder:
+    """`spec` is an embedder name, or a dict `{name: tfidf, **kwargs}` for an embedder fit on `corpus`
+    (the dataset's texts)."""
+    if isinstance(spec, dict):
+        return build_corpus_embedder(spec, corpus)
     return get_embedder(spec) if isinstance(spec, str) else spec
 
 
@@ -96,6 +100,9 @@ _SUMMARY_COLUMNS = (
     "n_empty_summaries",
     "n_truncated_clusters",
     "n_dropped_texts",
+    "embed_tokens",
+    "embed_oov_tokens",
+    "embed_zero_vectors",
     "peak_gpu_mem_gb",
     "peak_gpu_reserved_gb",
     "runtime_s",
@@ -132,7 +139,7 @@ def run_offline(cfg: dict) -> Path:
 
 def _run_offline(cfg: dict, gpu: GpuSession) -> Path:
     ds = _resolve_dataset(cfg["dataset"])
-    embedder = _resolve_embedder(cfg["embedder"])
+    embedder = _resolve_embedder(cfg["embedder"], ds.texts)
     cache_dir = cfg.get("cache_dir", "cache")
     results_dir = cfg.get("results_dir", "results")
     seeds = cfg.get("seeds") or [0]

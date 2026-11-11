@@ -1,0 +1,34 @@
+# Dense control for configs/bbc_tfidf.yaml (#18): the same 500 BBC articles, protocol and member selection, with
+# a sentence encoder instead of TF-IDF. all-MiniLM-L6-v2 (384 dimensions, 256-token window) is used rather than
+# the CLINC150 encoder (distilbert, 128-token window): it reads twice as much of each article, and the arXiv
+# runs already use it. Articles longer than the window are truncated by the encoder.
+
+name: bbc_dense
+dataset: bbc500
+embedder: minilm
+seeds: [0, 1, 2, 3, 4]
+
+baselines:
+  kmeans: {}
+
+method_name: k-SLMmeans
+force_context_length: 0
+tol: 1.0e-4
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 120
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-0.6B
+  max_new_tokens: 64
+  max_input_tokens: 4096
+  max_words_per_text: 30
+  batch_size: 8
+
+cache_dir: cache
+results_dir: results

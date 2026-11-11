@@ -170,6 +170,22 @@ def _trace_row(
     }
 
 
+def _embedder_stats(embedder: Embedder) -> dict:
+    stats = getattr(embedder, "stats", None)
+    return {} if stats is None else stats()
+
+
+def _encode_summaries(embedder: Embedder, summaries: list[str], step_cost: dict, total_cost: dict) -> np.ndarray:
+    """`embedder.encode(summaries)`, adding the change in `Embedder.stats()` to both cost dicts."""
+    before = _embedder_stats(embedder)
+    vectors = embedder.encode(summaries)
+    for key, value in _embedder_stats(embedder).items():
+        delta = value - before.get(key, 0)
+        step_cost[key] += delta
+        total_cost[key] += delta
+    return vectors
+
+
 def _add_cost(total: dict, step: dict) -> None:
     for key, value in step.items():
         total[key] += value
@@ -303,7 +319,9 @@ def summary_kmeans(
     converged = False
     cache: dict[tuple[int, ...], str] = {}
     total_calls = 0
-    total_cost = _zero_cost()
+    # An embedder that reports counters (`Embedder.stats()`) adds them to every cost dict and trace row.
+    zero_cost = {**_zero_cost(), **dict.fromkeys(_embedder_stats(embedder), 0)}
+    total_cost = dict(zero_cost)
     summary_source_steps: list[int] = []
 
     state = State(
@@ -326,7 +344,7 @@ def summary_kmeans(
         cluster_rms_radius=_cluster_rms_radius(X, labels, ref),
     )
 
-    trace = [_trace_row(state, False, None, 0, 0)]
+    trace = [_trace_row(state, False, None, 0, 0, dict(zero_cost))]
     assignments_evolution = [labels]
 
     pbar = tqdm(desc="Iterating KMeans", disable=not verbose)
@@ -336,7 +354,7 @@ def summary_kmeans(
             shift = None
             summary_inertia = None
             step_calls = 0
-            step_cost = None
+            step_cost = dict(zero_cost)
             n_summarized = 0
             mask = step.summarize_mask
             summarized_now: list[int] = []  # clusters whose summary anchors move to the pre-summary state
@@ -348,7 +366,8 @@ def summary_kmeans(
                     _select_cluster(c, labels, X, texts, force_context_length, random_state, sentences)
                     for c in range(n_clusters)
                 ]
-                summaries, step_calls, step_cost = _summarize_clusters(clusters, summarizer, cache, clock)
+                summaries, step_calls, summarizer_cost = _summarize_clusters(clusters, summarizer, cache, clock)
+                step_cost.update(summarizer_cost)
                 total_calls += step_calls
                 _add_cost(total_cost, step_cost)
                 n_summarized = n_clusters
@@ -356,7 +375,7 @@ def summary_kmeans(
                 summaries_evolution.append(summaries)
                 summary_source_steps.append(state.step)
 
-                s_emb = embedder.encode(summaries)
+                s_emb = _encode_summaries(embedder, summaries, step_cost, total_cost)
                 shift = float(np.linalg.norm(ref - s_emb, axis=1).sum())
                 if shift < tol:
                     converged = True
@@ -377,7 +396,8 @@ def summary_kmeans(
                     _select_cluster(c, labels, X, texts, force_context_length, random_state, sentences)
                     for c in active
                 ]
-                new_summaries, step_calls, step_cost = _summarize_clusters(clusters, summarizer, cache, clock)
+                new_summaries, step_calls, summarizer_cost = _summarize_clusters(clusters, summarizer, cache, clock)
+                step_cost.update(summarizer_cost)
                 total_calls += step_calls
                 _add_cost(total_cost, step_cost)
                 n_summarized = len(active)
@@ -396,7 +416,7 @@ def summary_kmeans(
                 start = km.cluster_centers_.copy()
                 ref = ref.copy()
                 if active:
-                    new_emb = embedder.encode(new_summaries)
+                    new_emb = _encode_summaries(embedder, new_summaries, step_cost, total_cost)
                     shift = float(np.linalg.norm(ref[active] - new_emb, axis=1).sum())
                     ref[active] = new_emb
                     start[active] = new_emb

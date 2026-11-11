@@ -245,6 +245,13 @@ def sent_clusters(
     return sent
 
 
+def _embedder_ref(spec, ds: Dataset) -> Embedder | str:
+    """What identifies the run's embedder for the caches: a corpus-fitted spec (`{name: tfidf, ...}`) is built
+    from `ds.texts` (a cheap fit, and the cache key is its name, which carries the settings); a model name stays a
+    string, so a cache hit never loads the model and a miss resolves it by name."""
+    return _resolve_embedder(spec, ds.texts) if isinstance(spec, dict) else spec
+
+
 def _check_cache(hit: bool, what: str, path: str, allow_encode: bool) -> None:
     if not hit and not allow_encode:
         raise CacheMissError(
@@ -265,14 +272,15 @@ def load_run_dataset(
     cfg = runlog.config
     cache = str(cache_dir or cfg.get("cache_dir", "cache"))
     ds = _resolve_dataset(cfg["dataset"])
+    embedder = _embedder_ref(cfg["embedder"], ds)
     if ds.embeddings_path is None:
         _check_cache(
-            has_cached_embeddings(ds.name, ds.texts, cfg["embedder"], cache),
+            has_cached_embeddings(ds.name, ds.texts, embedder, cache),
             "embeddings",
-            str(embeddings_cache_path(ds.name, cfg["embedder"], cache)),
+            str(embeddings_cache_path(ds.name, embedder, cache)),
             allow_encode,
         )
-    return ds, dataset_embeddings(ds, cfg["embedder"], cache)
+    return ds, dataset_embeddings(ds, embedder, cache)
 
 
 def load_run_sentences(
@@ -284,21 +292,23 @@ def load_run_sentences(
     """
     cfg = runlog.config
     cache = str(cache_dir or cfg.get("cache_dir", "cache"))
+    embedder = _embedder_ref(cfg["embedder"], ds)
     _check_cache(
-        has_cached_sentences(ds.name, ds.texts, cfg["embedder"], cache),
+        has_cached_sentences(ds.name, ds.texts, embedder, cache),
         "sentences",
-        sentences_cache_base(ds.name, cfg["embedder"], cache) + ".npz",
+        sentences_cache_base(ds.name, embedder, cache) + ".npz",
         allow_encode,
     )
-    return cached_sentences(ds.name, ds.texts, cfg["embedder"], cache)
+    return cached_sentences(ds.name, ds.texts, embedder, cache)
 
 
-def load_run_embedder(runlog: RunLog) -> Embedder:
-    """The embedder the run used, resolved by `experiment._resolve_embedder` (`get_embedder(name)`).
+def load_run_embedder(runlog: RunLog, ds: Dataset) -> Embedder:
+    """The embedder the run used, resolved by `experiment._resolve_embedder` (`get_embedder(name)`, or a
+    corpus-fitted one such as TF-IDF fit on `ds.texts`, the same fit the run made).
 
     Loads the model, so call it only when something must really be encoded.
     """
-    return _resolve_embedder(runlog.config["embedder"])
+    return _resolve_embedder(runlog.config["embedder"], ds.texts)
 
 
 def embed_summaries(embedder: Embedder, summaries: list[str]) -> np.ndarray:

@@ -1,0 +1,52 @@
+# BBC News in a sparse TF-IDF space (#18): the course's high-dimensional dataset (500 x ~784).
+#
+# Protocol: the CLINC150 summarizer comparison (configs/clinc150_summarizers.yaml, #31) with k = 5 topics.
+# - Data: bbc500, 500 BBC articles, 100 per topic (business, entertainment, politics, sport, tech); build it with
+#   `python scripts/prepare_bbc.py` (the text is not in the repo); see
+#   data/README.md and scripts/prepare_bbc.py.
+# - Embedder: TF-IDF fit once on the 500 articles (English stop words out, terms in fewer than 20 articles out,
+#   L2-normalized rows) = 784 terms. Summaries are transformed with that same vectorizer and never refit. The fit
+#   raises if fewer than 700 terms survive. Embedder settings are part of the cache key.
+# - Summary-embedding counters (trace.jsonl, metrics.jsonl, summary.csv): embed_tokens, embed_oov_tokens (summary
+#   tokens outside the vocabulary; the share is embed_oov_tokens / embed_tokens) and embed_zero_vectors (summaries
+#   whose vector is all zeros, i.e. a degenerate centroid).
+# - Initialization, schedule, decoding, seeds: as in #31 (k-means++, fixed schedule with 5 summaries, 120
+#   iterations, initial_iter and final_iter on, tol 1e-4, seeds 0-4, greedy decoding, thinking off,
+#   max_new_tokens 64, max_input_tokens 4096).
+# - Prompt: the BBC prompt in data.py (no "cluster", no "articles", no topic word; see #46).
+# - Member selection: articles are ~380 words, so a whole cluster (~100 articles) never fits in 4,096 tokens.
+#   max_words_per_text keeps each member's first 30 words (headline plus the lead), which lets nearly every
+#   member into the prompt; anything still over budget falls back to the seeded random subset (#28). Set
+#   `summarizer.max_words_per_text=null` for the #28 behaviour alone (whole articles, a random ~7 of them).
+#
+# LSA (k-NLPmeans) and the sizes are run by scripts/run_bbc.sh; this file is the Qwen3-0.6B setup.
+
+name: bbc_tfidf
+dataset: bbc500
+embedder: {name: tfidf, min_df: 20}
+seeds: [0, 1, 2, 3, 4]
+
+baselines:
+  kmeans: {}
+
+method_name: k-SLMmeans
+force_context_length: 0
+tol: 1.0e-4
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 120
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-0.6B
+  max_new_tokens: 64
+  max_input_tokens: 4096
+  max_words_per_text: 30
+  batch_size: 8
+
+cache_dir: cache
+results_dir: results

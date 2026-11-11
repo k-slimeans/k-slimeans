@@ -110,6 +110,38 @@ def _load_clinc150(level: str) -> Dataset:
     )
 
 
+_BBC_PROMPT = "Below are several news stories. Write one sentence that says what they all have in common:"
+_BBC_TEXT_TYPE = "Sentence:"
+
+
+def _load_bbc500() -> Dataset:
+    """500 BBC News articles (100 per topic), one `text` line each, built by scripts/prepare_bbc.py
+    (data/bbc500.csv is generated and git-ignored).
+
+    The prompt asks for one sentence about what the stories share and avoids the words "cluster",
+    "articles" and any topic name (#46: a model told to summarize "the cluster" may write about the
+    cluster). `text_type` is the assistant prefill, so it is a neutral "Sentence:".
+    """
+    path = DATA_DIR / "bbc500.csv"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found. The BBC articles are not in the repository (the BBC owns their copyright); "
+            "run `python scripts/prepare_bbc.py` to download the dataset and build the sample."
+        )
+    df = pd.read_csv(path)
+    encoder = LabelEncoder()
+    labels = encoder.fit_transform(df["topic"]).astype(np.int64)
+    return Dataset(
+        "bbc500",
+        list(df["text"]),
+        labels,
+        len(encoder.classes_),
+        _BBC_PROMPT,
+        _BBC_TEXT_TYPE,
+        [str(name) for name in encoder.classes_],
+    )
+
+
 def _load_massive_raw() -> pd.DataFrame:
     rows = []
     with open(DATA_DIR / "massive.jsonl", encoding="utf-8") as f:
@@ -333,6 +365,7 @@ _LOADERS = {
     "clinic": _load_clinic,
     "clinc150_intent": lambda: _load_clinc150("intent"),
     "clinc150_domain": lambda: _load_clinc150("domain"),
+    "bbc500": _load_bbc500,
     "massive_I": lambda: _load_massive("I"),
     "massive_D": lambda: _load_massive("D"),
     "goemo": _load_goemo,
