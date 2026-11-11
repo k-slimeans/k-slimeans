@@ -8,6 +8,7 @@ This is a progress status, not a results report. The only scores in it are from 
 - **LSA (k-NLPmeans) should use the 200k subsample, not the full corpus.** At full scale the sentence embeddings alone are 29 GB in float32 and segmentation is about 10 hours on one CPU core.
 - **The current streaming schedule is out of reach**: up to 259,920 summarizer calls, about 74 GPU-hours with Qwen3-0.6B and 103 with Qwen3-1.7B.
 - **Recommended for the full summary run (#49): Qwen3-1.7B, 150,000-row batches (21 batches), two summary steps per batch.** At most 7,182 calls, about 2.9 GPU-hours on an idle card (4.9 if the card is as slow as during the CLINC150 runs).
+- **LSA** (`configs/arxiv_sub200k_lsa.yaml`): 200k subsample, about 45-80 minutes (spaCy dominates), GPU only for the MiniLM sentence embedding.
 - **Pilot** (`configs/arxiv_sub200k_pilot.yaml`): the same model and steps on the 200k subsample with 20,000-row batches, at most 3,360 calls, about 1.3 GPU-hours idle (2.3 as logged). It measures the real per-call cost on arXiv prompts, which this estimate has only from CLINC150 and one smoke run.
 
 ## 1. What exists
@@ -142,7 +143,7 @@ If the card is as slow as during the CLINC150 runs (`--gpu-slowdown 1`), multipl
 
 **Trade-off.** Fewer, larger batches mean fewer centroid updates from the stream (21 instead of 304), and fewer summary steps per batch than the 5 of the paper. Both reduce how often a summary can move a centroid, so the method gets less of a chance to differ from k-means than in the paper's setup. The summary-distance columns and the replacement diagnostic (#33) in #49 will show whether the summaries are doing anything. This is a budget choice, not evidence that 2 steps are enough. If the pilot's measured seconds per call is above about 1.7 s (idle-equivalent estimate: 1.43 s), drop to one summary step (about 1.4 h).
 
-The seeds multiply the budget: seeds 0-2 would be about 9 GPU-hours idle-equivalent.
+**Reading of the budget.** The 3-4 GPU-hours is per run, that is, one seed. Seeds multiply it: seeds 0-2 would be about 9 GPU-hours idle-equivalent (about 15 as logged), so the first full run is seed 0 only, and more seeds wait for the pilot's measured per-call cost and for review.
 
 ## 5. Pilot
 
@@ -154,13 +155,39 @@ The seeds multiply the budget: seeds 0-2 would be about 9 GPU-hours idle-equival
 - **What it settles:** the real seconds per call and per input token at arXiv prompt lengths for the 1.7B (the one number the estimate rests on), the real call count against the upper bound (memo hits, empty clusters), the cost fields of #30, and a first look at whether summaries move the centroids at 200k.
 - **What it does not match:** the pilot has 10 batches of 20k rows; the full run has 21 batches of 150k. The per-call cost carries over, the batch dynamics do not.
 
+## 5b. LSA on the 200k subsample
+
+`configs/arxiv_sub200k_lsa.yaml`: k-NLPmeans (extractive LSA summaries) on the 200k subsample with the pilot's schedule (20k-row batches, two summary steps per batch, `force_context_length: 10`, seed 0), so there is an extractive baseline at that scale. It has no baselines of its own; the pilot run has them, and `scripts/aggregate_results.py` tabulates the two run directories together.
+
+| Stage | Where | Estimate |
+| --- | --- | --- |
+| spaCy segmentation of 200k abstracts (1.26 M sentences) | CPU, one core | 37-46 min (73-90 abstracts/s measured) |
+| MiniLM embedding of the sentences | **GPU** | about 5 min by tokens, up to about 29 min by rows (section 3) |
+| Cache write (`cache/arxiv_sub200k__minilm_sentences.*`) | disk | about 2 GB; reruns read it |
+| 10 batches x 2 steps x 168 LSA summaries, k-means, final `lloyd1` assignment | CPU | about 1-3 min (estimate; CLINC150 LSA took 15 s of summarizing per seed) |
+
+**Total about 45-80 minutes**, almost all of it spaCy, plus about 3 GB of RAM (sentence text 0.2 GB as raw characters, about 0.5 GB as Python strings, and 1.9 GB of float32 embeddings). The embedding step uses the GPU (MiniLM), so this run needs approval like the others; it is light (a few hundred MB of VRAM) but should not overlap with the pilot, whose timing needs an idle card. The first run builds the sentence cache; run it before or after the pilot, not during.
+
+```
+HF_HUB_OFFLINE=1 PYTHONPATH=$PWD/src KSLIMEANS_DATA_DIR=/home/cooper/mst/clusteralgs/k-slimeans/data \
+  /home/cooper/mst/clusteralgs/summaryCentroids/.venv/bin/python -u scripts/run_streaming.py configs/arxiv_sub200k_lsa.yaml
+```
+
 ## 6. What is left
 
-- **Approvals:** the baselines run, the pilot run (commands in the pull request description).
+- **Approvals:** the baselines run (and the 150k-batch sequential baseline), the pilot run and the LSA run (commands in the pull request description and above). The LSA run uses the GPU only for the MiniLM sentence embedding.
 - **#49:** the full summary run needs about 8 GB for the vectors and texts together (4.7 GB + about 3.3 GB of Python strings) before sklearn's buffers. The final evaluation step `assign_to_centroids(..., "lloyd1")` fits `KMeans(max_iter=1)` on the full X, which makes a second 4.7 GB copy; at full scale use `eval_assign: nearest` (chunked, no copy) or add `copy_x=False` there. Not changed here because `lloyd1` reproduces upstream's evaluation.
-- **#49:** `aggregate_runs` expects each run directory to contain a summary method (`method_label` reads `cfg["summarizer"]`), so a baseline-only run directory cannot be passed to it yet; the paired comparison with the full-scale baselines needs that to be handled.
-- **#49:** the baselines here use 10k batches while the recommended summary run uses 150k batches. `seqminibatchkmeans` with 10k batches is the stronger baseline; a 150k-batch run (`--set max_batch_size=150000`, minutes) would be the like-for-like comparison.
-- **LSA on the 200k subsample:** a config and a run (about an hour of preprocessing, cached), not done.
+- **Aggregation:** `aggregate_runs` (and so `scripts/aggregate_results.py`) now accepts a baseline-only run directory, so the full-scale baselines can be tabulated alone or next to a summary run. The streaming runner's `runtime` column is read as `runtime_s`.
+- **Like-for-like baseline for the recommended schedule (run it too).** The baselines config uses 10k batches, while the recommended summary run uses 150k batches, and `seqminibatchkmeans` makes one `partial_fit` per batch. 10k batches is the stronger baseline; the like-for-like one has the same 21 batches:
+
+  ```
+  ... scripts/run_streaming.py configs/arxiv_full_baselines.yaml \
+      --set max_batch_size=150000 --set name=arxiv_full_baselines_b150k \
+      --set 'baselines={seqminibatchkmeans: {}}'
+  ```
+
+  CPU only, X is the same 4.7 GB (about 6 GB peak), and 21 `partial_fit` calls of 150k rows each cost about the same total work as the 10k run, so about 1-3 minutes per seed. Only `seqminibatchkmeans` depends on the batch size in this way; `minibatchkmeans`' `batch_size` is its SGD step and `kmeans` ignores it, so they need not be repeated. Report both seq rows and say which batch size each used.
+- **LSA on the 200k subsample:** `configs/arxiv_sub200k_lsa.yaml`, section 5b; not run.
 
 ## Reproducing the numbers
 
