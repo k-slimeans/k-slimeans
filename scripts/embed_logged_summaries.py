@@ -8,7 +8,7 @@ reads; nothing else encodes.
 Usage:
 
     CUDA_VISIBLE_DEVICES="" python scripts/embed_logged_summaries.py results/clinc150_lsa/<stamp> ... \
-        --out results/replacement_diagnostic/summary_embeddings_cpu.npz --device cpu
+        --cache-dir /path/to/cache --out results/replacement_diagnostic/summary_embeddings_cpu.npz --device cpu
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import transformers
 from sentence_transformers import SentenceTransformer
 
 from kslimeans.replay import SummaryEmbeddings
-from kslimeans.runlog import embed_summaries, load_run, load_run_embedder
+from kslimeans.runlog import embed_summaries, load_run, load_run_dataset, load_run_embedder
 
 
 def main() -> None:
@@ -33,6 +33,7 @@ def main() -> None:
     parser.add_argument("run_dirs", nargs="+", metavar="RUN_DIR")
     parser.add_argument("--out", required=True, help="output .npz")
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
+    parser.add_argument("--cache-dir", default=None, help="embeddings cache (default: the run config's)")
     args = parser.parse_args()
 
     arrays = {}
@@ -44,8 +45,10 @@ def main() -> None:
         embedder_name = embedder_name or runlog.config["embedder"]
         if runlog.config["embedder"] != embedder_name:
             sys.exit(f"{run_dir} uses embedder {runlog.config['embedder']!r}, others use {embedder_name!r}")
-        embedder = load_run_embedder(runlog)
-        embedder._model.to(args.device)
+        ds, _ = load_run_dataset(runlog, cache_dir=args.cache_dir)
+        embedder = load_run_embedder(runlog, ds)
+        if hasattr(embedder, "_model"):
+            embedder._model.to(args.device)
         for (method, seed), record in sorted(runlog.records.items()):
             for j, summaries in enumerate(record.summaries_evolution):
                 arrays[(name, method, seed, j)] = embed_summaries(embedder, summaries)
