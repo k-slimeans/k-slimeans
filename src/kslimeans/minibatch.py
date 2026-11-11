@@ -35,7 +35,7 @@ from .summarizers.extractive import ExtractiveSummarizer
 class MiniBatchResult:
     """Everything `mini_batch_summary_kmeans` produces."""
 
-    summaries: list[list[str] | None]  # one summary_kmeans result's summaries, per batch
+    summaries: list[list[str] | None]  # one summary_kmeans result's summaries, per batch (None: not summarized)
     centroids: np.ndarray  # final running centroids after the last batch
     batch_bounds: list[tuple[int, int]]  # [start, stop) document ranges, in corpus order
 
@@ -84,8 +84,15 @@ def mini_batch_summary_kmeans(
     tol: float = 1e-4,
     random_state=None,
     verbose: bool = True,
+    summary_every: int = 1,
 ) -> MiniBatchResult:
     """Run `summary_kmeans` over sequential batches, carrying centroids forward.
+
+    `summary_every=m` runs the summary `schedule` only on every m-th batch (batches 0, m, 2m, ...; the
+    first batch is always summarized). The other batches run plain k-means from the carried centroids
+    with the schedule's whole `max_iter` budget in one fit, make no summarizer call, and report `None`
+    in `MiniBatchResult.summaries`. The default `1` summarizes every batch, as before. `m > 1`
+    needs a schedule with a `max_iter` attribute (`FixedSchedule` and its subclasses).
 
     `text_features` is required: upstream's `miniBatchSummarymeans` sliced
     it unconditionally and crashed with a confusing error (or silently
@@ -112,6 +119,17 @@ def mini_batch_summary_kmeans(
             "the whole corpus) -- pass e.g. text_features=embedder.encode(texts)"
         )
 
+    if isinstance(summary_every, bool) or not isinstance(summary_every, (int, np.integer)) or summary_every < 1:
+        raise ValueError(f"summary_every must be a positive integer, got {summary_every!r}")
+    plain_schedule = None
+    if summary_every > 1:
+        if not hasattr(schedule, "max_iter"):
+            raise ValueError(
+                f"summary_every={summary_every} needs a schedule with a max_iter budget for the "
+                f"batches it does not summarize, but {type(schedule).__name__} has none"
+            )
+        plain_schedule = FixedSchedule(0, schedule.max_iter)
+
     text_features = np.asarray(text_features)
     n = len(texts)
 
@@ -128,7 +146,7 @@ def mini_batch_summary_kmeans(
     counts: np.ndarray | None = None
     summaries: list[list[str] | None] = []
 
-    for start, stop in bounds:
+    for b, (start, stop) in enumerate(bounds):
         batch_texts = texts[start:stop]
         batch_X = text_features[start:stop]
         batch_sentences = sentences.subset(start, stop) if sentences is not None else None
@@ -138,7 +156,7 @@ def mini_batch_summary_kmeans(
             n_clusters,
             summarizer,
             embedder,
-            schedule,
+            schedule if b % summary_every == 0 else plain_schedule,
             text_features=batch_X,
             sentences=batch_sentences,
             init=centroids,

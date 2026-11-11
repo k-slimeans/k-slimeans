@@ -338,3 +338,89 @@ def test_bank77_minibatch_matches_upstream_fixture():
 
     nmi = normalized_mutual_info_score(dataset.labels, assignments)
     assert round(nmi, 4) == round(float(fixture["nmi"]), 4)
+
+
+# --- summary_every -------------------------------------------------------------------
+
+
+class _CountingSummarizer(ClosestToMeanSummarizer):
+    def __init__(self, embed):
+        super().__init__(embed)
+        self.calls = 0
+
+    def summarize(self, cluster: Cluster) -> str:
+        self.calls += 1
+        return super().summarize(cluster)
+
+
+def _run_every(synthetic, summary_every=None, schedule=None):
+    texts, X, embed = synthetic
+    summarizer = _CountingSummarizer(embed)
+    kwargs = {} if summary_every is None else {"summary_every": summary_every}
+    result = mini_batch_summary_kmeans(
+        texts,
+        N_BLOBS,
+        summarizer,
+        LookupEmbedder(embed),
+        FixedSchedule(2, 20) if schedule is None else schedule,
+        text_features=X,
+        max_batch_size=80,  # 320 docs -> 4 batches
+        tol=-1.0,
+        random_state=0,
+        verbose=False,
+        **kwargs,
+    )
+    return result, summarizer.calls
+
+
+def test_summary_every_one_is_the_default_and_byte_identical(synthetic):
+    default, default_calls = _run_every(synthetic)
+    explicit, explicit_calls = _run_every(synthetic, summary_every=1)
+    assert default_calls == explicit_calls > 0
+    assert np.array_equal(default.centroids, explicit.centroids)
+    assert default.summaries == explicit.summaries
+    assert all(s is not None for s in default.summaries)
+
+
+def test_summary_every_summarizes_only_every_mth_batch_starting_with_the_first(synthetic):
+    every1, calls1 = _run_every(synthetic, summary_every=1)
+    every2, calls2 = _run_every(synthetic, summary_every=2)
+    assert [s is not None for s in every2.summaries] == [True, False, True, False]
+    assert 0 < calls2 < calls1
+    assert every2.batch_bounds == every1.batch_bounds
+    assert not np.isnan(every2.centroids).any()
+    assert every2.centroids.shape == every1.centroids.shape
+
+
+def test_summary_every_beyond_the_batch_count_summarizes_only_the_first_batch(synthetic):
+    result, calls = _run_every(synthetic, summary_every=10)
+    assert [s is not None for s in result.summaries] == [True, False, False, False]
+    assert calls == N_BLOBS * 2  # one batch, 2 summary steps, every cluster non-empty
+
+
+def test_unsummarized_batch_is_plain_kmeans_on_the_carried_centroids(synthetic):
+    """With m larger than the batch count, batches 1.. cost nothing and still move the centroids."""
+    texts, X, embed = synthetic
+    only_first = mini_batch_summary_kmeans(
+        texts[:80], N_BLOBS, ClosestToMeanSummarizer(embed), LookupEmbedder(embed), FixedSchedule(2, 20),
+        text_features=X[:80], max_batch_size=80, tol=-1.0, random_state=0, verbose=False,
+    )
+    result, _ = _run_every(synthetic, summary_every=10)
+    assert not np.allclose(result.centroids, only_first.centroids)  # later batches were folded in
+
+
+@pytest.mark.parametrize("bad", [0, -1, 1.5, True, "2"])
+def test_summary_every_rejects_non_positive_or_non_integer(synthetic, bad):
+    with pytest.raises(ValueError, match="summary_every"):
+        _run_every(synthetic, summary_every=bad)
+
+
+def test_summary_every_above_one_needs_a_max_iter_budget(synthetic):
+    class NoBudget(FixedSchedule):
+        pass
+
+    schedule = NoBudget(2, 20)
+    del schedule.max_iter
+    with pytest.raises(ValueError, match="max_iter"):
+        _run_every(synthetic, summary_every=2, schedule=schedule)
+    _run_every(synthetic, summary_every=1, schedule=schedule)  # not needed when every batch is summarized
