@@ -1,17 +1,22 @@
 """Replacement diagnostic (issue #33): what happens when a summary replaces a numerical k-means centroid.
 
 Replays the logged runs offline (`kslimeans.replay`): no language model and no encoding; the summary embeddings come
-from `scripts/embed_logged_summaries.py`. Writes, under `--out-dir`, the verification table (replay vs logged labels,
-`n_iter` and inertia), and with `--verify-only` nothing more:
+from `scripts/embed_logged_summaries.py`. Writes the verification table (replay vs logged labels, `n_iter` and
+inertia, with the scikit-learn version) and a real-data check of the replay against a real `KMeans` fit; with
+`--verify-only` nothing more. Otherwise, under `--out-dir` (small, committed):
 
     replacement_diagnostic_verification.csv   one row per run, method, seed and KMeans fit
+    replacement_diagnostic_mechanism.csv      replay vs a real KMeans fit from the same start (one per method)
     replacement_diagnostic_steps.csv          one row per run, method, seed and summary step
     replacement_diagnostic_iterations.csv     one row per step, iteration and kind (replay / counterfactual)
+    replacement_diagnostic_outcome.csv        final scores against k-means from the same initialization
+    replacement_diagnostic_*.md / .png        tables, examples and figures
+
+and under `--work-dir` (default `results/replacement_diagnostic`, gitignored; regenerate, do not commit):
+
     replacement_diagnostic_clusters.csv       one row per step and cluster (keys: run, method, seed, step, cluster)
     replacement_diagnostic_stale.csv          per cluster, does the displayed summary still describe the final partition
-    replacement_diagnostic_*.md / .png        tables and figures
-
-Per-point mover rows (large) go to `--work-dir` (gitignored).
+    <run>__<method>__seed<k>_movers.csv.gz    one row per point that moved
 
 Usage:
 
@@ -28,9 +33,17 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import sklearn
 
-from kslimeans.diagnostic import staleness_rows, step_tables
-from kslimeans.replay import LloydReplayer, SummaryEmbeddings, fit_initial, replay_run, verify_replay
+from kslimeans.diagnostic import converged_comparison, staleness_rows, step_tables
+from kslimeans.replay import (
+    LloydReplayer,
+    SummaryEmbeddings,
+    compare_with_kmeans,
+    fit_initial,
+    replay_run,
+    verify_replay,
+)
 from kslimeans.runlog import load_run, load_run_dataset
 from kslimeans.surface import duplicate_groups
 
@@ -46,7 +59,7 @@ def _records(runlog):
 
 
 def analyse(run_dirs, cache_dir, embeddings, work_dir, verify_only, log=print):
-    frames = {key: [] for key in ("verification", "steps", "iterations", "clusters", "stale", "outcome", "examples")}
+    frames = {key: [] for key in ("verification", "mechanism", "steps", "iterations", "clusters", "stale", "outcome", "examples")}
     initial_fits = {}  # step 0 is shared by the methods of a seed (same data, k, iterations, seed)
     for run_dir in run_dirs:
         runlog = load_run(run_dir)
@@ -65,6 +78,11 @@ def analyse(run_dirs, cache_dir, embeddings, work_dir, verify_only, log=print):
                 record, X, emb, replayer=replayer, counterfactual=not verify_only, initial=initial_fits[fit_key]
             )
             key = {"run": run, "method": method, "seed": seed}
+            if seed == min(runlog.seeds):  # real-data guard of the private-API replay: one real KMeans fit per method
+                start = replay.steps[0].start_centers
+                frames["mechanism"].append(
+                    {**key, **compare_with_kmeans(replayer, start, record.trace[1]["last_max_iter"])}
+                )
             for check in verify_replay(record, replay):
                 frames["verification"].append(
                     {
@@ -75,6 +93,7 @@ def analyse(run_dirs, cache_dir, embeddings, work_dir, verify_only, log=print):
                         "logged_n_iter": check.logged_n_iter,
                         "rel_err_summary_inertia": check.rel_err_summary_inertia,
                         "rel_err_inertia": check.rel_err_inertia,
+                        "sklearn": sklearn.__version__,
                     }
                 )
             if not verify_only:
@@ -86,7 +105,7 @@ def analyse(run_dirs, cache_dir, embeddings, work_dir, verify_only, log=print):
                         **{f"kmeans_{m}": base.metrics.get(m) if base else None for m in ("acc", "nmi", "ari")},
                     }
                 )
-                _tables(frames, key, record, replay, X, gold, work_dir, ds.texts)
+                _tables(frames, key, record, replay, X, gold, work_dir, ds.texts, replayer)
             log(f"{run} {method} seed {seed}: {time.time() - t0:.0f}s")
     examples = frames.pop("examples")
     out = {name: pd.DataFrame(rows) for name, rows in frames.items()}
@@ -113,12 +132,18 @@ def _examples(key, record, step, tables, texts, n_groups=3, n_texts=3):
     return lines
 
 
-def _tables(frames, key, record, replay, X, gold, work_dir, texts=None):
+def _tables(frames, key, record, replay, X, gold, work_dir, texts=None, replayer=None):
     points = []
     for step in replay.steps:
         j = step.step
         summaries = record.summaries_evolution[j]
-        tables = step_tables(step, X, gold, summaries, record.source_partition(j))
+        try:
+            logged_after = record.partition_after(j)
+        except IndexError:  # a final step that stopped on tol has no block
+            logged_after = None
+        tables = step_tables(step, X, gold, summaries, record.source_partition(j), logged_after=logged_after)
+        if j == 0 and replayer is not None:  # the one step whose pre state is exact: run both sides to convergence
+            tables["step"].update(converged_comparison(replayer, step, gold))
         ident = {**key, "step": j + 1}
         if texts is not None and key["seed"] == 0 and j == 0 and key["run"].endswith("qwen3-4b"):
             frames["examples"] += _examples(key, record, step, tables, texts)
@@ -126,9 +151,9 @@ def _tables(frames, key, record, replay, X, gold, work_dir, texts=None):
         frames["iterations"] += [{**ident, **row} for row in tables["iterations"]]
         frames["clusters"] += [{**ident, **row} for row in tables["clusters"]]
         points += [{**ident, **row} for row in tables["points"]]
-        stale = staleness_rows(
-            record.source_partition(j), step.block.final_labels, step.start_centers, step.block.final_centers, summaries
-        )
+        # Jaccard against the logged post-block partition; only the nearest-final-center rule uses replayed centers.
+        final = logged_after if logged_after is not None else step.block.final_labels
+        stale = staleness_rows(record.source_partition(j), final, step.start_centers, step.block.final_centers, summaries)
         frames["stale"] += [{**ident, **row} for row in stale]
     if points:
         work_dir.mkdir(parents=True, exist_ok=True)
@@ -149,6 +174,7 @@ def verification_summary(ver: pd.DataFrame) -> pd.DataFrame:
         n_iter_differs=("n_iter", lambda s: int((s.values != ver.loc[s.index, "logged_n_iter"].values).sum())),
         max_rel_err_summary_inertia=("rel_err_summary_inertia", "max"),
         max_rel_err_inertia=("rel_err_inertia", "max"),
+        sklearn=("sklearn", "first"),
     ).reset_index()
 
 
@@ -203,10 +229,14 @@ def build_tables(frames: dict[str, pd.DataFrame]) -> str:
         "jaccard_end_mean",
     ]
     direction = [
-        "toward_replacement",
-        "away_replacement",
-        "ends_in_own_majority_replacement",
         "n_moved_replacement",
+        "toward_replacement",
+        "toward_shuffled",
+        "away_replacement",
+        "away_shuffled",
+        "ends_in_own_majority_replacement",
+        "ends_in_own_majority_shuffled",
+        "share_in_own_majority_pre",
         "move_rate_boundary",
         "move_rate_core",
         "move_rate_flagged",
@@ -215,7 +245,10 @@ def build_tables(frames: dict[str, pd.DataFrame]) -> str:
         "share_points_in_flagged",
     ]
     collapse = ["n_dup_clusters", "n_meta_clusters", "n_empty_replacement", "n_empty_end", "n_reseeded"]
-    for title, step in (("Step 1 (shared step-0 partition)", 1), ("All five steps pooled", None)):
+    for title, step in (
+        ("Step 1 (shared step-0 partition; replayed from CPU embeddings)", 1),
+        ("All five steps pooled (replayed; from step 2 on the previous block is replayed too)", None),
+    ):
         parts.append(f"### {title}: means over seeds\n")
         for name, cols in (
             ("Objective (J_before; relative jump at replacement; relative change at block end vs before and vs the "
@@ -224,21 +257,81 @@ def build_tables(frames: dict[str, pd.DataFrame]) -> str:
              "distance from summary to block-end center in radii, distance from block-end center to the pre center in radii, fraction by which the block shortens the summary-to-center distance)", movement),
             ("Partition change (fraction of points moved at the replacement and over the block; ARI and mean cluster "
              "Jaccard against the pre partition)", movers),
-            ("Movers at the replacement (counts toward/away from the gold majority, ends in own majority, total, "
-             "move rates by margin and flag)", direction),
+            ("Movers at the replacement (total, counts toward/away from the gold majority and ending in their own "
+             "gold majority, each beside the mean of a shuffled-destination baseline; share of all points in their "
+             "own cluster's majority; move rates by margin and flag)", direction),
             ("Duplicates and collapsed centroids (clusters per step)", collapse),
         ):
             parts.append(f"{name}\n\n" + md_table(step_means(steps, cols, step)) + "\n")
 
     # Outcome: block-end partition vs the no-replacement counterfactual, and the final scores vs k-means.
     sub = steps.assign(model=steps.run.map(label))
-    parts.append("### Outcome per step\n")
+    parts.append("### Outcome\n")
+    one = sub[sub.step == 1].assign(
+        d_acc=lambda x: x.acc_logged_end - x.acc_cf,
+        d_nmi=lambda x: x.nmi_logged_end - x.nmi_cf,
+        d_ari=lambda x: x.ari_logged_end - x.ari_cf,
+        d_acc_replayed=lambda x: x.acc_end - x.acc_cf,
+        n_mismatch=lambda x: x.n_replay_vs_logged_end,
+    )
+    headline = one.groupby("model").agg(
+        d_acc=("d_acc", "mean"),
+        d_nmi=("d_nmi", "mean"),
+        d_ari=("d_ari", "mean"),
+        seeds_below=("d_acc", lambda v: f"{int((v < 0).sum())}/{len(v)}"),
+        d_acc_replayed=("d_acc_replayed", "mean"),
+        replay_vs_logged_points=("n_mismatch", "mean"),
+    ).reset_index()
+    parts.append(
+        "**Step 1 headline.** Step 0 replays exactly, so at step 1 the pre state and the plain-Lloyd counterfactual "
+        "are exact and `assignments_evolution[1]` is the real post-block partition. Mean over seeds of (score of the "
+        "logged partition after the block) minus (score after plain Lloyd from the step-0 partition, same 20 "
+        "iterations); `seeds_below` counts seeds with a lower ACC than the counterfactual; `d_acc_replayed` is the "
+        "same from the CPU-embedding replay, as a check.\n\n"
+        + md_table(headline, {"d_acc": "+.4f", "d_nmi": "+.4f", "d_ari": "+.4f", "d_acc_replayed": "+.4f"})
+        + "\n"
+    )
+    seeds = one[["model", "seed", "d_acc", "d_nmi", "d_ari"]]
+    parts.append(
+        "Per seed, step 1, logged partition minus counterfactual.\n\n"
+        + md_table(seeds, {"d_acc": "+.4f", "d_nmi": "+.4f", "d_ari": "+.4f"})
+        + "\n"
+    )
+    if "conv_n_iter" in steps:
+        conv = sub[sub.step == 1].assign(
+            d_acc=lambda x: x.conv_acc - x.conv_acc_cf,
+            d_nmi=lambda x: x.conv_nmi - x.conv_nmi_cf,
+            d_ari=lambda x: x.conv_ari - x.conv_ari_cf,
+            j_end_rel=lambda x: x.conv_j_end / x.conv_j_cf - 1,
+        )
+        c = conv.groupby("model").agg(
+            n_iter=("conv_n_iter", "mean"),
+            n_iter_cf=("conv_n_iter_cf", "mean"),
+            capped=("conv_stop", lambda v: int((v == "max_iter").sum())),
+            capped_cf=("conv_stop_cf", lambda v: int((v == "max_iter").sum())),
+            j_end_rel=("j_end_rel", "mean"),
+            d_acc=("d_acc", "mean"),
+            d_nmi=("d_nmi", "mean"),
+            d_ari=("d_ari", "mean"),
+            seeds_below=("d_acc", lambda v: f"{int((v < 0).sum())}/{len(v)}"),
+        ).reset_index()
+        parts.append(
+            "**Step 1, both sides run to sklearn's own stop** (cap 300 iterations; replayed from the CPU embeddings). "
+            "A fixed 20-iteration budget can leave the replacement block less converged than the counterfactual "
+            "(which starts converged), so this separates a worse end state from less convergence. `n_iter` and "
+            "`n_iter_cf` are mean iterations to the stop, `capped*` the runs that hit the cap, `j_end_rel` the "
+            "mean relative objective of the replacement run over the counterfactual's, and `d_*` the "
+            "score differences (replacement minus counterfactual).\n\n"
+            + md_table(c, {"d_acc": "+.4f", "d_nmi": "+.4f", "d_ari": "+.4f", "j_end_rel": "+.4f"})
+            + "\n"
+        )
+    parts.append("**Per step, replayed.** From step 2 on every row starts from a replayed previous block.\n")
     d = sub.assign(
         d_acc=sub.acc_end - sub.acc_cf, d_nmi=sub.nmi_end - sub.nmi_cf, d_ari=sub.ari_end - sub.ari_cf
     ).groupby(["model", "step"])[["d_acc", "d_nmi", "d_ari"]].mean().reset_index()
     parts.append(
-        "Mean over seeds of (score after the block) minus (score after plain Lloyd from the pre-replacement state, "
-        "same iterations).\n\n" + md_table(d, {"d_acc": "+.4f", "d_nmi": "+.4f", "d_ari": "+.4f"}) + "\n"
+        "Mean over seeds of (replayed score after the block) minus (score after plain Lloyd from the replayed "
+        "pre-replacement state, same iterations).\n\n" + md_table(d, {"d_acc": "+.4f", "d_nmi": "+.4f", "d_ari": "+.4f"}) + "\n"
     )
     o = outcome.assign(model=outcome.run.map(label))
     o = o.assign(d_acc=o.acc - o.kmeans_acc, d_nmi=o.nmi - o.kmeans_nmi, d_ari=o.ari - o.kmeans_ari)
@@ -250,7 +343,9 @@ def build_tables(frames: dict[str, pd.DataFrame]) -> str:
     )
     s1 = steps[steps.step == 1].merge(outcome, on=["run", "method", "seed"])
     s1 = s1.assign(
-        d_final_acc=s1.acc - s1.kmeans_acc, d_final_nmi=s1.nmi - s1.kmeans_nmi, d_step_acc=s1.acc_end - s1.acc_cf
+        d_final_acc=s1.acc - s1.kmeans_acc,
+        d_final_nmi=s1.nmi - s1.kmeans_nmi,
+        d_step_acc=s1.acc_logged_end - s1.acc_cf,
     )
     corr = []
     for x in ("jump_rel", "drift_median", "n_empty_replacement", "frac_moved_replacement"):
@@ -382,11 +477,17 @@ def main() -> None:
     frames["verification"].to_csv(out / f"{PREFIX}_verification.csv", index=False)
     summary = verification_summary(frames["verification"])
     print(summary.to_string(index=False))
+    print(frames["mechanism"].to_string(index=False))
+    frames["mechanism"].to_csv(out / f"{PREFIX}_mechanism.csv", index=False)
     if args.verify_only:
         print(f"{time.time() - start:.0f}s", file=sys.stderr)
         return
-    for name in ("steps", "iterations", "clusters", "stale", "outcome"):
+    work = Path(args.work_dir)
+    work.mkdir(parents=True, exist_ok=True)
+    for name in ("steps", "iterations", "outcome", "mechanism"):  # small enough to commit
         frames[name].to_csv(out / f"{PREFIX}_{name}.csv", index=False)
+    for name in ("clusters", "stale"):  # per-cluster files are large: regenerate them, they stay out of git
+        frames[name].to_csv(work / f"{PREFIX}_{name}.csv", index=False)
     (out / f"{PREFIX}_verification.md").write_text(md_table(summary, {c: ".2e" for c in summary.columns if "rel_err" in c}) + "\n")
     (out / f"{PREFIX}_tables.md").write_text(build_tables(frames))
     (out / f"{PREFIX}_examples.md").write_text("\n".join(frames["examples"]) + "\n")

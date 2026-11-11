@@ -6,16 +6,21 @@ import numpy as np
 import pytest
 
 from kslimeans.diagnostic import (
+    CONVERGENCE_CAP,
     cluster_flags,
+    converged_comparison,
+    fraction_changed,
     cosine_rows,
     gold_direction,
     jaccard_per_cluster,
     majority_labels,
     nearest_center,
     partition_scores,
+    perturb,
     pre_margins,
     staleness_rows,
     step_tables,
+    tied_clusters,
 )
 from kslimeans.replay import LloydReplayer, replay_step, state_of
 
@@ -151,3 +156,50 @@ def test_staleness_rows():
     assert [r["stale_nearest"] for r in rows] == [False, True, False]
     assert [r["stale"] for r in rows] == [False, True, False]  # Jaccard 0.5 is not below the 0.5 threshold
     assert not any(r["stale"] for r in staleness_rows(source, final, summary_emb, final_centers, ["", "", ""]))
+
+
+def test_neutral_means_both_or_neither_majority_is_the_gold_label():
+    majority = np.array([5, 5, 7])  # clusters 0 and 1 share their majority
+    gold = np.array([5, 9, 5, 5])
+    # 0 -> 1 with gold 5: both majorities equal gold; 0 -> 1 with gold 9: neither; 0 -> 2 with gold 5: away; 2 -> 0: toward
+    direction = gold_direction(np.array([0, 0, 0, 2]), np.array([1, 1, 2, 0]), gold, majority)
+    assert direction.tolist() == ["neutral", "neutral", "away", "toward"]
+
+
+def test_logged_columns_baselines_and_flags_use_the_logged_partition(tables):
+    step, _ = tables
+    shifted_source = np.array([0, 0, 1, 1, 1, 1])  # a source partition where cluster 2 held nobody: flags follow it
+    out = step_tables(step, X, GOLD, SUMMARIES, shifted_source, logged_after=np.array([0, 0, 1, 1, 2, 2]))
+    row = out["step"]
+    assert row["acc_logged_end"] == pytest.approx(1.0) and row["ari_logged_end"] == pytest.approx(1.0)
+    assert row["n_pre_vs_source"] == 2
+    assert row["n_replay_vs_logged_end"] == int(np.count_nonzero(step.block.final_labels != [0, 0, 1, 1, 2, 2]))
+    assert row["share_in_own_majority_pre"] == pytest.approx(1.0)
+    # the two movers come from cluster 2's points, which this source partition assigns to cluster 1 (not flagged)
+    assert row["share_movers_from_flagged"] == pytest.approx(0.0)
+    # destinations shuffled among the two movers: both end in cluster 0 either way, so the baseline equals the data
+    assert row["away_shuffled"] == pytest.approx(row["away_replacement"])
+    assert step_tables(step, X, GOLD, SUMMARIES, PRE_LABELS)["step"]["acc_logged_end"] != row["acc_logged_end"]
+
+
+def test_converged_comparison_runs_both_sides_to_the_stop(tables):
+    step, _ = tables
+    out = converged_comparison(LloydReplayer(X), step, GOLD)
+    assert out["conv_stop_cf"] in {"strict", "tol"} and out["conv_n_iter_cf"] <= 2
+    assert out["conv_n_iter"] < CONVERGENCE_CAP
+    assert out["conv_j_cf"] == pytest.approx(6.0)
+    assert out["conv_acc_cf"] == pytest.approx(1.0)
+
+
+def test_perturbation_changes_values_and_keeps_ties_when_asked():
+    rng = np.random.default_rng(0)
+    centers = rng.normal(size=(6, 40)).astype(np.float32)
+    centers[3] = centers[1]  # a tied pair
+    big = perturb(centers, 1e-6, np.random.default_rng(1))
+    assert big.dtype == centers.dtype and fraction_changed(centers, big) > 0.9
+    assert not np.array_equal(big[1], big[3])  # iid noise breaks the tie
+    tied = perturb(centers, 1e-6, np.random.default_rng(1), tied=True)
+    assert np.array_equal(tied[1], tied[3]) and fraction_changed(centers, tied) > 0.9
+    assert tied_clusters(centers).tolist() == [False, True, False, True, False, False]
+    # below float32 resolution almost nothing changes
+    assert fraction_changed(centers, perturb(centers, 1e-9, np.random.default_rng(1))) < 0.2

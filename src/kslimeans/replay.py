@@ -39,10 +39,12 @@ clusters, or put in another model's summary embedding) before the block runs.
 from __future__ import annotations
 
 import json
+import warnings
 from dataclasses import dataclass, field
 from typing import Callable, Sequence
 
 import numpy as np
+import sklearn
 from sklearn.cluster import KMeans
 from sklearn.cluster._k_means_lloyd import lloyd_iter_chunked_dense
 from sklearn.cluster._kmeans import _kmeans_single_lloyd, _tolerance
@@ -52,6 +54,9 @@ from sklearn.utils._openmp_helpers import _openmp_effective_n_threads
 from .core import _objective
 from .embeddings import Embedder
 from .runlog import RunRecord, embed_summaries
+
+TESTED_SKLEARN = "1.9.1"
+"""The scikit-learn version the replay's private-API use was checked against (`tests/test_replay.py`, real-data check)."""
 
 KMEANS_TOL = 1e-4
 """sklearn's default `KMeans.tol`, which core's Lloyd blocks use (not the summary-shift `tol` of the config)."""
@@ -123,6 +128,13 @@ class LloydReplayer:
     """sklearn's Lloyd iteration on `X`, advanced one step at a time (see the module docstring)."""
 
     def __init__(self, X: np.ndarray, tol: float = KMEANS_TOL) -> None:
+        if sklearn.__version__ != TESTED_SKLEARN:
+            warnings.warn(
+                f"replay uses private scikit-learn functions checked against {TESTED_SKLEARN}; found "
+                f"{sklearn.__version__}. Rerun the replay verification before trusting it.",
+                stacklevel=2,
+            )
+        self.tol_rel = tol
         self.X = np.asarray(X)
         Xc = check_array(self.X, dtype=[np.float64, np.float32], order="C", copy=True)
         self.dtype = Xc.dtype
@@ -197,6 +209,23 @@ class LloydReplayer:
                 reason = "tol"
                 break
         return Block(iterations=its, stop=reason, final_labels=final_labels)
+
+
+def compare_with_kmeans(replayer: LloydReplayer, start_centers: np.ndarray, max_iter: int) -> dict:
+    """Replay a block and run the real `KMeans(init=start_centers, max_iter=max_iter)` fit; report how they differ.
+
+    The real-data guard for the private-API replay: `n_label_mismatch` and `n_iter` should be 0 and equal.
+    """
+    block = replayer.run_block(start_centers, max_iter)
+    km = KMeans(n_clusters=len(start_centers), init=start_centers, max_iter=max_iter, tol=replayer.tol_rel)
+    km.fit(replayer.X)
+    return {
+        "n_label_mismatch": int(np.count_nonzero(block.final_labels != km.labels_)),
+        "n_iter": block.n_iter,
+        "n_iter_kmeans": int(km.n_iter_),
+        "max_center_diff": float(np.abs(block.final_centers - km.cluster_centers_).max()),
+        "sklearn": sklearn.__version__,
+    }
 
 
 def fit_initial(X: np.ndarray, n_clusters: int, max_iter: int, seed: int | None, init="k-means++") -> tuple[State, int]:

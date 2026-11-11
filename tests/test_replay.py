@@ -13,6 +13,7 @@ from kslimeans.core import _objective, summary_kmeans
 from kslimeans.replay import (
     LloydReplayer,
     SummaryEmbeddings,
+    compare_with_kmeans,
     assigned_objective,
     fit_initial,
     replay_run,
@@ -157,7 +158,7 @@ class DuplicatingSummarizer(Summarizer):
         return self.summarize_batch([cluster])[0]
 
 
-def _logged_run(data, summarizer_cls, **schedule):
+def _logged_run(data, summarizer_cls, tol=-1.0, **schedule):
     texts, X, embed = data
     result = summary_kmeans(
         texts,
@@ -166,7 +167,7 @@ def _logged_run(data, summarizer_cls, **schedule):
         LookupEmbedder(embed),
         FixedSchedule(**{"n_summaries": 3, "max_iter": 60, "initial_iter": True, "final_iter": True, **schedule}),
         text_features=X,
-        tol=-1.0,
+        tol=tol,
         random_state=3,
         verbose=False,
     )
@@ -281,3 +282,47 @@ def test_summary_embeddings_round_trip(tmp_path):
     assert len(steps) == 2 and steps[0].dtype == np.float32 and steps[1].sum() == 0
     with pytest.raises(KeyError):
         loaded.steps("run", "k-SLMmeans", 1)
+
+
+def test_counterfactual_after_a_block_that_stops_on_tol(data):
+    _, X, _ = data
+    pre_state, _ = fit_initial(X, K, 3, 0)
+    replayer = LloydReplayer(X, tol=0.5)
+    step = replay_step(replayer, pre_state, _start(X, seed=4), 100)
+    assert step.block.stop == "tol" and step.block.n_iter < 100
+    cf = step.counterfactual
+    assert cf.stop == "fixed" and cf.n_iter == step.block.n_iter  # the counterfactual ignores the stops
+    km = _kmeans(X, pre_state.centers, cf.n_iter, tol=0)
+    assert np.array_equal(cf.final_labels, km.labels_)
+
+
+def test_final_summary_step_that_stopped_on_tol_has_no_block(data):
+    from test_core_equivalence import ClosestToMeanSummarizer
+
+    texts, X, embed = data
+    result, record = _logged_run(
+        data, ClosestToMeanSummarizer, tol=1e-4, n_summaries=10, max_iter=100
+    )
+    assert result.converged  # the last summary step moved the centers less than tol and fit no KMeans
+    assert len(record.summaries_evolution) == len(record.trace)  # one summary step more than fits after step 0
+    replay = replay_run(record, X, summary_embeddings(record, LookupEmbedder(embed)))
+    assert len(replay.steps) == len(record.trace) - 1
+    checks = verify_replay(record, replay)
+    assert len(checks) == len(record.trace)
+    assert all(c.n_label_mismatch == 0 and c.n_iter == c.logged_n_iter for c in checks)
+
+
+def test_compare_with_kmeans_reports_no_difference(data):
+    _, X, _ = data
+    result = compare_with_kmeans(LloydReplayer(X), _start(X), 20)
+    assert result["n_label_mismatch"] == 0 and result["n_iter"] == result["n_iter_kmeans"]
+    assert result["max_center_diff"] < 1e-5
+
+
+def test_untested_sklearn_version_warns(data, monkeypatch):
+    import sklearn
+
+    _, X, _ = data
+    monkeypatch.setattr(sklearn, "__version__", "0.0.0")
+    with pytest.warns(UserWarning, match="private scikit-learn"):
+        LloydReplayer(X)

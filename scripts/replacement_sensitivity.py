@@ -1,5 +1,9 @@
 """How sensitive is a replacement block to float noise in its start centers? (noise floor for issue #33 / #47)
 
+Float32 cannot represent relative changes below about 6e-8 (half its spacing, 1.2e-7), so perturbations of 1e-9 and 1e-8
+change few or no elements; `frac_elements_changed` reports how many were actually changed. The `tied` noise is the
+realistic model, since identical texts encode identically; `iid` noise breaks ties that real encoder noise would not.
+
 The summary embeddings of the original runs were computed on a GPU; re-embedding on a CPU changes them by ~1e-6 (L2,
 per row), and a Lloyd block started from them can end in a different partition. This script measures that: for each
 method, seed and summary step it replays the block from the logged-summary embeddings (the reference), then from
@@ -27,28 +31,13 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import adjusted_rand_score
 
-from kslimeans.diagnostic import partition_scores
+from kslimeans.diagnostic import fraction_changed, partition_scores, perturb, tied_clusters
 from kslimeans.replay import LloydReplayer, SummaryEmbeddings
 from kslimeans.runlog import load_run, load_run_dataset
 
 PREFIX = "replacement_diagnostic_sensitivity"
 RELS = (1e-9, 1e-8, 1e-7, 1e-6)
 TIED_RELS = (1e-7, 1e-6)
-
-
-def _noise(start: np.ndarray, rel: float, rng: np.random.Generator, tied: bool) -> np.ndarray:
-    if tied:
-        uniq, inverse = np.unique(start, axis=0, return_inverse=True)
-        eps = rng.standard_normal(uniq.shape)[inverse.reshape(-1)]
-    else:
-        eps = rng.standard_normal(start.shape)
-    return (start * (1 + rel * eps)).astype(start.dtype)
-
-
-def _tied_clusters(start: np.ndarray) -> np.ndarray:
-    """Boolean per cluster: its start center is identical to another cluster's."""
-    _, inverse, counts = np.unique(start, axis=0, return_inverse=True, return_counts=True)
-    return counts[inverse.reshape(-1)] > 1
 
 
 def run(run_dirs, cache_dir, embeddings, seeds, steps, draws, log):
@@ -70,14 +59,17 @@ def run(run_dirs, cache_dir, embeddings, seeds, steps, draws, log):
                 start = emb[j]
                 ref = replayer.run_block(start, max_iter)
                 ref_scores = partition_scores(gold, ref.final_labels)
-                tied_cl = _tied_clusters(start)
+                tied_cl = tied_clusters(start)
                 # Argmin ties go to the first of identical centers, so tied points sit in a tied cluster at t=0.
                 tied_pts = tied_cl[ref.start.labels]
                 for tied, rels in ((False, RELS), (True, TIED_RELS)):
                     for rel in rels:
                         for draw in range(draws):
                             rng = np.random.default_rng([seed, step, int(rel * 1e12), int(tied), draw])
-                            blk = replayer.run_block(_noise(start, rel, rng, tied), max_iter)
+                            noisy = perturb(start, rel, rng, tied)
+                            frac_changed = fraction_changed(start, noisy)
+                            assert rel < 1e-7 or frac_changed > 0, "perturbation left the start centers unchanged"
+                            blk = replayer.run_block(noisy, max_iter)
                             changed = blk.final_labels != ref.final_labels
                             scores = partition_scores(gold, blk.final_labels)
                             rows.append(
@@ -88,6 +80,7 @@ def run(run_dirs, cache_dir, embeddings, seeds, steps, draws, log):
                                     "step": step,
                                     "noise": "tied" if tied else "iid",
                                     "rel": rel,
+                                    "frac_elements_changed": frac_changed,
                                     "draw": draw,
                                     "n_points": len(gold),
                                     "n_tied_clusters": int(tied_cl.sum()),
@@ -130,6 +123,9 @@ def summarize(df: pd.DataFrame) -> pd.DataFrame:
         abs_d_nmi=("abs_nmi", "mean"),
         abs_d_ari=("abs_ari", "mean"),
         sd_d_acc=("d_acc", "std"),
+        max_abs_d_acc=("abs_acc", "max"),
+        frac_elements_changed=("frac_elements_changed", "mean"),
+        sd_frac_changed=("frac", "std"),
     ).reset_index()
 
 
@@ -139,6 +135,7 @@ def summary_md(summary: pd.DataFrame) -> str:
         "run": "model",
         "noise": "noise",
         "rel": "rel. noise",
+        "frac_elements_changed": "elements changed",
         "n_tied_clusters": "tied clusters",
         "frac_changed": "labels changed",
         "frac_changed_tied_points": "of tied points",
@@ -152,8 +149,8 @@ def summary_md(summary: pd.DataFrame) -> str:
     df["model"] = df["model"].str.removeprefix("clinc150_")
     lines = ["| " + " | ".join(df.columns) + " |", "| --- | --- | ---: " + "| ---: " * (len(df.columns) - 3) + "|"]
     for row in df.itertuples(index=False):
-        cells = [row[0], row[1], f"{row[2]:.0e}", f"{row[3]:.1f}"]
-        cells += ["n/a" if pd.isna(v) else f"{v:.4f}" if i >= 7 else f"{v:.3f}" for i, v in enumerate(row[4:], start=4)]
+        cells = [row[0], row[1], f"{row[2]:.0e}", f"{row[3]:.3f}", f"{row[4]:.1f}"]
+        cells += ["n/a" if pd.isna(v) else f"{v:.4f}" if i >= 8 else f"{v:.3f}" for i, v in enumerate(row[5:], start=5)]
         lines.append("| " + " | ".join(map(str, cells)) + " |")
     return "\n".join(lines) + "\n"
 

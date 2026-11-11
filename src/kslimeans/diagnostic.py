@@ -14,11 +14,20 @@ replayed step into the per-step, per-iteration, per-cluster and per-point rows t
   label; an empty cluster has none, -1). A point that moved from cluster `a` to `b` moves `toward` its gold label if
   `majority[b] == gold` and `majority[a] != gold`, `away` if `majority[a] == gold` and `majority[b] != gold`;
   otherwise `neutral` (both or neither majority equals its gold). `ends_in_own_majority` is `majority[b] == gold`.
+  Baselines: `share_in_own_majority_pre` is the share of all points whose gold label is the majority of their own
+  pre cluster, and the `*_shuffled` columns repeat the counts after randomly permuting the destinations of the
+  movers (fixed seed, mean of `N_SHUFFLES`), which keeps the origin and destination clusters' marginal counts.
+  With a point's own cluster usually its majority, "away" exceeds "toward" by construction.
 - Boundary vs core. The pre margin of a point is `d2 - d1`, the distance to its second-nearest pre center minus
   that to the nearest. A point is a boundary point if its margin is in the lowest quartile of the step's points,
   else a core point.
 - Flags are the surface rules of `kslimeans.surface`: `dup` (the summary is identical to another cluster's),
   `meta` (it mentions "cluster"/"summar") and `flagged` (either).
+- Logged versus replayed. Step 1 is the one step with an exact pairing: step 0 replays exactly, so the pre state is
+  the real one and `assignments_evolution[1]` is the real post-block partition. The `*_logged_end` columns score that
+  logged partition. From step 2 on, every measure that needs the pre state or the block (everything but the logged
+  columns and the Jaccard of the summaries' source members against the logged post-block partition) starts from a
+  replayed previous block, which for the 4B mostly differs from the real one (`n_pre_vs_source` counts the points).
 - Out of date. A displayed summary of cluster `c` is stale when the Jaccard similarity between the members it was
   written from and the members of `c` in the final partition is below `STALE_JACCARD`, or when its embedding's
   nearest final center belongs to another cluster.
@@ -32,10 +41,13 @@ from sklearn.metrics.pairwise import euclidean_distances
 
 from .core import _cluster_rms_radius
 from .metrics import cluster_metrics
-from .replay import Block, StepReplay
+from .replay import Block, LloydReplayer, StepReplay
 from .schedules import centroid_drift
 from .surface import duplicate_groups, mentions_cluster
 
+N_SHUFFLES = 20
+CONVERGENCE_CAP = 300
+"""Iteration cap of `converged_comparison` (sklearn's own default `max_iter`)."""
 STALE_JACCARD = 0.5
 """A summary whose source and final member sets overlap less than this (Jaccard) counts as out of date."""
 BOUNDARY_QUANTILE = 0.25
@@ -107,6 +119,66 @@ def partition_scores(gold: np.ndarray, labels: np.ndarray) -> dict[str, float]:
     return {key: float(scores[key]) for key in ("acc", "nmi", "ari")}
 
 
+def tied_clusters(centers: np.ndarray) -> np.ndarray:
+    """Boolean per cluster: its center is bit-identical to another cluster's."""
+    _, inverse, counts = np.unique(centers, axis=0, return_inverse=True, return_counts=True)
+    return counts[inverse.reshape(-1)] > 1
+
+
+def perturb(centers: np.ndarray, rel: float, rng: np.random.Generator, tied: bool = False) -> np.ndarray:
+    """`centers * (1 + rel * N(0, 1))` in the centers' dtype.
+
+    With `tied=True` identical rows get the same noise, so identical centers stay identical (what identical texts
+    give: they encode identically). Float32 cannot represent relative changes below about 6e-8, so tiny `rel` leaves
+    most elements unchanged; use `fraction_changed` to see how many were.
+    """
+    if tied:
+        uniq, inverse = np.unique(centers, axis=0, return_inverse=True)
+        eps = rng.standard_normal(uniq.shape)[inverse.reshape(-1)]
+    else:
+        eps = rng.standard_normal(centers.shape)
+    return (centers * (1 + rel * eps)).astype(centers.dtype)
+
+
+def fraction_changed(before: np.ndarray, after: np.ndarray) -> float:
+    """Share of elements that differ between two arrays."""
+    return float(np.mean(before != after))
+
+
+def _direction_counts(from_c, to_c, gold, majority) -> tuple[int, int, int]:
+    direction = gold_direction(from_c, to_c, gold, majority)
+    return int((direction == "toward").sum()), int((direction == "away").sum()), int((majority[to_c] == gold).sum())
+
+
+def shuffled_direction_baseline(from_c, to_c, gold, majority, n_shuffles: int = N_SHUFFLES, seed: int = 0):
+    """Mean (toward, away, ends-in-own-majority) counts when the movers' destinations are permuted among them."""
+    rng = np.random.default_rng(seed)
+    counts = [_direction_counts(from_c, rng.permutation(to_c), gold, majority) for _ in range(n_shuffles)]
+    return tuple(float(v) for v in np.mean(counts, axis=0))
+
+
+def converged_comparison(replayer: LloydReplayer, replay: StepReplay, gold: np.ndarray, max_iter: int = CONVERGENCE_CAP) -> dict:
+    """Replacement block and no-replacement continuation both run to sklearn's own stop (cap `max_iter`).
+
+    A fixed 20-iteration budget can end the blocks at different degrees of convergence, which confounds
+    "worse basin" with "less converged". Returns iteration counts, objectives and ACC/NMI/ARI of both runs.
+    """
+    rep = replayer.run_block(replay.start_centers, max_iter)
+    cf = replayer.run_block(replay.pre.centers, max_iter)
+    out = {
+        "conv_n_iter": rep.n_iter,
+        "conv_stop": rep.stop,
+        "conv_n_iter_cf": cf.n_iter,
+        "conv_stop_cf": cf.stop,
+        "conv_j_end": rep.end.objective,
+        "conv_j_cf": cf.end.objective,
+    }
+    for name, block in (("", rep), ("_cf", cf)):
+        scores = partition_scores(gold, block.final_labels)
+        out.update({f"conv_{m}{name}": scores[m] for m in ("acc", "nmi", "ari")})
+    return out
+
+
 def _safe_div(a: float, b: float) -> float:
     return a / b if b else float("nan")
 
@@ -142,13 +214,16 @@ def step_tables(
     summaries: list[str | None],
     source_labels: np.ndarray,
     *,
+    logged_after: np.ndarray | None = None,
     keep_points: bool = True,
 ) -> dict:
     """The diagnostic rows for one replayed step.
 
     Returns `{"step": dict, "iterations": list[dict], "clusters": list[dict], "points": list[dict]}`; the caller
-    adds `method`, `seed` and `step` keys. `source_labels` is the partition the summaries were written from (the
-    pre partition), `summaries` the step's texts. `points` (one row per mover at the replacement or at the end
+    adds `method`, `seed` and `step` keys. `source_labels` is the logged partition the summaries were written from
+    (the pre partition at step 1; later it can differ from the replayed pre state): flags are joined to it.
+    `logged_after` is the logged post-block partition, scored in the `*_logged_end` columns. `summaries` is the
+    step's texts. `points` (one row per mover at the replacement or at the end
     of the block) is empty with `keep_points=False`.
     """
     pre, block, cf = replay.pre, replay.block, replay.counterfactual
@@ -183,7 +258,7 @@ def step_tables(
     majority = majority_labels(pre_labels, gold, k)
     dir0 = gold_direction(pre_labels, start.labels, gold, majority)
     dir_end = gold_direction(pre_labels, block.final_labels, gold, majority)
-    flagged_point = flags["flagged"][pre_labels]
+    flagged_point = flags["flagged"][source_labels]  # the clusters the summaries were written about
 
     def rate(mask: np.ndarray, moved: np.ndarray) -> float:
         return _safe_div(float(np.count_nonzero(moved & mask)), float(np.count_nonzero(mask)))
@@ -191,6 +266,8 @@ def step_tables(
     own0 = majority[start.labels] == gold
     own_end = majority[block.final_labels] == gold
     scores_pre, scores_end = partition_scores(gold, pre_labels), partition_scores(gold, block.final_labels)
+    scores_logged = partition_scores(gold, logged_after) if logged_after is not None else None
+    shuffled = shuffled_direction_baseline(pre_labels[moved0], start.labels[moved0], gold[moved0], majority)
     scores_cf = partition_scores(gold, cf.final_labels) if cf is not None else None
     cf_end = cf.end if cf is not None else None
     jac_end = jaccard_per_cluster(pre_labels, block.final_labels, k)
@@ -230,6 +307,17 @@ def step_tables(
         "ari_replacement_vs_pre": float(adjusted_rand_score(pre_labels, start.labels)),
         "ari_end_vs_pre": float(adjusted_rand_score(pre_labels, block.final_labels)),
         "jaccard_end_mean": float(np.nanmean(jac_end)),
+        "share_in_own_majority_pre": float(np.mean(majority[pre_labels] == gold)),
+        "toward_shuffled": shuffled[0],
+        "away_shuffled": shuffled[1],
+        "ends_in_own_majority_shuffled": shuffled[2],
+        "n_pre_vs_source": int(np.count_nonzero(pre_labels != source_labels)),
+        "n_replay_vs_logged_end": int(np.count_nonzero(block.final_labels != logged_after))
+        if logged_after is not None
+        else -1,
+        "acc_logged_end": scores_logged["acc"] if scores_logged else float("nan"),
+        "nmi_logged_end": scores_logged["nmi"] if scores_logged else float("nan"),
+        "ari_logged_end": scores_logged["ari"] if scores_logged else float("nan"),
         "toward_replacement": int((dir0[moved0] == "toward").sum()),
         "away_replacement": int((dir0[moved0] == "away").sum()),
         "ends_in_own_majority_replacement": int(own0[moved0].sum()),
