@@ -291,7 +291,9 @@ def _read_parquet_prefix(path: Path, columns: list[str], year: int | None, limit
     return out.iloc[:limit] if limit is not None else out
 
 
-def _load_arxiv(parquet_name: str, name: str, year: int | None, limit: int | None) -> Dataset:
+def _load_arxiv(
+    parquet_name: str, name: str, year: int | None, limit: int | None, load_texts: bool = True
+) -> Dataset:
     arxiv_dir = DATA_DIR / "arxiv"
     parquet_path = arxiv_dir / parquet_name
     full_path = arxiv_dir / "arxiv.parquet"
@@ -312,7 +314,8 @@ def _load_arxiv(parquet_name: str, name: str, year: int | None, limit: int | Non
         )
 
     subsample = parquet_name != "arxiv.parquet"
-    df = _read_parquet_prefix(parquet_path, ["text", "label"] + (["row"] if subsample else []), year, limit)
+    columns = (["text"] if load_texts else []) + ["label"] + (["row"] if subsample else [])
+    df = _read_parquet_prefix(parquet_path, columns, year, limit)
     if df.empty:
         raise ValueError(f"{name} has no rows for year={year}, limit={limit}")
     if subsample:
@@ -329,9 +332,12 @@ def _load_arxiv(parquet_name: str, name: str, year: int | None, limit: int | Non
         name += f"_{year}"
     if limit is not None:
         name += f"_limit{limit}"
+    # Without texts (a baseline-only run, which never reads them) every text is "": the abstracts are
+    # ~3 GB of Python strings at full scale. The list still has one entry per row.
+    texts = df["text"].tolist() if load_texts else [""] * len(df)
     return Dataset(
         name,
-        df["text"].tolist(),
+        texts,
         labels,
         len(label_names),
         _ARXIV_PROMPT,
@@ -343,20 +349,21 @@ def _load_arxiv(parquet_name: str, name: str, year: int | None, limit: int | Non
     )
 
 
-def load_arxiv(year: int | None = None, limit: int | None = None) -> Dataset:
+def load_arxiv(year: int | None = None, limit: int | None = None, load_texts: bool = True) -> Dataset:
     """The full arXiv abstracts corpus (~3.0M, primary category as label), in file order.
 
     `year` keeps papers whose `update_date` falls in that year; `limit` then keeps the first
     `limit` rows. Label ids are contiguous over the categories present in the returned rows.
     Vectors are precomputed (MiniLM), see `Dataset.embeddings_path`. Unlimited, this holds ~3.0M
-    texts in RAM and the runners copy the vectors as float32 (~4.7 GB); prefer `arxiv_sub200k`.
+    texts in RAM and the runners copy the vectors as float32 (~4.7 GB); prefer `arxiv_sub200k`, or
+    `load_texts=False` for a run that needs only the vectors and labels (the texts are then all "").
     """
-    return _load_arxiv("arxiv.parquet", "arxiv", year, limit)
+    return _load_arxiv("arxiv.parquet", "arxiv", year, limit, load_texts)
 
 
-def load_arxiv_sub200k(year: int | None = None, limit: int | None = None) -> Dataset:
+def load_arxiv_sub200k(year: int | None = None, limit: int | None = None, load_texts: bool = True) -> Dataset:
     """The 200k random subsample of arXiv abstracts; same semantics as `load_arxiv`."""
-    return _load_arxiv("arxiv_sub200k.parquet", "arxiv_sub200k", year, limit)
+    return _load_arxiv("arxiv_sub200k.parquet", "arxiv_sub200k", year, limit, load_texts)
 
 
 # Registry of loaders by dataset name.

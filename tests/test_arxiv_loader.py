@@ -69,6 +69,17 @@ def test_full_loader(arxiv_dir):
     assert ds.text_type == "Topic:" and "arXiv" in ds.prompt
 
 
+@pytest.mark.parametrize("name", ["arxiv", "arxiv_sub200k"])
+def test_load_texts_false_keeps_labels_and_rows_but_drops_texts(arxiv_dir, name):
+    full = load_dataset(name, limit=12)
+    bare = load_dataset(name, limit=12, load_texts=False)
+    assert bare.texts == [""] * 12
+    assert np.array_equal(bare.labels, full.labels) and bare.label_names == full.label_names
+    assert bare.n_clusters == full.n_clusters and bare.name == full.name
+    assert np.array_equal(bare.embeddings_rows, full.embeddings_rows)
+    assert len(dataset_embeddings(bare, "minilm")) == 12  # the row-count check still passes
+
+
 def test_limit_makes_labels_contiguous(arxiv_dir):
     ds = load_dataset("arxiv", limit=10)
     assert ds.texts == [f"abstract number {i}" for i in range(10)]
