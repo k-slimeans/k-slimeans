@@ -1,0 +1,13 @@
+join,n_left,n_right,matched,left_only,right_only
+diagnostic x stale,15000,15000,15000,0,0
+quality x diagnostic [clinc150_lsa],3750,3750,3750,0,0
+quality x diagnostic [clinc150_qwen3-0.6b],3750,3750,3750,0,0
+quality x diagnostic [clinc150_qwen3-1.7b],3750,3750,3750,0,0
+quality x diagnostic [clinc150_qwen3-4b],3750,3750,3750,0,0
+quality x diagnostic [prelim_bank77_lsa],385,0,0,385,0
+quality x diagnostic [prelim_bank77_qwen3-0.6b],385,0,0,385,0
+quality x diagnostic [prelim_bank77_qwen3-1.7b],385,0,0,385,0
+quality x diagnostic [prelim_bank77_qwen3-4b],385,0,0,385,0
+quality x after-partition,15000,15000,15000,0,0
+quality x cost,16540,16540,16540,0,0
+cluster rows x run metrics,16540,40,16540,0,0

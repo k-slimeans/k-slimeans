@@ -1,0 +1,49 @@
+method_id,outcome,adjustment,n_not_fluent,n_clusters,mean,lo,hi,n_seeds,n_strata_used,scope
+k-NLPmeans,d_member_purity,raw,5,750,,,,0,0,step 1
+k-NLPmeans,d_member_purity,within coverage,5,750,,,,0,0,step 1
+k-NLPmeans,d_member_purity,within coverage x generic x unsupported,5,750,,,,0,0,step 1
+k-NLPmeans,lost_share,raw,5,750,,,,0,0,step 1
+k-NLPmeans,lost_share,within coverage,5,750,,,,0,0,step 1
+k-NLPmeans,lost_share,within coverage x generic x unsupported,5,750,,,,0,0,step 1
+k-SLMmeans (Qwen3-0.6B),d_member_purity,raw,213,750,0.000675691,-0.053921,0.0552723,5,1,step 1
+k-SLMmeans (Qwen3-0.6B),d_member_purity,within coverage,213,750,0.00175367,-0.0544468,0.0579541,5,3.8,step 1
+k-SLMmeans (Qwen3-0.6B),d_member_purity,within coverage x generic x unsupported,213,750,-0.0144682,-0.0735004,0.0445639,5,4,step 1
+k-SLMmeans (Qwen3-0.6B),lost_share,raw,213,750,0.180438,0.0820183,0.278857,5,1,step 1
+k-SLMmeans (Qwen3-0.6B),lost_share,within coverage,213,750,0.0220315,-0.0201772,0.0642402,5,3.8,step 1
+k-SLMmeans (Qwen3-0.6B),lost_share,within coverage x generic x unsupported,213,750,0.030914,-0.0354471,0.0972751,5,4,step 1
+k-SLMmeans (Qwen3-1.7B),d_member_purity,raw,77,750,-0.00634151,-0.078874,0.066191,5,1,step 1
+k-SLMmeans (Qwen3-1.7B),d_member_purity,within coverage,77,750,-0.00804046,-0.039858,0.0237771,5,3,step 1
+k-SLMmeans (Qwen3-1.7B),d_member_purity,within coverage x generic x unsupported,77,750,0.0680548,-0.15714,0.293249,4,1.5,step 1
+k-SLMmeans (Qwen3-1.7B),lost_share,raw,77,750,0.293178,0.208084,0.378272,5,1,step 1
+k-SLMmeans (Qwen3-1.7B),lost_share,within coverage,77,750,0.0293431,-0.0689062,0.127592,5,3,step 1
+k-SLMmeans (Qwen3-1.7B),lost_share,within coverage x generic x unsupported,77,750,-0.0550232,-0.313944,0.203897,4,1.5,step 1
+k-SLMmeans (Qwen3-4B),d_member_purity,raw,251,750,0.0254139,-0.00537842,0.0562063,5,1,step 1
+k-SLMmeans (Qwen3-4B),d_member_purity,within coverage,251,750,0.0235755,-0.00309304,0.050244,5,3.6,step 1
+k-SLMmeans (Qwen3-4B),d_member_purity,within coverage x generic x unsupported,251,750,-6.33542e-05,-0.0467945,0.0466678,5,2.8,step 1
+k-SLMmeans (Qwen3-4B),lost_share,raw,251,750,0.442867,0.386218,0.499516,5,1,step 1
+k-SLMmeans (Qwen3-4B),lost_share,within coverage,251,750,-0.0339097,-0.0591824,-0.0086369,5,3.6,step 1
+k-SLMmeans (Qwen3-4B),lost_share,within coverage x generic x unsupported,251,750,-0.0712575,-0.0842563,-0.0582587,5,2.8,step 1
+k-NLPmeans,d_member_purity,raw,25,3750,0.0158465,-0.00534032,0.0370333,5,1,all steps
+k-NLPmeans,d_member_purity,within coverage,25,3750,0.0175956,-0.0162293,0.0514205,5,1.2,all steps
+k-NLPmeans,d_member_purity,within coverage x generic x unsupported,25,3750,0.0176142,-0.0161741,0.0514026,5,1.2,all steps
+k-NLPmeans,lost_share,raw,25,3750,0.0236238,-0.0236623,0.07091,5,1,all steps
+k-NLPmeans,lost_share,within coverage,25,3750,-0.013258,-0.0621032,0.0355872,5,1.2,all steps
+k-NLPmeans,lost_share,within coverage x generic x unsupported,25,3750,-0.0120105,-0.058791,0.0347699,5,1.2,all steps
+k-SLMmeans (Qwen3-0.6B),d_member_purity,raw,1059,3750,-0.0131369,-0.0328347,0.00656083,5,1,all steps
+k-SLMmeans (Qwen3-0.6B),d_member_purity,within coverage,1059,3750,-0.00527937,-0.0213625,0.0108037,5,5,all steps
+k-SLMmeans (Qwen3-0.6B),d_member_purity,within coverage x generic x unsupported,1059,3750,-0.00783552,-0.0274968,0.0118257,5,9.4,all steps
+k-SLMmeans (Qwen3-0.6B),lost_share,raw,1059,3750,0.164305,0.0879748,0.240634,5,1,all steps
+k-SLMmeans (Qwen3-0.6B),lost_share,within coverage,1059,3750,0.0168428,-0.0246537,0.0583392,5,5,all steps
+k-SLMmeans (Qwen3-0.6B),lost_share,within coverage x generic x unsupported,1059,3750,0.0204467,-0.0290294,0.0699229,5,9.4,all steps
+k-SLMmeans (Qwen3-1.7B),d_member_purity,raw,354,3750,0.00598177,-0.00705262,0.0190161,5,1,all steps
+k-SLMmeans (Qwen3-1.7B),d_member_purity,within coverage,354,3750,-0.0192999,-0.0393264,0.000726548,5,4.6,all steps
+k-SLMmeans (Qwen3-1.7B),d_member_purity,within coverage x generic x unsupported,354,3750,-0.0205027,-0.0867298,0.0457245,5,6.2,all steps
+k-SLMmeans (Qwen3-1.7B),lost_share,raw,354,3750,0.309349,0.248622,0.370075,5,1,all steps
+k-SLMmeans (Qwen3-1.7B),lost_share,within coverage,354,3750,0.0425959,0.00128852,0.0839033,5,4.6,all steps
+k-SLMmeans (Qwen3-1.7B),lost_share,within coverage x generic x unsupported,354,3750,0.0445748,0.0216503,0.0674993,5,6.2,all steps
+k-SLMmeans (Qwen3-4B),d_member_purity,raw,1276,3750,0.0353946,0.00419474,0.0665944,5,1,all steps
+k-SLMmeans (Qwen3-4B),d_member_purity,within coverage,1276,3750,0.0352857,0.00223855,0.0683328,5,5,all steps
+k-SLMmeans (Qwen3-4B),d_member_purity,within coverage x generic x unsupported,1276,3750,0.01829,-0.0123054,0.0488854,5,8.8,all steps
+k-SLMmeans (Qwen3-4B),lost_share,raw,1276,3750,0.432166,0.399972,0.46436,5,1,all steps
+k-SLMmeans (Qwen3-4B),lost_share,within coverage,1276,3750,-0.0194577,-0.0263436,-0.0125717,5,5,all steps
+k-SLMmeans (Qwen3-4B),lost_share,within coverage x generic x unsupported,1276,3750,-0.0523266,-0.0786686,-0.0259845,5,8.8,all steps

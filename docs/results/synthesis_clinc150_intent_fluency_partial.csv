@@ -1,0 +1,33 @@
+method_id,property,outcome,controls,n_clusters,rho,lo,hi,n_seeds,scope
+k-NLPmeans,n_flu_flags,d_member_purity,none,750,0.0683155,-0.0397682,0.176399,5,step 1
+k-NLPmeans,n_flu_flags,lost_share,none,750,0.0798701,0.00432031,0.15542,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_member_purity,none,750,-0.00104648,-0.0663112,0.0642183,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,none,750,0.175213,0.0796652,0.27076,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_member_purity,none,750,-0.0120012,-0.11635,0.0923477,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,none,750,0.19916,0.12067,0.27765,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_member_purity,none,750,0.0887858,-0.0180775,0.195649,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,none,750,0.42085,0.356025,0.485675,5,step 1
+k-NLPmeans,n_flu_flags,d_member_purity,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",750,0.0632333,-0.0651593,0.191626,5,step 1
+k-NLPmeans,n_flu_flags,lost_share,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",750,0.0349891,-0.0580298,0.128008,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_member_purity,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",750,0.00716266,-0.106291,0.120616,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",750,0.0518667,-0.0425596,0.146293,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_member_purity,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",750,-0.02376,-0.17419,0.12667,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",750,0.114929,-0.00341876,0.233278,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_member_purity,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",750,-0.0123632,-0.0886984,0.063972,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",750,-0.0164315,-0.0680393,0.0351763,5,step 1
+k-NLPmeans,n_flu_flags,d_member_purity,none,3750,0.0401832,0.00823494,0.0721315,5,all steps
+k-NLPmeans,n_flu_flags,lost_share,none,3750,0.0566254,0.0183139,0.094937,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_member_purity,none,3750,0.00785409,-0.0361351,0.0518432,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,none,3750,0.169453,0.101107,0.2378,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_member_purity,none,3750,0.0251025,0.000236972,0.049968,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,none,3750,0.192895,0.159951,0.225839,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_member_purity,none,3750,0.0947265,0.0314831,0.15797,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,none,3750,0.418018,0.386327,0.44971,5,all steps
+k-NLPmeans,n_flu_flags,d_member_purity,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",3750,0.0438504,0.0082302,0.0794707,5,all steps
+k-NLPmeans,n_flu_flags,lost_share,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",3750,0.0190951,-0.0226785,0.0608687,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_member_purity,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",3750,-0.0227361,-0.0825736,0.0371015,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",3750,0.0640052,-0.00621112,0.134222,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_member_purity,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",3750,0.0179533,-0.0181336,0.0540401,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",3750,0.0976505,0.0577933,0.137508,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_member_purity,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",3750,-0.0107491,-0.0504849,0.0289866,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,"coverage_nearest,specificity_margin,unsupported_lemma_share,purity,log_n_members",3750,0.0141076,-0.0111578,0.039373,5,all steps

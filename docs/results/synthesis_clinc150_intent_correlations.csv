@@ -1,0 +1,769 @@
+method_id,property,outcome,controls,n_clusters,rho,lo,hi,n_seeds,scope
+k-NLPmeans,coverage_nearest,d_member_purity,none,750,-0.11481,-0.17996,-0.0496592,5,step 1
+k-NLPmeans,coverage_nearest,d_purity,none,750,-0.181172,-0.22678,-0.135563,5,step 1
+k-NLPmeans,coverage_nearest,lost_share,none,750,-0.664173,-0.731939,-0.596407,5,step 1
+k-NLPmeans,coverage_intents,d_member_purity,none,750,-0.154441,-0.284886,-0.0239953,5,step 1
+k-NLPmeans,coverage_intents,d_purity,none,750,-0.12443,-0.2845,0.0356387,5,step 1
+k-NLPmeans,coverage_intents,lost_share,none,750,-0.287392,-0.360528,-0.214256,5,step 1
+k-NLPmeans,specificity_margin,d_member_purity,none,750,0.0176921,-0.0500131,0.0853973,5,step 1
+k-NLPmeans,specificity_margin,d_purity,none,750,0.0198515,-0.036125,0.075828,5,step 1
+k-NLPmeans,specificity_margin,lost_share,none,750,-0.204181,-0.287875,-0.120488,5,step 1
+k-NLPmeans,max_summary_cos,d_member_purity,none,750,0.00717478,-0.0922277,0.106577,5,step 1
+k-NLPmeans,max_summary_cos,d_purity,none,750,0.0104808,-0.13233,0.153291,5,step 1
+k-NLPmeans,max_summary_cos,lost_share,none,750,0.0374431,-0.102552,0.177439,5,step 1
+k-NLPmeans,unsupported_lemma_share,d_member_purity,none,749,,,,1,step 1
+k-NLPmeans,unsupported_lemma_share,d_purity,none,749,,,,1,step 1
+k-NLPmeans,unsupported_lemma_share,lost_share,none,749,,,,1,step 1
+k-NLPmeans,flag_generic,d_member_purity,none,750,,,,2,step 1
+k-NLPmeans,flag_generic,d_purity,none,750,,,,2,step 1
+k-NLPmeans,flag_generic,lost_share,none,750,,,,2,step 1
+k-NLPmeans,flag_duplicate,d_member_purity,none,750,,,,0,step 1
+k-NLPmeans,flag_duplicate,d_purity,none,750,,,,0,step 1
+k-NLPmeans,flag_duplicate,lost_share,none,750,,,,0,step 1
+k-NLPmeans,flag_mentions,d_member_purity,none,750,,,,0,step 1
+k-NLPmeans,flag_mentions,d_purity,none,750,,,,0,step 1
+k-NLPmeans,flag_mentions,lost_share,none,750,,,,0,step 1
+k-NLPmeans,flag_unsupported,d_member_purity,none,750,,,,0,step 1
+k-NLPmeans,flag_unsupported,d_purity,none,750,,,,0,step 1
+k-NLPmeans,flag_unsupported,lost_share,none,750,,,,0,step 1
+k-NLPmeans,flag_low_coverage,d_member_purity,none,750,0.0746316,-0.0656688,0.214932,5,step 1
+k-NLPmeans,flag_low_coverage,d_purity,none,750,0.171252,0.0759842,0.266521,5,step 1
+k-NLPmeans,flag_low_coverage,lost_share,none,750,0.418449,0.330113,0.506784,5,step 1
+k-NLPmeans,n_flu_flags,d_member_purity,none,750,0.0683155,-0.0397682,0.176399,5,step 1
+k-NLPmeans,n_flu_flags,d_purity,none,750,-0.0543023,-0.175605,0.0670001,5,step 1
+k-NLPmeans,n_flu_flags,lost_share,none,750,0.0798701,0.00432031,0.15542,5,step 1
+k-NLPmeans,flag_not_fluent,d_member_purity,none,750,0.0683155,-0.0397682,0.176399,5,step 1
+k-NLPmeans,flag_not_fluent,d_purity,none,750,-0.0543023,-0.175605,0.0670001,5,step 1
+k-NLPmeans,flag_not_fluent,lost_share,none,750,0.0798701,0.00432031,0.15542,5,step 1
+k-NLPmeans,drift,d_member_purity,none,750,-0.0642827,-0.155196,0.0266303,5,step 1
+k-NLPmeans,drift,d_purity,none,750,-0.00644,-0.133674,0.120794,5,step 1
+k-NLPmeans,drift,lost_share,none,750,-0.140854,-0.255426,-0.0262811,5,step 1
+k-NLPmeans,cosine,d_member_purity,none,750,-0.0447904,-0.147345,0.0577646,5,step 1
+k-NLPmeans,cosine,d_purity,none,750,-0.119214,-0.209142,-0.0292874,5,step 1
+k-NLPmeans,cosine,lost_share,none,750,-0.338609,-0.421611,-0.255607,5,step 1
+k-NLPmeans,own_nearest,d_member_purity,none,750,,,,2,step 1
+k-NLPmeans,own_nearest,d_purity,none,750,,,,2,step 1
+k-NLPmeans,own_nearest,lost_share,none,750,,,,2,step 1
+k-NLPmeans,empty_replacement,d_member_purity,none,750,,,,0,step 1
+k-NLPmeans,empty_replacement,d_purity,none,750,,,,0,step 1
+k-NLPmeans,empty_replacement,lost_share,none,750,,,,0,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,d_member_purity,none,750,-0.11738,-0.161903,-0.0728571,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,d_purity,none,750,-0.123261,-0.169168,-0.0773549,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,lost_share,none,750,-0.782068,-0.829903,-0.734232,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_intents,d_member_purity,none,750,-0.126808,-0.16995,-0.0836664,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_intents,d_purity,none,750,-0.129713,-0.211395,-0.048031,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_intents,lost_share,none,750,-0.687423,-0.739024,-0.635822,5,step 1
+k-SLMmeans (Qwen3-0.6B),specificity_margin,d_member_purity,none,750,-0.0191753,-0.104405,0.0660548,5,step 1
+k-SLMmeans (Qwen3-0.6B),specificity_margin,d_purity,none,750,-0.0373838,-0.12161,0.0468421,5,step 1
+k-SLMmeans (Qwen3-0.6B),specificity_margin,lost_share,none,750,-0.631637,-0.690913,-0.572361,5,step 1
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,d_member_purity,none,750,-0.0361814,-0.124967,0.052604,5,step 1
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,d_purity,none,750,0.0231689,-0.115291,0.161629,5,step 1
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,lost_share,none,750,0.145655,0.0596191,0.231691,5,step 1
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,d_member_purity,none,748,0.0210706,-0.0556893,0.0978304,5,step 1
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,d_purity,none,748,0.147469,0.0900039,0.204933,5,step 1
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,lost_share,none,748,0.307446,0.182139,0.432753,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_generic,d_member_purity,none,750,0.0124505,-0.107046,0.131947,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_generic,d_purity,none,750,0.0528785,-0.0657233,0.17148,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_generic,lost_share,none,750,0.500252,0.45641,0.544094,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,d_member_purity,none,750,0.013099,-0.116301,0.142499,4,step 1
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,d_purity,none,750,0.0352618,-0.216516,0.287039,4,step 1
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,lost_share,none,750,0.236808,0.120267,0.353349,4,step 1
+k-SLMmeans (Qwen3-0.6B),flag_mentions,d_member_purity,none,750,0.0250297,-0.0129973,0.0630568,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_mentions,d_purity,none,750,0.105794,-0.0330536,0.244641,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_mentions,lost_share,none,750,0.362389,0.30901,0.415768,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,d_member_purity,none,750,0.0815331,-0.000353765,0.16342,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,d_purity,none,750,0.108229,0.0135528,0.202905,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,lost_share,none,750,0.300159,0.16722,0.433099,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,d_member_purity,none,750,0.0843158,0.0486343,0.119997,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,d_purity,none,750,0.07864,0.0598179,0.0974621,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,lost_share,none,750,0.666486,0.606986,0.725987,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_member_purity,none,750,-0.00104648,-0.0663112,0.0642183,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_purity,none,750,0.0201214,-0.0978708,0.138114,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,none,750,0.175213,0.0796652,0.27076,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_member_purity,none,750,-0.00673898,-0.0729077,0.0594298,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_purity,none,750,0.0154214,-0.108684,0.139527,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,lost_share,none,750,0.172491,0.0782429,0.266738,5,step 1
+k-SLMmeans (Qwen3-0.6B),drift,d_member_purity,none,750,0.0757314,-0.022079,0.173542,5,step 1
+k-SLMmeans (Qwen3-0.6B),drift,d_purity,none,750,0.03333,-0.0545846,0.121244,5,step 1
+k-SLMmeans (Qwen3-0.6B),drift,lost_share,none,750,0.429704,0.399174,0.460235,5,step 1
+k-SLMmeans (Qwen3-0.6B),cosine,d_member_purity,none,750,-0.115154,-0.185207,-0.0451009,5,step 1
+k-SLMmeans (Qwen3-0.6B),cosine,d_purity,none,750,-0.109532,-0.177912,-0.0411523,5,step 1
+k-SLMmeans (Qwen3-0.6B),cosine,lost_share,none,750,-0.634625,-0.685027,-0.584223,5,step 1
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,none,750,0.0459089,-0.0839743,0.175792,5,step 1
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,none,750,-0.0454599,-0.168943,0.0780235,5,step 1
+k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,none,750,-0.505571,-0.572856,-0.438285,5,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_member_purity,none,750,-0.220652,-0.3649,-0.0764053,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_purity,none,750,-0.223968,-0.342807,-0.105129,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,lost_share,none,750,-0.720061,-0.769873,-0.67025,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_intents,d_member_purity,none,750,-0.282958,-0.416567,-0.14935,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_intents,d_purity,none,750,-0.22067,-0.354641,-0.0866981,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_intents,lost_share,none,750,-0.616124,-0.688322,-0.543925,5,step 1
+k-SLMmeans (Qwen3-1.7B),specificity_margin,d_member_purity,none,750,-0.0817113,-0.189931,0.0265084,5,step 1
+k-SLMmeans (Qwen3-1.7B),specificity_margin,d_purity,none,750,-0.0862652,-0.218971,0.0464406,5,step 1
+k-SLMmeans (Qwen3-1.7B),specificity_margin,lost_share,none,750,-0.512255,-0.571538,-0.452973,5,step 1
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,d_member_purity,none,750,0.0577658,-0.0440163,0.159548,5,step 1
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,d_purity,none,750,0.0737419,0.0116,0.135884,5,step 1
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,lost_share,none,750,0.314583,0.270754,0.358411,5,step 1
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,d_member_purity,none,750,0.0756932,-0.0229797,0.174366,5,step 1
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,d_purity,none,750,0.103491,0.000179859,0.206802,5,step 1
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,lost_share,none,750,0.265824,0.154778,0.376869,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_generic,d_member_purity,none,750,0.128417,-0.0300069,0.286841,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_generic,d_purity,none,750,0.113579,-0.0387421,0.265899,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_generic,lost_share,none,750,0.422334,0.392398,0.452271,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,d_member_purity,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,d_purity,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,lost_share,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),flag_mentions,d_member_purity,none,750,0.0571697,0.0261909,0.0881485,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_mentions,d_purity,none,750,0.086699,-0.0350089,0.208407,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_mentions,lost_share,none,750,0.197314,0.131779,0.262849,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,d_member_purity,none,750,0.0374178,-0.0671664,0.142002,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,d_purity,none,750,0.0643132,-0.0371661,0.165793,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,lost_share,none,750,0.206595,0.0705029,0.342688,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,d_member_purity,none,750,0.198645,0.0272802,0.37001,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,d_purity,none,750,0.164401,0.0366084,0.292194,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,lost_share,none,750,0.588203,0.523827,0.65258,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_member_purity,none,750,-0.0120012,-0.11635,0.0923477,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_purity,none,750,0.0327972,-0.108258,0.173853,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,none,750,0.19916,0.12067,0.27765,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_member_purity,none,750,-0.0123507,-0.113303,0.0886018,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_purity,none,750,0.0321138,-0.111889,0.176116,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,lost_share,none,750,0.199477,0.121164,0.277791,5,step 1
+k-SLMmeans (Qwen3-1.7B),drift,d_member_purity,none,750,0.0284397,-0.0470987,0.103978,5,step 1
+k-SLMmeans (Qwen3-1.7B),drift,d_purity,none,750,0.056567,-0.0587692,0.171903,5,step 1
+k-SLMmeans (Qwen3-1.7B),drift,lost_share,none,750,0.0763265,-0.0172789,0.169932,5,step 1
+k-SLMmeans (Qwen3-1.7B),cosine,d_member_purity,none,750,-0.134381,-0.26508,-0.00368197,5,step 1
+k-SLMmeans (Qwen3-1.7B),cosine,d_purity,none,750,-0.17122,-0.34163,-0.000810209,5,step 1
+k-SLMmeans (Qwen3-1.7B),cosine,lost_share,none,750,-0.50898,-0.592617,-0.425344,5,step 1
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_member_purity,none,750,-0.130076,-0.288152,0.0279997,5,step 1
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_purity,none,750,-0.0910969,-0.211525,0.0293314,5,step 1
+k-SLMmeans (Qwen3-1.7B),own_nearest,lost_share,none,750,-0.454995,-0.514541,-0.395449,5,step 1
+k-SLMmeans (Qwen3-1.7B),empty_replacement,d_member_purity,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),empty_replacement,d_purity,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),empty_replacement,lost_share,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-4B),coverage_nearest,d_member_purity,none,750,-0.160181,-0.243539,-0.0768224,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_nearest,d_purity,none,750,-0.235079,-0.329111,-0.141047,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_nearest,lost_share,none,750,-0.827883,-0.879146,-0.776619,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_intents,d_member_purity,none,750,-0.192356,-0.263188,-0.121524,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_intents,d_purity,none,750,-0.22414,-0.305574,-0.142707,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_intents,lost_share,none,750,-0.757856,-0.788043,-0.727669,5,step 1
+k-SLMmeans (Qwen3-4B),specificity_margin,d_member_purity,none,750,-0.0523185,-0.0914761,-0.0131609,5,step 1
+k-SLMmeans (Qwen3-4B),specificity_margin,d_purity,none,750,-0.164854,-0.282658,-0.0470498,5,step 1
+k-SLMmeans (Qwen3-4B),specificity_margin,lost_share,none,750,-0.771517,-0.822408,-0.720625,5,step 1
+k-SLMmeans (Qwen3-4B),max_summary_cos,d_member_purity,none,750,0.0499547,-0.0337558,0.133665,5,step 1
+k-SLMmeans (Qwen3-4B),max_summary_cos,d_purity,none,750,0.158438,0.0362167,0.280659,5,step 1
+k-SLMmeans (Qwen3-4B),max_summary_cos,lost_share,none,750,0.633251,0.58457,0.681933,5,step 1
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,d_member_purity,none,750,0.126745,0.0359182,0.217572,5,step 1
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,d_purity,none,750,0.224652,0.143543,0.305761,5,step 1
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,lost_share,none,750,0.631825,0.604082,0.659568,5,step 1
+k-SLMmeans (Qwen3-4B),flag_generic,d_member_purity,none,750,0.136265,0.0588853,0.213644,5,step 1
+k-SLMmeans (Qwen3-4B),flag_generic,d_purity,none,750,0.206296,0.106014,0.306577,5,step 1
+k-SLMmeans (Qwen3-4B),flag_generic,lost_share,none,750,0.660587,0.611542,0.709633,5,step 1
+k-SLMmeans (Qwen3-4B),flag_duplicate,d_member_purity,none,750,0.156879,0.0890942,0.224663,5,step 1
+k-SLMmeans (Qwen3-4B),flag_duplicate,d_purity,none,750,0.272048,0.164965,0.379132,5,step 1
+k-SLMmeans (Qwen3-4B),flag_duplicate,lost_share,none,750,0.479755,0.411606,0.547903,5,step 1
+k-SLMmeans (Qwen3-4B),flag_mentions,d_member_purity,none,750,0.133578,0.028593,0.238563,5,step 1
+k-SLMmeans (Qwen3-4B),flag_mentions,d_purity,none,750,0.194512,0.0805411,0.308482,5,step 1
+k-SLMmeans (Qwen3-4B),flag_mentions,lost_share,none,750,0.58807,0.560616,0.615523,5,step 1
+k-SLMmeans (Qwen3-4B),flag_unsupported,d_member_purity,none,750,0.108872,-0.0175363,0.235281,5,step 1
+k-SLMmeans (Qwen3-4B),flag_unsupported,d_purity,none,750,0.202562,0.106402,0.298722,5,step 1
+k-SLMmeans (Qwen3-4B),flag_unsupported,lost_share,none,750,0.551056,0.482442,0.61967,5,step 1
+k-SLMmeans (Qwen3-4B),flag_low_coverage,d_member_purity,none,750,0.155144,0.063453,0.246835,5,step 1
+k-SLMmeans (Qwen3-4B),flag_low_coverage,d_purity,none,750,0.209609,0.117664,0.301553,5,step 1
+k-SLMmeans (Qwen3-4B),flag_low_coverage,lost_share,none,750,0.705701,0.663232,0.74817,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_member_purity,none,750,0.0887858,-0.0180775,0.195649,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_purity,none,750,0.157653,0.05076,0.264545,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,none,750,0.42085,0.356025,0.485675,5,step 1
+k-SLMmeans (Qwen3-4B),flag_not_fluent,d_member_purity,none,750,0.0902984,-0.00192031,0.182517,5,step 1
+k-SLMmeans (Qwen3-4B),flag_not_fluent,d_purity,none,750,0.166535,0.0562943,0.276777,5,step 1
+k-SLMmeans (Qwen3-4B),flag_not_fluent,lost_share,none,750,0.47778,0.405546,0.550014,5,step 1
+k-SLMmeans (Qwen3-4B),drift,d_member_purity,none,750,0.112011,0.0182593,0.205763,5,step 1
+k-SLMmeans (Qwen3-4B),drift,d_purity,none,750,0.162176,0.0855959,0.238755,5,step 1
+k-SLMmeans (Qwen3-4B),drift,lost_share,none,750,0.608716,0.536393,0.681038,5,step 1
+k-SLMmeans (Qwen3-4B),cosine,d_member_purity,none,750,-0.15382,-0.223271,-0.0843691,5,step 1
+k-SLMmeans (Qwen3-4B),cosine,d_purity,none,750,-0.238364,-0.311697,-0.165031,5,step 1
+k-SLMmeans (Qwen3-4B),cosine,lost_share,none,750,-0.753129,-0.811426,-0.694832,5,step 1
+k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,none,750,-0.0894762,-0.18726,0.00830779,5,step 1
+k-SLMmeans (Qwen3-4B),own_nearest,d_purity,none,750,-0.16814,-0.26173,-0.0745507,5,step 1
+k-SLMmeans (Qwen3-4B),own_nearest,lost_share,none,750,-0.701584,-0.781763,-0.621405,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,none,750,0.0967166,0.00442984,0.189003,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,none,750,0.257077,0.165186,0.348968,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,none,750,0.356564,0.289585,0.423543,5,step 1
+k-NLPmeans,coverage_nearest,d_member_purity,"purity,log_n_members",750,-0.0105655,-0.129287,0.108156,5,step 1
+k-NLPmeans,coverage_nearest,d_purity,"purity,log_n_members",750,-0.131231,-0.211035,-0.0514277,5,step 1
+k-NLPmeans,coverage_nearest,lost_share,"purity,log_n_members",750,-0.593314,-0.666693,-0.519935,5,step 1
+k-NLPmeans,coverage_intents,d_member_purity,"purity,log_n_members",750,-0.120244,-0.246769,0.00628191,5,step 1
+k-NLPmeans,coverage_intents,d_purity,"purity,log_n_members",750,-0.100674,-0.257207,0.0558599,5,step 1
+k-NLPmeans,coverage_intents,lost_share,"purity,log_n_members",750,-0.23794,-0.296877,-0.179002,5,step 1
+k-NLPmeans,specificity_margin,d_member_purity,"purity,log_n_members",750,0.0497568,-0.0238511,0.123365,5,step 1
+k-NLPmeans,specificity_margin,d_purity,"purity,log_n_members",750,0.0483233,-0.0251348,0.121781,5,step 1
+k-NLPmeans,specificity_margin,lost_share,"purity,log_n_members",750,-0.167123,-0.245773,-0.0884732,5,step 1
+k-NLPmeans,max_summary_cos,d_member_purity,"purity,log_n_members",750,-0.00508271,-0.0870405,0.0768751,5,step 1
+k-NLPmeans,max_summary_cos,d_purity,"purity,log_n_members",750,0.000132486,-0.141614,0.141879,5,step 1
+k-NLPmeans,max_summary_cos,lost_share,"purity,log_n_members",750,0.0105555,-0.130953,0.152064,5,step 1
+k-NLPmeans,unsupported_lemma_share,d_member_purity,"purity,log_n_members",749,,,,1,step 1
+k-NLPmeans,unsupported_lemma_share,d_purity,"purity,log_n_members",749,,,,1,step 1
+k-NLPmeans,unsupported_lemma_share,lost_share,"purity,log_n_members",749,,,,1,step 1
+k-NLPmeans,flag_generic,d_member_purity,"purity,log_n_members",750,,,,2,step 1
+k-NLPmeans,flag_generic,d_purity,"purity,log_n_members",750,,,,2,step 1
+k-NLPmeans,flag_generic,lost_share,"purity,log_n_members",750,,,,2,step 1
+k-NLPmeans,flag_duplicate,d_member_purity,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,flag_duplicate,d_purity,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,flag_duplicate,lost_share,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,flag_mentions,d_member_purity,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,flag_mentions,d_purity,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,flag_mentions,lost_share,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,flag_unsupported,d_member_purity,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,flag_unsupported,d_purity,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,flag_unsupported,lost_share,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,flag_low_coverage,d_member_purity,"purity,log_n_members",750,0.0221414,-0.142294,0.186577,5,step 1
+k-NLPmeans,flag_low_coverage,d_purity,"purity,log_n_members",750,0.138837,0.0531099,0.224565,5,step 1
+k-NLPmeans,flag_low_coverage,lost_share,"purity,log_n_members",750,0.358912,0.285551,0.432272,5,step 1
+k-NLPmeans,n_flu_flags,d_member_purity,"purity,log_n_members",750,0.0663302,-0.0588947,0.191555,5,step 1
+k-NLPmeans,n_flu_flags,d_purity,"purity,log_n_members",750,-0.0643628,-0.186267,0.0575415,5,step 1
+k-NLPmeans,n_flu_flags,lost_share,"purity,log_n_members",750,0.0712512,-0.0210801,0.163582,5,step 1
+k-NLPmeans,flag_not_fluent,d_member_purity,"purity,log_n_members",750,0.0663302,-0.0588947,0.191555,5,step 1
+k-NLPmeans,flag_not_fluent,d_purity,"purity,log_n_members",750,-0.0643628,-0.186267,0.0575415,5,step 1
+k-NLPmeans,flag_not_fluent,lost_share,"purity,log_n_members",750,0.0712512,-0.0210801,0.163582,5,step 1
+k-NLPmeans,drift,d_member_purity,"purity,log_n_members",750,0.0106398,-0.0852,0.10648,5,step 1
+k-NLPmeans,drift,d_purity,"purity,log_n_members",750,0.0315666,-0.0872572,0.15039,5,step 1
+k-NLPmeans,drift,lost_share,"purity,log_n_members",750,-0.016342,-0.147803,0.115119,5,step 1
+k-NLPmeans,cosine,d_member_purity,"purity,log_n_members",750,-0.00939788,-0.108621,0.0898249,5,step 1
+k-NLPmeans,cosine,d_purity,"purity,log_n_members",750,-0.0972294,-0.184812,-0.00964725,5,step 1
+k-NLPmeans,cosine,lost_share,"purity,log_n_members",750,-0.312842,-0.39134,-0.234344,5,step 1
+k-NLPmeans,own_nearest,d_member_purity,"purity,log_n_members",750,,,,2,step 1
+k-NLPmeans,own_nearest,d_purity,"purity,log_n_members",750,,,,2,step 1
+k-NLPmeans,own_nearest,lost_share,"purity,log_n_members",750,,,,2,step 1
+k-NLPmeans,empty_replacement,d_member_purity,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,empty_replacement,d_purity,"purity,log_n_members",750,,,,0,step 1
+k-NLPmeans,empty_replacement,lost_share,"purity,log_n_members",750,,,,0,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,d_member_purity,"purity,log_n_members",750,0.0772833,-0.0158043,0.170371,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,d_purity,"purity,log_n_members",750,0.0306773,-0.00395299,0.0653075,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,lost_share,"purity,log_n_members",750,-0.728251,-0.782468,-0.674035,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_intents,d_member_purity,"purity,log_n_members",750,0.0349403,-0.0383441,0.108225,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_intents,d_purity,"purity,log_n_members",750,0.00417002,-0.103178,0.111518,5,step 1
+k-SLMmeans (Qwen3-0.6B),coverage_intents,lost_share,"purity,log_n_members",750,-0.61316,-0.667159,-0.55916,5,step 1
+k-SLMmeans (Qwen3-0.6B),specificity_margin,d_member_purity,"purity,log_n_members",750,0.126915,0.000656505,0.253173,5,step 1
+k-SLMmeans (Qwen3-0.6B),specificity_margin,d_purity,"purity,log_n_members",750,0.0717826,-0.0144702,0.158035,5,step 1
+k-SLMmeans (Qwen3-0.6B),specificity_margin,lost_share,"purity,log_n_members",750,-0.582309,-0.644996,-0.519621,5,step 1
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,d_member_purity,"purity,log_n_members",750,-0.0908751,-0.187888,0.00613784,5,step 1
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,d_purity,"purity,log_n_members",750,-0.000900649,-0.107213,0.105412,5,step 1
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,lost_share,"purity,log_n_members",750,0.126814,0.0265708,0.227057,5,step 1
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,d_member_purity,"purity,log_n_members",748,-0.0638144,-0.148284,0.0206552,5,step 1
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,d_purity,"purity,log_n_members",748,0.0839269,0.00556928,0.162284,5,step 1
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,lost_share,"purity,log_n_members",748,0.235211,0.110643,0.359779,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_generic,d_member_purity,"purity,log_n_members",750,-0.105251,-0.224479,0.0139769,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_generic,d_purity,"purity,log_n_members",750,-0.033629,-0.114153,0.0468953,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_generic,lost_share,"purity,log_n_members",750,0.43852,0.407332,0.469708,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,d_member_purity,"purity,log_n_members",750,-0.0269412,-0.111058,0.0571759,4,step 1
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,d_purity,"purity,log_n_members",750,0.00158353,-0.200657,0.203824,4,step 1
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,lost_share,"purity,log_n_members",750,0.211712,0.0727916,0.350633,4,step 1
+k-SLMmeans (Qwen3-0.6B),flag_mentions,d_member_purity,"purity,log_n_members",750,-0.0449091,-0.118034,0.0282159,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_mentions,d_purity,"purity,log_n_members",750,0.0596103,-0.0545418,0.173762,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_mentions,lost_share,"purity,log_n_members",750,0.319564,0.269355,0.369773,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,d_member_purity,"purity,log_n_members",750,0.0166679,-0.0881164,0.121452,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,d_purity,"purity,log_n_members",750,0.0537227,-0.0312077,0.138653,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,lost_share,"purity,log_n_members",750,0.241973,0.120543,0.363402,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,d_member_purity,"purity,log_n_members",750,-0.067444,-0.139661,0.00477313,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,d_purity,"purity,log_n_members",750,-0.0448393,-0.0993648,0.00968616,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,lost_share,"purity,log_n_members",750,0.604623,0.531961,0.677284,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_member_purity,"purity,log_n_members",750,-0.0173835,-0.0878384,0.0530714,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_purity,"purity,log_n_members",750,0.00830619,-0.113534,0.130146,5,step 1
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,"purity,log_n_members",750,0.168683,0.0747261,0.26264,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_member_purity,"purity,log_n_members",750,-0.0247001,-0.0918695,0.0424693,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_purity,"purity,log_n_members",750,0.00306638,-0.123012,0.129145,5,step 1
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,lost_share,"purity,log_n_members",750,0.16533,0.0719872,0.258673,5,step 1
+k-SLMmeans (Qwen3-0.6B),drift,d_member_purity,"purity,log_n_members",750,0.017092,-0.0972531,0.131437,5,step 1
+k-SLMmeans (Qwen3-0.6B),drift,d_purity,"purity,log_n_members",750,-0.0217431,-0.122018,0.0785321,5,step 1
+k-SLMmeans (Qwen3-0.6B),drift,lost_share,"purity,log_n_members",750,0.397472,0.353645,0.441299,5,step 1
+k-SLMmeans (Qwen3-0.6B),cosine,d_member_purity,"purity,log_n_members",750,0.0189089,-0.0776243,0.115442,5,step 1
+k-SLMmeans (Qwen3-0.6B),cosine,d_purity,"purity,log_n_members",750,0.00447547,-0.0678442,0.0767951,5,step 1
+k-SLMmeans (Qwen3-0.6B),cosine,lost_share,"purity,log_n_members",750,-0.564074,-0.628135,-0.500013,5,step 1
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,"purity,log_n_members",750,0.151729,0.0351503,0.268307,5,step 1
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,"purity,log_n_members",750,0.0304647,-0.0660721,0.127001,5,step 1
+k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,"purity,log_n_members",750,-0.458874,-0.504818,-0.41293,5,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_member_purity,"purity,log_n_members",750,-0.023388,-0.167155,0.120379,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_purity,"purity,log_n_members",750,-0.0765552,-0.219046,0.0659351,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,lost_share,"purity,log_n_members",750,-0.636743,-0.696666,-0.576819,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_intents,d_member_purity,"purity,log_n_members",750,-0.129501,-0.25393,-0.00507177,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_intents,d_purity,"purity,log_n_members",750,-0.0942178,-0.22767,0.0392346,5,step 1
+k-SLMmeans (Qwen3-1.7B),coverage_intents,lost_share,"purity,log_n_members",750,-0.50982,-0.580613,-0.439026,5,step 1
+k-SLMmeans (Qwen3-1.7B),specificity_margin,d_member_purity,"purity,log_n_members",750,0.0411561,-0.0584232,0.140736,5,step 1
+k-SLMmeans (Qwen3-1.7B),specificity_margin,d_purity,"purity,log_n_members",750,0.011891,-0.132079,0.155861,5,step 1
+k-SLMmeans (Qwen3-1.7B),specificity_margin,lost_share,"purity,log_n_members",750,-0.448798,-0.489699,-0.407897,5,step 1
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,d_member_purity,"purity,log_n_members",750,-0.0606068,-0.150191,0.0289777,5,step 1
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,d_purity,"purity,log_n_members",750,-0.0169387,-0.0713587,0.0374814,5,step 1
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,lost_share,"purity,log_n_members",750,0.216377,0.195702,0.237052,5,step 1
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,d_member_purity,"purity,log_n_members",750,-0.0184199,-0.121058,0.0842186,5,step 1
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,d_purity,"purity,log_n_members",750,0.0417102,-0.0543225,0.137743,5,step 1
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,lost_share,"purity,log_n_members",750,0.167382,0.0671868,0.267577,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_generic,d_member_purity,"purity,log_n_members",750,0.0571413,-0.0822233,0.196506,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_generic,d_purity,"purity,log_n_members",750,0.0564064,-0.0865845,0.199397,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_generic,lost_share,"purity,log_n_members",750,0.378713,0.334787,0.42264,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,d_member_purity,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,d_purity,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,lost_share,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),flag_mentions,d_member_purity,"purity,log_n_members",750,0.026401,-0.032941,0.0857429,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_mentions,d_purity,"purity,log_n_members",750,0.0660716,-0.0697107,0.201854,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_mentions,lost_share,"purity,log_n_members",750,0.179536,0.0766961,0.282375,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,d_member_purity,"purity,log_n_members",750,-0.00398815,-0.104273,0.0962962,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,d_purity,"purity,log_n_members",750,0.0418665,-0.0493606,0.133094,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,lost_share,"purity,log_n_members",750,0.170414,0.0177499,0.323077,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,d_member_purity,"purity,log_n_members",750,0.0476497,-0.116679,0.211979,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,d_purity,"purity,log_n_members",750,0.0417327,-0.0956424,0.179108,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,lost_share,"purity,log_n_members",750,0.496585,0.432602,0.560567,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_member_purity,"purity,log_n_members",750,-0.0298912,-0.154479,0.0946968,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_purity,"purity,log_n_members",750,0.0225641,-0.124964,0.170092,5,step 1
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,"purity,log_n_members",750,0.201983,0.0908642,0.313101,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_member_purity,"purity,log_n_members",750,-0.0292736,-0.150185,0.0916378,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_purity,"purity,log_n_members",750,0.0226287,-0.12652,0.171778,5,step 1
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,lost_share,"purity,log_n_members",750,0.203382,0.0940833,0.312681,5,step 1
+k-SLMmeans (Qwen3-1.7B),drift,d_member_purity,"purity,log_n_members",750,0.0654152,-0.0161052,0.146936,5,step 1
+k-SLMmeans (Qwen3-1.7B),drift,d_purity,"purity,log_n_members",750,0.0820054,-0.0459205,0.209931,5,step 1
+k-SLMmeans (Qwen3-1.7B),drift,lost_share,"purity,log_n_members",750,0.134949,0.0291039,0.240795,5,step 1
+k-SLMmeans (Qwen3-1.7B),cosine,d_member_purity,"purity,log_n_members",750,-0.00992182,-0.135093,0.115249,5,step 1
+k-SLMmeans (Qwen3-1.7B),cosine,d_purity,"purity,log_n_members",750,-0.0787799,-0.266277,0.108717,5,step 1
+k-SLMmeans (Qwen3-1.7B),cosine,lost_share,"purity,log_n_members",750,-0.431039,-0.515659,-0.34642,5,step 1
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_member_purity,"purity,log_n_members",750,-0.0464584,-0.198976,0.106059,5,step 1
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_purity,"purity,log_n_members",750,-0.0259545,-0.150132,0.0982235,5,step 1
+k-SLMmeans (Qwen3-1.7B),own_nearest,lost_share,"purity,log_n_members",750,-0.401968,-0.469642,-0.334294,5,step 1
+k-SLMmeans (Qwen3-1.7B),empty_replacement,d_member_purity,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),empty_replacement,d_purity,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-1.7B),empty_replacement,lost_share,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-4B),coverage_nearest,d_member_purity,"purity,log_n_members",750,-0.0164614,-0.117924,0.0850014,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_nearest,d_purity,"purity,log_n_members",750,-0.0679395,-0.140883,0.00500366,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_nearest,lost_share,"purity,log_n_members",750,-0.800363,-0.846429,-0.754297,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_intents,d_member_purity,"purity,log_n_members",750,-0.059719,-0.157104,0.0376664,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_intents,d_purity,"purity,log_n_members",750,-0.0610647,-0.14144,0.019311,5,step 1
+k-SLMmeans (Qwen3-4B),coverage_intents,lost_share,"purity,log_n_members",750,-0.712393,-0.735633,-0.689153,5,step 1
+k-SLMmeans (Qwen3-4B),specificity_margin,d_member_purity,"purity,log_n_members",750,0.0611216,0.0060201,0.116223,5,step 1
+k-SLMmeans (Qwen3-4B),specificity_margin,d_purity,"purity,log_n_members",750,-0.0326668,-0.145144,0.0798103,5,step 1
+k-SLMmeans (Qwen3-4B),specificity_margin,lost_share,"purity,log_n_members",750,-0.740025,-0.776755,-0.703294,5,step 1
+k-SLMmeans (Qwen3-4B),max_summary_cos,d_member_purity,"purity,log_n_members",750,-0.0780278,-0.175708,0.0196528,5,step 1
+k-SLMmeans (Qwen3-4B),max_summary_cos,d_purity,"purity,log_n_members",750,0.0160939,-0.113292,0.14548,5,step 1
+k-SLMmeans (Qwen3-4B),max_summary_cos,lost_share,"purity,log_n_members",750,0.573302,0.52258,0.624025,5,step 1
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,d_member_purity,"purity,log_n_members",750,0.0282186,-0.0674606,0.123898,5,step 1
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,d_purity,"purity,log_n_members",750,0.081478,0.012674,0.150282,5,step 1
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,lost_share,"purity,log_n_members",750,0.565477,0.539859,0.591095,5,step 1
+k-SLMmeans (Qwen3-4B),flag_generic,d_member_purity,"purity,log_n_members",750,0.0228049,-0.0802228,0.125833,5,step 1
+k-SLMmeans (Qwen3-4B),flag_generic,d_purity,"purity,log_n_members",750,0.0712219,-0.0332043,0.175648,5,step 1
+k-SLMmeans (Qwen3-4B),flag_generic,lost_share,"purity,log_n_members",750,0.608564,0.560702,0.656426,5,step 1
+k-SLMmeans (Qwen3-4B),flag_duplicate,d_member_purity,"purity,log_n_members",750,0.0846218,0.0250506,0.144193,5,step 1
+k-SLMmeans (Qwen3-4B),flag_duplicate,d_purity,"purity,log_n_members",750,0.168319,0.0642104,0.272427,5,step 1
+k-SLMmeans (Qwen3-4B),flag_duplicate,lost_share,"purity,log_n_members",750,0.409252,0.340081,0.478422,5,step 1
+k-SLMmeans (Qwen3-4B),flag_mentions,d_member_purity,"purity,log_n_members",750,0.0257602,-0.113412,0.164933,5,step 1
+k-SLMmeans (Qwen3-4B),flag_mentions,d_purity,"purity,log_n_members",750,0.0637857,-0.0678384,0.19541,5,step 1
+k-SLMmeans (Qwen3-4B),flag_mentions,lost_share,"purity,log_n_members",750,0.525022,0.478486,0.571557,5,step 1
+k-SLMmeans (Qwen3-4B),flag_unsupported,d_member_purity,"purity,log_n_members",750,0.0193309,-0.119519,0.158181,5,step 1
+k-SLMmeans (Qwen3-4B),flag_unsupported,d_purity,"purity,log_n_members",750,0.0780115,-0.0264421,0.182465,5,step 1
+k-SLMmeans (Qwen3-4B),flag_unsupported,lost_share,"purity,log_n_members",750,0.486364,0.425871,0.546856,5,step 1
+k-SLMmeans (Qwen3-4B),flag_low_coverage,d_member_purity,"purity,log_n_members",750,0.0215697,-0.0721558,0.115295,5,step 1
+k-SLMmeans (Qwen3-4B),flag_low_coverage,d_purity,"purity,log_n_members",750,0.0599883,-0.0206614,0.140638,5,step 1
+k-SLMmeans (Qwen3-4B),flag_low_coverage,lost_share,"purity,log_n_members",750,0.658593,0.631458,0.685728,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_member_purity,"purity,log_n_members",750,0.00567985,-0.107113,0.118473,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_purity,"purity,log_n_members",750,0.0602607,-0.0481284,0.16865,5,step 1
+k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,"purity,log_n_members",750,0.359962,0.298566,0.421358,5,step 1
+k-SLMmeans (Qwen3-4B),flag_not_fluent,d_member_purity,"purity,log_n_members",750,0.0146148,-0.076407,0.105637,5,step 1
+k-SLMmeans (Qwen3-4B),flag_not_fluent,d_purity,"purity,log_n_members",750,0.0719799,-0.0311599,0.17512,5,step 1
+k-SLMmeans (Qwen3-4B),flag_not_fluent,lost_share,"purity,log_n_members",750,0.425296,0.364635,0.485956,5,step 1
+k-SLMmeans (Qwen3-4B),drift,d_member_purity,"purity,log_n_members",750,0.0739371,-0.02203,0.169904,5,step 1
+k-SLMmeans (Qwen3-4B),drift,d_purity,"purity,log_n_members",750,0.0941767,0.0399219,0.148431,5,step 1
+k-SLMmeans (Qwen3-4B),drift,lost_share,"purity,log_n_members",750,0.594501,0.514452,0.67455,5,step 1
+k-SLMmeans (Qwen3-4B),cosine,d_member_purity,"purity,log_n_members",750,-0.0508976,-0.122447,0.0206518,5,step 1
+k-SLMmeans (Qwen3-4B),cosine,d_purity,"purity,log_n_members",750,-0.106732,-0.163679,-0.0497841,5,step 1
+k-SLMmeans (Qwen3-4B),cosine,lost_share,"purity,log_n_members",750,-0.711141,-0.767895,-0.654387,5,step 1
+k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,"purity,log_n_members",750,-0.00309459,-0.103883,0.0976942,5,step 1
+k-SLMmeans (Qwen3-4B),own_nearest,d_purity,"purity,log_n_members",750,-0.0560721,-0.138169,0.0260249,5,step 1
+k-SLMmeans (Qwen3-4B),own_nearest,lost_share,"purity,log_n_members",750,-0.6666,-0.742424,-0.590776,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,"purity,log_n_members",750,0.0465269,-0.0598661,0.15292,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,"purity,log_n_members",750,0.179375,0.0896322,0.269118,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,"purity,log_n_members",750,0.292156,0.218792,0.365519,5,step 1
+k-NLPmeans,coverage_nearest,d_member_purity,none,3750,-0.0496192,-0.105454,0.00621515,5,all steps
+k-NLPmeans,coverage_nearest,d_purity,none,3750,-0.113127,-0.145251,-0.0810025,5,all steps
+k-NLPmeans,coverage_nearest,lost_share,none,3750,-0.531052,-0.585,-0.477103,5,all steps
+k-NLPmeans,coverage_intents,d_member_purity,none,3750,-0.0836214,-0.142821,-0.0244221,5,all steps
+k-NLPmeans,coverage_intents,d_purity,none,3750,-0.0924583,-0.155514,-0.0294029,5,all steps
+k-NLPmeans,coverage_intents,lost_share,none,3750,-0.212358,-0.274675,-0.150042,5,all steps
+k-NLPmeans,specificity_margin,d_member_purity,none,3750,0.0161106,-0.0421228,0.074344,5,all steps
+k-NLPmeans,specificity_margin,d_purity,none,3750,0.00700488,-0.0140599,0.0280696,5,all steps
+k-NLPmeans,specificity_margin,lost_share,none,3750,-0.134484,-0.179187,-0.0897806,5,all steps
+k-NLPmeans,max_summary_cos,d_member_purity,none,3750,0.00885665,-0.0447942,0.0625075,5,all steps
+k-NLPmeans,max_summary_cos,d_purity,none,3750,0.00280108,-0.0260453,0.0316474,5,all steps
+k-NLPmeans,max_summary_cos,lost_share,none,3750,0.0280166,-0.053811,0.109844,5,all steps
+k-NLPmeans,unsupported_lemma_share,d_member_purity,none,3748,,,,1,all steps
+k-NLPmeans,unsupported_lemma_share,d_purity,none,3748,,,,1,all steps
+k-NLPmeans,unsupported_lemma_share,lost_share,none,3748,,,,1,all steps
+k-NLPmeans,flag_generic,d_member_purity,none,3750,0.0747642,0.0264753,0.123053,3,all steps
+k-NLPmeans,flag_generic,d_purity,none,3750,0.0633811,-0.0617441,0.188506,3,all steps
+k-NLPmeans,flag_generic,lost_share,none,3750,0.063725,-0.0523572,0.179807,3,all steps
+k-NLPmeans,flag_duplicate,d_member_purity,none,3750,,,,0,all steps
+k-NLPmeans,flag_duplicate,d_purity,none,3750,,,,0,all steps
+k-NLPmeans,flag_duplicate,lost_share,none,3750,,,,0,all steps
+k-NLPmeans,flag_mentions,d_member_purity,none,3750,,,,0,all steps
+k-NLPmeans,flag_mentions,d_purity,none,3750,,,,0,all steps
+k-NLPmeans,flag_mentions,lost_share,none,3750,,,,0,all steps
+k-NLPmeans,flag_unsupported,d_member_purity,none,3750,,,,1,all steps
+k-NLPmeans,flag_unsupported,d_purity,none,3750,,,,1,all steps
+k-NLPmeans,flag_unsupported,lost_share,none,3750,,,,1,all steps
+k-NLPmeans,flag_low_coverage,d_member_purity,none,3750,0.0241987,-0.0376827,0.08608,5,all steps
+k-NLPmeans,flag_low_coverage,d_purity,none,3750,0.0659866,0.0368373,0.0951359,5,all steps
+k-NLPmeans,flag_low_coverage,lost_share,none,3750,0.289322,0.245417,0.333226,5,all steps
+k-NLPmeans,n_flu_flags,d_member_purity,none,3750,0.0401832,0.00823494,0.0721315,5,all steps
+k-NLPmeans,n_flu_flags,d_purity,none,3750,0.00190956,-0.0398966,0.0437158,5,all steps
+k-NLPmeans,n_flu_flags,lost_share,none,3750,0.0566254,0.0183139,0.094937,5,all steps
+k-NLPmeans,flag_not_fluent,d_member_purity,none,3750,0.0401832,0.00823494,0.0721315,5,all steps
+k-NLPmeans,flag_not_fluent,d_purity,none,3750,0.00190956,-0.0398966,0.0437158,5,all steps
+k-NLPmeans,flag_not_fluent,lost_share,none,3750,0.0566254,0.0183139,0.094937,5,all steps
+k-NLPmeans,drift,d_member_purity,none,3750,-0.0447245,-0.0698167,-0.0196323,5,all steps
+k-NLPmeans,drift,d_purity,none,3750,0.00193116,-0.0319339,0.0357962,5,all steps
+k-NLPmeans,drift,lost_share,none,3750,-0.20408,-0.274949,-0.133211,5,all steps
+k-NLPmeans,cosine,d_member_purity,none,3750,-0.0121039,-0.0693387,0.0451309,5,all steps
+k-NLPmeans,cosine,d_purity,none,3750,-0.0736758,-0.103179,-0.0441727,5,all steps
+k-NLPmeans,cosine,lost_share,none,3750,-0.232036,-0.289194,-0.174879,5,all steps
+k-NLPmeans,own_nearest,d_member_purity,none,3750,-0.0614276,-0.091735,-0.0311201,3,all steps
+k-NLPmeans,own_nearest,d_purity,none,3750,-0.0674866,-0.155621,0.0206476,3,all steps
+k-NLPmeans,own_nearest,lost_share,none,3750,-0.087981,-0.142616,-0.0333459,3,all steps
+k-NLPmeans,empty_replacement,d_member_purity,none,3750,,,,0,all steps
+k-NLPmeans,empty_replacement,d_purity,none,3750,,,,0,all steps
+k-NLPmeans,empty_replacement,lost_share,none,3750,,,,0,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,d_member_purity,none,3750,-0.106703,-0.149451,-0.0639555,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,d_purity,none,3750,-0.111653,-0.153531,-0.0697753,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,lost_share,none,3750,-0.725297,-0.740585,-0.71001,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_intents,d_member_purity,none,3750,-0.137639,-0.172051,-0.103227,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_intents,d_purity,none,3750,-0.138392,-0.175293,-0.101491,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_intents,lost_share,none,3750,-0.613382,-0.647387,-0.579377,5,all steps
+k-SLMmeans (Qwen3-0.6B),specificity_margin,d_member_purity,none,3750,-0.0334094,-0.0676198,0.000801097,5,all steps
+k-SLMmeans (Qwen3-0.6B),specificity_margin,d_purity,none,3750,-0.0470088,-0.0854373,-0.00858039,5,all steps
+k-SLMmeans (Qwen3-0.6B),specificity_margin,lost_share,none,3750,-0.584889,-0.602662,-0.567117,5,all steps
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,d_member_purity,none,3750,-0.00470876,-0.052322,0.0429045,5,all steps
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,d_purity,none,3750,0.0455752,0.0197275,0.0714229,5,all steps
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,lost_share,none,3750,0.162103,0.141371,0.182836,5,all steps
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,d_member_purity,none,3745,0.0201796,-0.0128584,0.0532176,5,all steps
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,d_purity,none,3745,0.0752701,0.0642819,0.0862583,5,all steps
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,lost_share,none,3745,0.258312,0.225175,0.291448,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_generic,d_member_purity,none,3750,0.0449976,0.0116814,0.0783138,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_generic,d_purity,none,3750,0.0884764,0.0811883,0.0957644,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_generic,lost_share,none,3750,0.458022,0.422004,0.494041,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,d_member_purity,none,3750,0.0136932,-0.0497414,0.0771278,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,d_purity,none,3750,0.0821742,-0.0350987,0.199447,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,lost_share,none,3750,0.161563,0.064317,0.258809,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_mentions,d_member_purity,none,3750,0.0331545,-0.010704,0.077013,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_mentions,d_purity,none,3750,0.0996529,0.0686584,0.130647,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_mentions,lost_share,none,3750,0.310943,0.281573,0.340314,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,d_member_purity,none,3750,0.0324493,-0.014556,0.0794546,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,d_purity,none,3750,0.07474,0.0307999,0.11868,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,lost_share,none,3750,0.270262,0.223795,0.316729,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,d_member_purity,none,3750,0.0836088,0.0451915,0.122026,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,d_purity,none,3750,0.0871259,0.0432216,0.13103,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,lost_share,none,3750,0.605584,0.600427,0.610741,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_member_purity,none,3750,0.00785409,-0.0361351,0.0518432,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_purity,none,3750,0.015282,-0.0275012,0.0580651,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,none,3750,0.169453,0.101107,0.2378,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_member_purity,none,3750,0.00653893,-0.0361968,0.0492747,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_purity,none,3750,0.0102804,-0.0302743,0.0508351,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,lost_share,none,3750,0.166619,0.0965928,0.236644,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,d_member_purity,none,3750,0.0643106,0.042444,0.0861773,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,d_purity,none,3750,0.0452054,0.0276898,0.0627209,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,lost_share,none,3750,0.337798,0.300844,0.374752,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,d_member_purity,none,3750,-0.0930112,-0.128184,-0.0578387,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,d_purity,none,3750,-0.0920126,-0.127529,-0.0564961,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,lost_share,none,3750,-0.57167,-0.588352,-0.554988,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,none,3750,-0.0111368,-0.0443242,0.0220505,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,none,3750,-0.079763,-0.093256,-0.0662701,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,none,3750,-0.451389,-0.488904,-0.413875,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,none,3750,-0.0400543,-0.0893556,0.00924699,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,none,3750,0.0658681,0.0209278,0.110809,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,none,3750,0.101951,0.059872,0.144031,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_member_purity,none,3750,-0.120451,-0.17523,-0.0656724,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_purity,none,3750,-0.148313,-0.177558,-0.119069,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,lost_share,none,3750,-0.676246,-0.703552,-0.64894,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_intents,d_member_purity,none,3748,-0.193077,-0.242708,-0.143446,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_intents,d_purity,none,3748,-0.160402,-0.197523,-0.123281,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_intents,lost_share,none,3748,-0.543033,-0.581754,-0.504313,5,all steps
+k-SLMmeans (Qwen3-1.7B),specificity_margin,d_member_purity,none,3750,-0.0641049,-0.106499,-0.0217111,5,all steps
+k-SLMmeans (Qwen3-1.7B),specificity_margin,d_purity,none,3750,-0.046016,-0.0923787,0.000346752,5,all steps
+k-SLMmeans (Qwen3-1.7B),specificity_margin,lost_share,none,3750,-0.475485,-0.516845,-0.434125,5,all steps
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,d_member_purity,none,3750,0.0411936,-0.0187936,0.101181,5,all steps
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,d_purity,none,3750,0.0540681,0.0147513,0.0933849,5,all steps
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,lost_share,none,3750,0.265335,0.216159,0.314512,5,all steps
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,d_member_purity,none,3750,0.0544169,0.0201244,0.0887095,5,all steps
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,d_purity,none,3750,0.0698217,0.0392001,0.100443,5,all steps
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,lost_share,none,3750,0.27721,0.202005,0.352415,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_generic,d_member_purity,none,3750,0.101693,0.0385256,0.164861,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_generic,d_purity,none,3750,0.0787893,0.0443063,0.113272,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_generic,lost_share,none,3750,0.397502,0.334603,0.460402,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,d_member_purity,none,3750,0.0255257,-0.0293588,0.0804102,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,d_purity,none,3750,0.042405,-0.0123387,0.0971486,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,lost_share,none,3750,0.123569,0.0771373,0.17,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_mentions,d_member_purity,none,3750,0.0481052,0.023946,0.0722644,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_mentions,d_purity,none,3750,0.055649,0.0362897,0.0750084,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_mentions,lost_share,none,3750,0.190963,0.151615,0.230312,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,d_member_purity,none,3750,0.0425344,0.0108072,0.0742617,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,d_purity,none,3750,0.0429951,0.0254273,0.0605628,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,lost_share,none,3750,0.228713,0.16519,0.292236,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,d_member_purity,none,3750,0.114639,0.0457092,0.183569,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,d_purity,none,3750,0.115845,0.0890071,0.142682,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,lost_share,none,3750,0.556309,0.516267,0.59635,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_member_purity,none,3750,0.0251025,0.000236972,0.049968,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_purity,none,3750,0.0234315,0.00273439,0.0441286,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,none,3750,0.192895,0.159951,0.225839,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_member_purity,none,3750,0.024558,0.000826718,0.0482892,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_purity,none,3750,0.0217018,-0.000332392,0.0437361,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,lost_share,none,3750,0.19155,0.158579,0.224521,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,d_member_purity,none,3750,0.033558,0.014595,0.0525209,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,d_purity,none,3750,0.0439646,-0.0135326,0.101462,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,lost_share,none,3750,0.0709828,-0.0144621,0.156428,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,d_member_purity,none,3750,-0.0813418,-0.105462,-0.057222,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,d_purity,none,3750,-0.104694,-0.15625,-0.0531391,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,lost_share,none,3750,-0.488207,-0.559509,-0.416905,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_member_purity,none,3750,-0.0999354,-0.133512,-0.0663586,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_purity,none,3750,-0.0536485,-0.080324,-0.0269731,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,lost_share,none,3750,-0.410864,-0.456569,-0.365158,5,all steps
+k-SLMmeans (Qwen3-1.7B),empty_replacement,d_member_purity,none,3750,0.0440348,-0.0338295,0.121899,4,all steps
+k-SLMmeans (Qwen3-1.7B),empty_replacement,d_purity,none,3750,0.0659799,-0.0662458,0.198206,4,all steps
+k-SLMmeans (Qwen3-1.7B),empty_replacement,lost_share,none,3750,0.100217,0.0566331,0.143801,4,all steps
+k-SLMmeans (Qwen3-4B),coverage_nearest,d_member_purity,none,3750,-0.141645,-0.192137,-0.0911532,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_nearest,d_purity,none,3750,-0.234089,-0.269705,-0.198473,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_nearest,lost_share,none,3750,-0.782666,-0.796342,-0.76899,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_intents,d_member_purity,none,3750,-0.166435,-0.203125,-0.129746,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_intents,d_purity,none,3750,-0.221275,-0.246718,-0.195833,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_intents,lost_share,none,3750,-0.725303,-0.732671,-0.717934,5,all steps
+k-SLMmeans (Qwen3-4B),specificity_margin,d_member_purity,none,3750,-0.0863945,-0.130537,-0.0422523,5,all steps
+k-SLMmeans (Qwen3-4B),specificity_margin,d_purity,none,3750,-0.147606,-0.18937,-0.105842,5,all steps
+k-SLMmeans (Qwen3-4B),specificity_margin,lost_share,none,3750,-0.731284,-0.746688,-0.71588,5,all steps
+k-SLMmeans (Qwen3-4B),max_summary_cos,d_member_purity,none,3750,0.107457,0.046221,0.168692,5,all steps
+k-SLMmeans (Qwen3-4B),max_summary_cos,d_purity,none,3750,0.197805,0.142101,0.253509,5,all steps
+k-SLMmeans (Qwen3-4B),max_summary_cos,lost_share,none,3750,0.608981,0.577604,0.640358,5,all steps
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,d_member_purity,none,3750,0.0927828,0.0538597,0.131706,5,all steps
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,d_purity,none,3750,0.15829,0.134276,0.182304,5,all steps
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,lost_share,none,3750,0.631509,0.604259,0.658759,5,all steps
+k-SLMmeans (Qwen3-4B),flag_generic,d_member_purity,none,3750,0.125379,0.0687369,0.182022,5,all steps
+k-SLMmeans (Qwen3-4B),flag_generic,d_purity,none,3750,0.16802,0.145932,0.190108,5,all steps
+k-SLMmeans (Qwen3-4B),flag_generic,lost_share,none,3750,0.660375,0.623529,0.697221,5,all steps
+k-SLMmeans (Qwen3-4B),flag_duplicate,d_member_purity,none,3750,0.070229,0.036367,0.104091,5,all steps
+k-SLMmeans (Qwen3-4B),flag_duplicate,d_purity,none,3750,0.249141,0.21031,0.287973,5,all steps
+k-SLMmeans (Qwen3-4B),flag_duplicate,lost_share,none,3750,0.438813,0.41914,0.458485,5,all steps
+k-SLMmeans (Qwen3-4B),flag_mentions,d_member_purity,none,3750,0.123026,0.0707455,0.175306,5,all steps
+k-SLMmeans (Qwen3-4B),flag_mentions,d_purity,none,3750,0.221379,0.197196,0.245562,5,all steps
+k-SLMmeans (Qwen3-4B),flag_mentions,lost_share,none,3750,0.574182,0.551482,0.596882,5,all steps
+k-SLMmeans (Qwen3-4B),flag_unsupported,d_member_purity,none,3750,0.073464,0.0201143,0.126814,5,all steps
+k-SLMmeans (Qwen3-4B),flag_unsupported,d_purity,none,3750,0.120064,0.0924358,0.147693,5,all steps
+k-SLMmeans (Qwen3-4B),flag_unsupported,lost_share,none,3750,0.536764,0.509055,0.564474,5,all steps
+k-SLMmeans (Qwen3-4B),flag_low_coverage,d_member_purity,none,3750,0.158433,0.116135,0.200731,5,all steps
+k-SLMmeans (Qwen3-4B),flag_low_coverage,d_purity,none,3750,0.209505,0.175106,0.243905,5,all steps
+k-SLMmeans (Qwen3-4B),flag_low_coverage,lost_share,none,3750,0.688554,0.669896,0.707213,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_member_purity,none,3750,0.0947265,0.0314831,0.15797,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_purity,none,3750,0.190106,0.148844,0.231369,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,none,3750,0.418018,0.386327,0.44971,5,all steps
+k-SLMmeans (Qwen3-4B),flag_not_fluent,d_member_purity,none,3750,0.089306,0.0268434,0.151768,5,all steps
+k-SLMmeans (Qwen3-4B),flag_not_fluent,d_purity,none,3750,0.194666,0.154463,0.234869,5,all steps
+k-SLMmeans (Qwen3-4B),flag_not_fluent,lost_share,none,3750,0.471792,0.445914,0.49767,5,all steps
+k-SLMmeans (Qwen3-4B),drift,d_member_purity,none,3750,0.0456043,0.00423168,0.0869769,5,all steps
+k-SLMmeans (Qwen3-4B),drift,d_purity,none,3750,0.0554645,0.0354374,0.0754915,5,all steps
+k-SLMmeans (Qwen3-4B),drift,lost_share,none,3750,0.574735,0.549089,0.600381,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,d_member_purity,none,3750,-0.117749,-0.149534,-0.0859637,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,d_purity,none,3750,-0.184585,-0.208434,-0.160735,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,lost_share,none,3750,-0.732451,-0.745802,-0.719099,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,none,3750,-0.0741104,-0.124303,-0.0239177,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,d_purity,none,3750,-0.115064,-0.149579,-0.0805487,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,lost_share,none,3750,-0.683917,-0.710243,-0.657591,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,none,3750,0.0358353,0.0120716,0.0595989,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,none,3750,0.22372,0.191185,0.256254,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,none,3750,0.339775,0.309928,0.369623,5,all steps
+k-NLPmeans,coverage_nearest,d_member_purity,"purity,log_n_members",3750,0.0286596,-0.0277866,0.0851059,5,all steps
+k-NLPmeans,coverage_nearest,d_purity,"purity,log_n_members",3750,-0.0814638,-0.102507,-0.0604209,5,all steps
+k-NLPmeans,coverage_nearest,lost_share,"purity,log_n_members",3750,-0.446951,-0.498397,-0.395506,5,all steps
+k-NLPmeans,coverage_intents,d_member_purity,"purity,log_n_members",3750,-0.0516771,-0.117824,0.0144692,5,all steps
+k-NLPmeans,coverage_intents,d_purity,"purity,log_n_members",3750,-0.0747844,-0.133262,-0.0163065,5,all steps
+k-NLPmeans,coverage_intents,lost_share,"purity,log_n_members",3750,-0.152929,-0.213314,-0.0925434,5,all steps
+k-NLPmeans,specificity_margin,d_member_purity,"purity,log_n_members",3750,0.0489602,-0.0169194,0.11484,5,all steps
+k-NLPmeans,specificity_margin,d_purity,"purity,log_n_members",3750,0.0292253,0.0080473,0.0504033,5,all steps
+k-NLPmeans,specificity_margin,lost_share,"purity,log_n_members",3750,-0.0733838,-0.102313,-0.0444548,5,all steps
+k-NLPmeans,max_summary_cos,d_member_purity,"purity,log_n_members",3750,-0.00875059,-0.0552363,0.0377352,5,all steps
+k-NLPmeans,max_summary_cos,d_purity,"purity,log_n_members",3750,-0.0074168,-0.0365139,0.0216803,5,all steps
+k-NLPmeans,max_summary_cos,lost_share,"purity,log_n_members",3750,-0.0142079,-0.0809795,0.0525637,5,all steps
+k-NLPmeans,unsupported_lemma_share,d_member_purity,"purity,log_n_members",3748,,,,1,all steps
+k-NLPmeans,unsupported_lemma_share,d_purity,"purity,log_n_members",3748,,,,1,all steps
+k-NLPmeans,unsupported_lemma_share,lost_share,"purity,log_n_members",3748,,,,1,all steps
+k-NLPmeans,flag_generic,d_member_purity,"purity,log_n_members",3750,0.0648653,0.0328202,0.0969105,3,all steps
+k-NLPmeans,flag_generic,d_purity,"purity,log_n_members",3750,0.0576006,-0.0629409,0.178142,3,all steps
+k-NLPmeans,flag_generic,lost_share,"purity,log_n_members",3750,0.0450822,-0.0615897,0.151754,3,all steps
+k-NLPmeans,flag_duplicate,d_member_purity,"purity,log_n_members",3750,,,,0,all steps
+k-NLPmeans,flag_duplicate,d_purity,"purity,log_n_members",3750,,,,0,all steps
+k-NLPmeans,flag_duplicate,lost_share,"purity,log_n_members",3750,,,,0,all steps
+k-NLPmeans,flag_mentions,d_member_purity,"purity,log_n_members",3750,,,,0,all steps
+k-NLPmeans,flag_mentions,d_purity,"purity,log_n_members",3750,,,,0,all steps
+k-NLPmeans,flag_mentions,lost_share,"purity,log_n_members",3750,,,,0,all steps
+k-NLPmeans,flag_unsupported,d_member_purity,"purity,log_n_members",3750,,,,1,all steps
+k-NLPmeans,flag_unsupported,d_purity,"purity,log_n_members",3750,,,,1,all steps
+k-NLPmeans,flag_unsupported,lost_share,"purity,log_n_members",3750,,,,1,all steps
+k-NLPmeans,flag_low_coverage,d_member_purity,"purity,log_n_members",3750,-0.0164183,-0.0929873,0.0601506,5,all steps
+k-NLPmeans,flag_low_coverage,d_purity,"purity,log_n_members",3750,0.0440217,0.00926338,0.07878,5,all steps
+k-NLPmeans,flag_low_coverage,lost_share,"purity,log_n_members",3750,0.226335,0.194368,0.258303,5,all steps
+k-NLPmeans,n_flu_flags,d_member_purity,"purity,log_n_members",3750,0.0414649,0.0110135,0.0719163,5,all steps
+k-NLPmeans,n_flu_flags,d_purity,"purity,log_n_members",3750,0.000425634,-0.0382233,0.0390746,5,all steps
+k-NLPmeans,n_flu_flags,lost_share,"purity,log_n_members",3750,0.057195,0.000964973,0.113425,5,all steps
+k-NLPmeans,flag_not_fluent,d_member_purity,"purity,log_n_members",3750,0.0414649,0.0110135,0.0719163,5,all steps
+k-NLPmeans,flag_not_fluent,d_purity,"purity,log_n_members",3750,0.000425634,-0.0382233,0.0390746,5,all steps
+k-NLPmeans,flag_not_fluent,lost_share,"purity,log_n_members",3750,0.057195,0.000964973,0.113425,5,all steps
+k-NLPmeans,drift,d_member_purity,"purity,log_n_members",3750,0.0127463,-0.0182442,0.0437368,5,all steps
+k-NLPmeans,drift,d_purity,"purity,log_n_members",3750,0.0267385,-0.0164019,0.0698789,5,all steps
+k-NLPmeans,drift,lost_share,"purity,log_n_members",3750,-0.10531,-0.191644,-0.0189751,5,all steps
+k-NLPmeans,cosine,d_member_purity,"purity,log_n_members",3750,0.010007,-0.0408493,0.0608634,5,all steps
+k-NLPmeans,cosine,d_purity,"purity,log_n_members",3750,-0.0614634,-0.092321,-0.0306059,5,all steps
+k-NLPmeans,cosine,lost_share,"purity,log_n_members",3750,-0.205378,-0.266584,-0.144171,5,all steps
+k-NLPmeans,own_nearest,d_member_purity,"purity,log_n_members",3750,-0.0521901,-0.0910441,-0.0133361,3,all steps
+k-NLPmeans,own_nearest,d_purity,"purity,log_n_members",3750,-0.0627621,-0.150695,0.0251705,3,all steps
+k-NLPmeans,own_nearest,lost_share,"purity,log_n_members",3750,-0.0720115,-0.121736,-0.0222875,3,all steps
+k-NLPmeans,empty_replacement,d_member_purity,"purity,log_n_members",3750,,,,0,all steps
+k-NLPmeans,empty_replacement,d_purity,"purity,log_n_members",3750,,,,0,all steps
+k-NLPmeans,empty_replacement,lost_share,"purity,log_n_members",3750,,,,0,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,d_member_purity,"purity,log_n_members",3750,0.061696,-0.00132414,0.124716,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,d_purity,"purity,log_n_members",3750,0.0155486,-0.0285018,0.059599,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_nearest,lost_share,"purity,log_n_members",3750,-0.667411,-0.684687,-0.650134,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_intents,d_member_purity,"purity,log_n_members",3750,0.00476496,-0.0448825,0.0544124,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_intents,d_purity,"purity,log_n_members",3750,-0.0292187,-0.063993,0.00555549,5,all steps
+k-SLMmeans (Qwen3-0.6B),coverage_intents,lost_share,"purity,log_n_members",3750,-0.538797,-0.578116,-0.499478,5,all steps
+k-SLMmeans (Qwen3-0.6B),specificity_margin,d_member_purity,"purity,log_n_members",3750,0.0874178,0.032556,0.14228,5,all steps
+k-SLMmeans (Qwen3-0.6B),specificity_margin,d_purity,"purity,log_n_members",3750,0.0421187,-0.00212254,0.0863599,5,all steps
+k-SLMmeans (Qwen3-0.6B),specificity_margin,lost_share,"purity,log_n_members",3750,-0.535965,-0.561012,-0.510918,5,all steps
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,d_member_purity,"purity,log_n_members",3750,-0.0463043,-0.093341,0.000732489,5,all steps
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,d_purity,"purity,log_n_members",3750,0.0234234,0.00430585,0.042541,5,all steps
+k-SLMmeans (Qwen3-0.6B),max_summary_cos,lost_share,"purity,log_n_members",3750,0.136193,0.0992622,0.173124,5,all steps
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,d_member_purity,"purity,log_n_members",3745,-0.0488191,-0.0817123,-0.0159259,5,all steps
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,d_purity,"purity,log_n_members",3745,0.0230313,0.0053077,0.0407548,5,all steps
+k-SLMmeans (Qwen3-0.6B),unsupported_lemma_share,lost_share,"purity,log_n_members",3745,0.205745,0.183485,0.228005,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_generic,d_member_purity,"purity,log_n_members",3750,-0.0391817,-0.0871678,0.00880445,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_generic,d_purity,"purity,log_n_members",3750,0.0268526,0.00822178,0.0454835,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_generic,lost_share,"purity,log_n_members",3750,0.409605,0.378901,0.440309,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,d_member_purity,"purity,log_n_members",3750,-0.0140099,-0.0501275,0.0221076,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,d_purity,"purity,log_n_members",3750,0.0641486,-0.0318688,0.160166,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_duplicate,lost_share,"purity,log_n_members",3750,0.142111,0.0649457,0.219277,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_mentions,d_member_purity,"purity,log_n_members",3750,-0.0285444,-0.0778233,0.0207344,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_mentions,d_purity,"purity,log_n_members",3750,0.0561589,0.0241945,0.0881234,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_mentions,lost_share,"purity,log_n_members",3750,0.268268,0.238068,0.298467,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,d_member_purity,"purity,log_n_members",3750,-0.024686,-0.0727376,0.0233657,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,d_purity,"purity,log_n_members",3750,0.0317478,-0.01345,0.0769457,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_unsupported,lost_share,"purity,log_n_members",3750,0.229254,0.180312,0.278197,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,d_member_purity,"purity,log_n_members",3750,-0.0444221,-0.0975392,0.00869495,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,d_purity,"purity,log_n_members",3750,-0.0103247,-0.0530285,0.032379,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_low_coverage,lost_share,"purity,log_n_members",3750,0.542889,0.534529,0.551249,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_member_purity,"purity,log_n_members",3750,-0.0356062,-0.0988724,0.02766,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,d_purity,"purity,log_n_members",3750,-0.017094,-0.0719525,0.0377645,5,all steps
+k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,"purity,log_n_members",3750,0.135493,0.0649652,0.206021,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_member_purity,"purity,log_n_members",3750,-0.0358408,-0.100598,0.0289168,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_purity,"purity,log_n_members",3750,-0.0214,-0.0724681,0.0296681,5,all steps
+k-SLMmeans (Qwen3-0.6B),flag_not_fluent,lost_share,"purity,log_n_members",3750,0.134028,0.0619791,0.206077,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,d_member_purity,"purity,log_n_members",3750,0.0263443,-0.003792,0.0564806,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,d_purity,"purity,log_n_members",3750,0.0122416,-0.00381216,0.0282953,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,lost_share,"purity,log_n_members",3750,0.322206,0.287975,0.356437,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,d_member_purity,"purity,log_n_members",3750,0.0174625,-0.0271405,0.0620656,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,d_purity,"purity,log_n_members",3750,-0.00447274,-0.0394171,0.0304716,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,lost_share,"purity,log_n_members",3750,-0.515684,-0.534963,-0.496404,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,"purity,log_n_members",3750,0.0618165,0.00734267,0.11629,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,"purity,log_n_members",3750,-0.0272181,-0.0542592,-0.00017706,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,"purity,log_n_members",3750,-0.414351,-0.44984,-0.378862,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,"purity,log_n_members",3750,-0.0549582,-0.103662,-0.00625469,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,"purity,log_n_members",3750,0.0593823,0.0200001,0.0987645,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,"purity,log_n_members",3750,0.096207,0.0595762,0.132838,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_member_purity,"purity,log_n_members",3750,0.0360312,-0.0252018,0.0972642,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_purity,"purity,log_n_members",3750,-0.0282952,-0.0664294,0.00983898,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_nearest,lost_share,"purity,log_n_members",3750,-0.597526,-0.634988,-0.560063,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_intents,d_member_purity,"purity,log_n_members",3748,-0.071562,-0.124703,-0.0184211,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_intents,d_purity,"purity,log_n_members",3748,-0.0604715,-0.10752,-0.0134235,5,all steps
+k-SLMmeans (Qwen3-1.7B),coverage_intents,lost_share,"purity,log_n_members",3748,-0.442017,-0.489269,-0.394765,5,all steps
+k-SLMmeans (Qwen3-1.7B),specificity_margin,d_member_purity,"purity,log_n_members",3750,0.0274196,-0.0150863,0.0699254,5,all steps
+k-SLMmeans (Qwen3-1.7B),specificity_margin,d_purity,"purity,log_n_members",3750,0.0335594,-0.0211621,0.0882809,5,all steps
+k-SLMmeans (Qwen3-1.7B),specificity_margin,lost_share,"purity,log_n_members",3750,-0.412018,-0.465778,-0.358259,5,all steps
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,d_member_purity,"purity,log_n_members",3750,-0.0401722,-0.0933265,0.012982,5,all steps
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,d_purity,"purity,log_n_members",3750,-0.0144897,-0.0513399,0.0223604,5,all steps
+k-SLMmeans (Qwen3-1.7B),max_summary_cos,lost_share,"purity,log_n_members",3750,0.182295,0.127931,0.236659,5,all steps
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,d_member_purity,"purity,log_n_members",3750,-0.0215539,-0.0483104,0.00520259,5,all steps
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,d_purity,"purity,log_n_members",3750,0.0144066,-0.0172711,0.0460842,5,all steps
+k-SLMmeans (Qwen3-1.7B),unsupported_lemma_share,lost_share,"purity,log_n_members",3750,0.199177,0.117505,0.280849,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_generic,d_member_purity,"purity,log_n_members",3750,0.0456839,-0.00943823,0.100806,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_generic,d_purity,"purity,log_n_members",3750,0.0310411,-0.000321841,0.0624041,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_generic,lost_share,"purity,log_n_members",3750,0.356274,0.292668,0.419879,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,d_member_purity,"purity,log_n_members",3750,0.00919682,-0.0450138,0.0634074,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,d_purity,"purity,log_n_members",3750,0.0293596,-0.0282162,0.0869355,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_duplicate,lost_share,"purity,log_n_members",3750,0.109522,0.0679168,0.151128,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_mentions,d_member_purity,"purity,log_n_members",3750,0.0230452,-0.00187813,0.0479685,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_mentions,d_purity,"purity,log_n_members",3750,0.0348729,0.00821207,0.0615337,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_mentions,lost_share,"purity,log_n_members",3750,0.172217,0.137043,0.207392,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,d_member_purity,"purity,log_n_members",3750,0.00214523,-0.023938,0.0282285,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,d_purity,"purity,log_n_members",3750,0.0146257,-0.0031882,0.0324397,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_unsupported,lost_share,"purity,log_n_members",3750,0.193261,0.118751,0.267771,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,d_member_purity,"purity,log_n_members",3750,-0.00781584,-0.0829674,0.0673357,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,d_purity,"purity,log_n_members",3750,0.0164393,-0.0159014,0.0487801,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_low_coverage,lost_share,"purity,log_n_members",3750,0.471071,0.421944,0.520198,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_member_purity,"purity,log_n_members",3750,0.00708489,-0.0260027,0.0401725,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,d_purity,"purity,log_n_members",3750,0.00749669,-0.0163245,0.0313178,5,all steps
+k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,"purity,log_n_members",3750,0.186198,0.150531,0.221865,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_member_purity,"purity,log_n_members",3750,0.00775455,-0.0240795,0.0395886,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_purity,"purity,log_n_members",3750,0.00670361,-0.0177543,0.0311615,5,all steps
+k-SLMmeans (Qwen3-1.7B),flag_not_fluent,lost_share,"purity,log_n_members",3750,0.186412,0.151338,0.221485,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,d_member_purity,"purity,log_n_members",3750,0.0640061,0.0517295,0.0762826,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,d_purity,"purity,log_n_members",3750,0.0649649,0.0128709,0.117059,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,lost_share,"purity,log_n_members",3750,0.11937,0.0355131,0.203227,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,d_member_purity,"purity,log_n_members",3750,0.00301482,-0.0254922,0.0315218,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,d_purity,"purity,log_n_members",3750,-0.0379589,-0.0908578,0.0149399,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,lost_share,"purity,log_n_members",3750,-0.428866,-0.502396,-0.355336,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_member_purity,"purity,log_n_members",3750,-0.0377693,-0.0703421,-0.00519649,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_purity,"purity,log_n_members",3750,-0.0021629,-0.0324391,0.0281133,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,lost_share,"purity,log_n_members",3750,-0.364643,-0.420149,-0.309138,5,all steps
+k-SLMmeans (Qwen3-1.7B),empty_replacement,d_member_purity,"purity,log_n_members",3750,0.0282646,-0.0399912,0.0965205,4,all steps
+k-SLMmeans (Qwen3-1.7B),empty_replacement,d_purity,"purity,log_n_members",3750,0.0555503,-0.0675052,0.178606,4,all steps
+k-SLMmeans (Qwen3-1.7B),empty_replacement,lost_share,"purity,log_n_members",3750,0.0838556,0.0613865,0.106325,4,all steps
+k-SLMmeans (Qwen3-4B),coverage_nearest,d_member_purity,"purity,log_n_members",3750,0.00440962,-0.0295695,0.0383887,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_nearest,d_purity,"purity,log_n_members",3750,-0.0747982,-0.102178,-0.047418,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_nearest,lost_share,"purity,log_n_members",3750,-0.759874,-0.780121,-0.739628,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_intents,d_member_purity,"purity,log_n_members",3750,-0.0365277,-0.0581287,-0.0149268,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_intents,d_purity,"purity,log_n_members",3750,-0.0717792,-0.102433,-0.0411257,5,all steps
+k-SLMmeans (Qwen3-4B),coverage_intents,lost_share,"purity,log_n_members",3750,-0.689825,-0.703432,-0.676217,5,all steps
+k-SLMmeans (Qwen3-4B),specificity_margin,d_member_purity,"purity,log_n_members",3750,0.0160072,-0.00726191,0.0392764,5,all steps
+k-SLMmeans (Qwen3-4B),specificity_margin,d_purity,"purity,log_n_members",3750,-0.0296672,-0.0753173,0.0159828,5,all steps
+k-SLMmeans (Qwen3-4B),specificity_margin,lost_share,"purity,log_n_members",3750,-0.704879,-0.73081,-0.678949,5,all steps
+k-SLMmeans (Qwen3-4B),max_summary_cos,d_member_purity,"purity,log_n_members",3750,-0.0247021,-0.0757889,0.0263847,5,all steps
+k-SLMmeans (Qwen3-4B),max_summary_cos,d_purity,"purity,log_n_members",3750,0.0585621,0.00819934,0.108925,5,all steps
+k-SLMmeans (Qwen3-4B),max_summary_cos,lost_share,"purity,log_n_members",3750,0.574812,0.525974,0.62365,5,all steps
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,d_member_purity,"purity,log_n_members",3750,0.00423553,-0.0249556,0.0334267,5,all steps
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,d_purity,"purity,log_n_members",3750,0.0446538,0.0309331,0.0583745,5,all steps
+k-SLMmeans (Qwen3-4B),unsupported_lemma_share,lost_share,"purity,log_n_members",3750,0.581628,0.54549,0.617766,5,all steps
+k-SLMmeans (Qwen3-4B),flag_generic,d_member_purity,"purity,log_n_members",3750,0.018333,-0.0287314,0.0653974,5,all steps
+k-SLMmeans (Qwen3-4B),flag_generic,d_purity,"purity,log_n_members",3750,0.0411504,0.0188658,0.063435,5,all steps
+k-SLMmeans (Qwen3-4B),flag_generic,lost_share,"purity,log_n_members",3750,0.621319,0.579066,0.663571,5,all steps
+k-SLMmeans (Qwen3-4B),flag_duplicate,d_member_purity,"purity,log_n_members",3750,0.0031409,-0.0275869,0.0338687,5,all steps
+k-SLMmeans (Qwen3-4B),flag_duplicate,d_purity,"purity,log_n_members",3750,0.185615,0.14275,0.228481,5,all steps
+k-SLMmeans (Qwen3-4B),flag_duplicate,lost_share,"purity,log_n_members",3750,0.392997,0.376308,0.409686,5,all steps
+k-SLMmeans (Qwen3-4B),flag_mentions,d_member_purity,"purity,log_n_members",3750,0.00600269,-0.0366596,0.048665,5,all steps
+k-SLMmeans (Qwen3-4B),flag_mentions,d_purity,"purity,log_n_members",3750,0.0942161,0.0753311,0.113101,5,all steps
+k-SLMmeans (Qwen3-4B),flag_mentions,lost_share,"purity,log_n_members",3750,0.523554,0.489438,0.557671,5,all steps
+k-SLMmeans (Qwen3-4B),flag_unsupported,d_member_purity,"purity,log_n_members",3750,0.0117831,-0.0439338,0.0675,5,all steps
+k-SLMmeans (Qwen3-4B),flag_unsupported,d_purity,"purity,log_n_members",3750,0.0335233,0.0101337,0.0569129,5,all steps
+k-SLMmeans (Qwen3-4B),flag_unsupported,lost_share,"purity,log_n_members",3750,0.487124,0.458145,0.516103,5,all steps
+k-SLMmeans (Qwen3-4B),flag_low_coverage,d_member_purity,"purity,log_n_members",3750,0.0246821,-0.00582003,0.0551843,5,all steps
+k-SLMmeans (Qwen3-4B),flag_low_coverage,d_purity,"purity,log_n_members",3750,0.0569412,0.0171131,0.0967693,5,all steps
+k-SLMmeans (Qwen3-4B),flag_low_coverage,lost_share,"purity,log_n_members",3750,0.654788,0.634171,0.675406,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_member_purity,"purity,log_n_members",3750,-0.00714109,-0.0533438,0.0390616,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,d_purity,"purity,log_n_members",3750,0.0839896,0.0548984,0.113081,5,all steps
+k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,"purity,log_n_members",3750,0.37186,0.335977,0.407744,5,all steps
+k-SLMmeans (Qwen3-4B),flag_not_fluent,d_member_purity,"purity,log_n_members",3750,-0.00398509,-0.0481363,0.0401661,5,all steps
+k-SLMmeans (Qwen3-4B),flag_not_fluent,d_purity,"purity,log_n_members",3750,0.0965691,0.0697818,0.123356,5,all steps
+k-SLMmeans (Qwen3-4B),flag_not_fluent,lost_share,"purity,log_n_members",3750,0.427698,0.401383,0.454012,5,all steps
+k-SLMmeans (Qwen3-4B),drift,d_member_purity,"purity,log_n_members",3750,0.042062,-0.000634587,0.0847587,5,all steps
+k-SLMmeans (Qwen3-4B),drift,d_purity,"purity,log_n_members",3750,0.0352904,0.00875896,0.0618219,5,all steps
+k-SLMmeans (Qwen3-4B),drift,lost_share,"purity,log_n_members",3750,0.572246,0.548036,0.596455,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,d_member_purity,"purity,log_n_members",3750,-0.0295475,-0.0555705,-0.00352442,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,d_purity,"purity,log_n_members",3750,-0.077969,-0.107388,-0.0485501,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,lost_share,"purity,log_n_members",3750,-0.69864,-0.714622,-0.682658,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,"purity,log_n_members",3750,-0.00362615,-0.043954,0.0367017,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,d_purity,"purity,log_n_members",3750,-0.0255926,-0.0618716,0.0106864,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,lost_share,"purity,log_n_members",3750,-0.654844,-0.684297,-0.625392,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,"purity,log_n_members",3750,-0.0231114,-0.0331795,-0.0130434,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,"purity,log_n_members",3750,0.170228,0.158464,0.181991,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,"purity,log_n_members",3750,0.298816,0.273412,0.32422,5,all steps

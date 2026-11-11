@@ -1,0 +1,21 @@
+method_id,step,share_pre_matches_source,share_end_matches_logged
+k-NLPmeans,1,1,1
+k-NLPmeans,2,1,1
+k-NLPmeans,3,1,0.996
+k-NLPmeans,4,0.996,1
+k-NLPmeans,5,1,1
+k-SLMmeans (Qwen3-0.6B),1,1,0.74
+k-SLMmeans (Qwen3-0.6B),2,0.74,1
+k-SLMmeans (Qwen3-0.6B),3,1,0.9
+k-SLMmeans (Qwen3-0.6B),4,0.9,0.868
+k-SLMmeans (Qwen3-0.6B),5,0.868,1
+k-SLMmeans (Qwen3-1.7B),1,1,1
+k-SLMmeans (Qwen3-1.7B),2,1,1
+k-SLMmeans (Qwen3-1.7B),3,1,0.896
+k-SLMmeans (Qwen3-1.7B),4,0.896,1
+k-SLMmeans (Qwen3-1.7B),5,1,0.8733
+k-SLMmeans (Qwen3-4B),1,1,0.4747
+k-SLMmeans (Qwen3-4B),2,0.4747,0.452
+k-SLMmeans (Qwen3-4B),3,0.452,0.3307
+k-SLMmeans (Qwen3-4B),4,0.3307,0.4213
+k-SLMmeans (Qwen3-4B),5,0.4213,0.42
