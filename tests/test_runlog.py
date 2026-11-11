@@ -16,6 +16,8 @@ from kslimeans.data import Dataset
 from kslimeans.results import RunDir
 from kslimeans.runlog import (
     CacheMissError,
+    embed_summaries,
+    load_run_embedder,
     MissingAssignmentsError,
     load_run,
     load_run_dataset,
@@ -325,3 +327,39 @@ def test_load_run_sentences_miss_raises_and_allow_encode_builds(cached_run, tmp_
     assert built == []
     assert load_run_sentences(log, ds, tmp_path / "empty", allow_encode=True) is sentinel
     assert built and built[0][2] == "fake"
+
+
+def test_embed_summaries_reproduces_core_start_centroids(noisy, tmp_path):
+    _, _, embed = noisy
+    path, result, spy = _run_and_log(noisy, tmp_path, max_iter=5)
+    record = load_run(path).record("k-test", 3)
+    assert len(result.centroids_evolution) == record.n_summary_steps == 3
+
+    calls = []
+
+    class CountingEmbedder(LookupEmbedder):
+        def encode(self, texts):
+            calls.append(list(texts))
+            return super().encode(texts)
+
+    for j, start in enumerate(result.centroids_evolution):
+        got = embed_summaries(CountingEmbedder(embed), record.summaries_evolution[j])
+        np.testing.assert_array_equal(got, start)
+        assert got.dtype == start.dtype
+    assert [len(c) for c in calls] == [N_BLOBS] * 3  # one encode call over all k summaries per step
+
+
+def test_embed_summaries_passes_empty_text_through_and_refuses_none(noisy):
+    _, X, embed = noisy
+    got = embed_summaries(LookupEmbedder(embed), ["doc0", ""])
+    np.testing.assert_array_equal(got[0], X[0])
+    np.testing.assert_array_equal(got[1], np.zeros(X.shape[1]))
+    with pytest.raises(ValueError, match="None"):
+        embed_summaries(LookupEmbedder(embed), ["doc0", None])
+
+
+def test_load_run_embedder_uses_the_experiment_resolver(noisy, tmp_path, monkeypatch):
+    path, _, _ = _run_and_log(noisy, tmp_path)
+    sentinel = object()
+    monkeypatch.setattr("kslimeans.experiment.get_embedder", lambda name: (name, sentinel))
+    assert load_run_embedder(load_run(path)) == ("fake", sentinel)

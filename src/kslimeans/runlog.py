@@ -33,7 +33,8 @@ from .cache import (
 )
 from .core import _members_by_cluster, _select_cluster
 from .data import Dataset
-from .experiment import _resolve_dataset
+from .embeddings import Embedder
+from .experiment import _resolve_dataset, _resolve_embedder
 from .sentences import SentenceCorpus
 from .summarizers import Cluster
 
@@ -289,3 +290,24 @@ def load_run_sentences(
         allow_encode,
     )
     return cached_sentences(ds.name, ds.texts, cfg["embedder"], cache)
+
+
+def load_run_embedder(runlog: RunLog) -> Embedder:
+    """The embedder the run used, resolved by `experiment._resolve_embedder` (`get_embedder(name)`).
+
+    Loads the model, so call it only when something must really be encoded.
+    """
+    return _resolve_embedder(runlog.config["embedder"])
+
+
+def embed_summaries(embedder: Embedder, summaries: list[str]) -> np.ndarray:
+    """Embed one full summary step's `k` summaries as `summary_kmeans` does: one `encode` call over all of them.
+
+    The result is the step's start centroids (`Result.centroids_evolution[j]`, for a step that did not stop on
+    `tol`). `""` (an empty cluster) is passed to the embedder like any other text, exactly as core does. A `None`
+    (a cluster a masked schedule had not summarized) never occurs in a full step, and core never embeds it, so it
+    raises `ValueError` here instead of reaching the embedder.
+    """
+    if any(summary is None for summary in summaries):
+        raise ValueError("summaries contain None (a cluster never summarized); only full steps can be embedded")
+    return embedder.encode(list(summaries))
