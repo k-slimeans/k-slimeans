@@ -143,12 +143,14 @@ src/kslimeans/
   aggregate.py     combine run directories into a mean ± std table + example summaries (scripts/aggregate_results.py)
   rq2.py           RQ2 sweep planning, resumability and report (scripts/run_rq2.py, scripts/rq2_report.py)
   runlog.py        load a run directory back: per-(method, seed) summaries, partitions, and the summarizer inputs of a step
+  costcheck.py     rebuild a logged run's cost counters (calls, tokens, seconds) and compare (scripts/verify_cost.py)
   surface.py       surface checks on logged summaries (length, "?", mentions of the cluster, duplicates; scripts/surface_counts.py)
   workload.py      re-summarize one logged step's inputs with any summarizer setup, timed per batch (scripts/fixed_workload.py)
 configs/           experiment configs (YAML)
 scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_stackexchange.py, prepare_arxiv.py,
                    aggregate_results.py, surface_counts.py (summary surface-check table), run_prelim.sh,
-                   fixed_workload.py, compare_workloads.py, run_clinc150_prompt_v2.sh
+                   fixed_workload.py, compare_workloads.py, run_clinc150_prompt_v2.sh,
+                   verify_cost.py (check a run's logged cost counters)
 data/              datasets, checked in except the generated data/arxiv/ (see data/README.md)
 tests/             pytest suite, incl. exact-equivalence fixtures generated from the original code
 ```
