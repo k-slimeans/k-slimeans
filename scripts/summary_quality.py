@@ -111,13 +111,21 @@ def build_table(clusters: pd.DataFrame, steps: pd.DataFrame) -> pd.DataFrame:
     table = table.join(step_agg)
     link = clusters[clusters["n_kept"].notna()] if "n_kept" in clusters else clusters.iloc[:0]
     if len(link):
-        link = _scoped(link)
-        link = link.assign(kept=link["n_kept"] / link["n_members"], lost=link["n_lost"] / link["n_members"],
-                           gained=link["n_gained"] / link["n_members"],
-                           member_uncovered=link["n_members_uncovered"] / link["n_members"])
-        lost_total = link.groupby(by, sort=False)["n_lost"].sum()
-        table = table.join(link.groupby(by, sort=False)[["kept", "lost", "gained", "member_uncovered"]].mean())
-        table["lost_uncovered"] = link.groupby(by, sort=False)["n_lost_uncovered"].sum() / lost_total.where(lost_total > 0)
+        # Ratios of sums (members pooled), so that tiny clusters do not dominate the shares.
+        sums = _scoped(link).groupby(by, sort=False)[
+            ["n_members", "n_kept", "n_lost", "n_gained", "n_members_uncovered", "n_lost_uncovered"]
+        ].sum()
+        table = table.join(
+            pd.DataFrame(
+                {
+                    "kept": sums["n_kept"] / sums["n_members"],
+                    "lost": sums["n_lost"] / sums["n_members"],
+                    "gained": sums["n_gained"] / sums["n_members"],
+                    "member_uncovered": sums["n_members_uncovered"] / sums["n_members"],
+                    "lost_uncovered": sums["n_lost_uncovered"] / sums["n_lost"].where(sums["n_lost"] > 0),
+                }
+            )
+        )
     return table.reset_index()
 
 
@@ -163,12 +171,12 @@ def format_markdown(table: pd.DataFrame) -> str:
              for lb, r in zip(label, sub.itertuples())]))
         out.append("\n**Fluency checks** (share of summaries failing each)\n")
         out.append(_md(
-            ["method (scope)", "no \"?\"", "echoes prompt", "copies a member", "markup/quotes", "empty"],
+            ["method (scope)", "no \"?\"", "echoes prompt", "copies a member", "markup/quotes", "non-Latin letters", "empty"],
             [[lb, _pct(r.flu_no_question_share), _pct(r.flu_echo_share), _pct(r.flu_copy_share),
-              _pct(r.flu_markup_share), _pct(r.flu_empty_share)]
+              _pct(r.flu_markup_share), _pct(r.flu_script_share), _pct(r.flu_empty_share)]
              for lb, r in zip(label, sub.itertuples())]))
         if "kept" in sub and sub["kept"].notna().any():
-            out.append("\n**Members at the step** (mean per cluster, as a share of the cluster's members written "
+            out.append("\n**Members at the step** (pooled over clusters, as a share of the members the summaries were written "
                        "from; `lost in uncovered intents` is the share of lost members whose gold intent the summary "
                        "does not cover, to compare with `members in uncovered intents`)\n")
             out.append(_md(

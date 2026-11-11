@@ -45,8 +45,10 @@ Definitions (all thresholds are module constants so reports can quote them)
   an upper bound on invented content; the hand check measures how loose it is.
 - *Fluency proxies.* Not asking a question where one was asked for (`asks_question`; false for extractive
   summaries); echoing the prompt (sharing a word 3-gram with the prompt that no member contains); copying a member
-  verbatim (equal after normalisation); stray markup (`<...>` tags, `*`, `#`, backticks, a line break in a summary meant to be one question, a summary
-  wrapped in or opening with a double quote, or with an odd number of them); and being empty.
+  verbatim (equal after normalisation); stray markup (`<...>` tags, `*`, `#`, backticks, a line break in a summary
+  meant to be one question, a summary wrapped in or opening with a double quote, or with an odd number of them);
+  letters outside the Latin script
+  (`flu_script`, for example CJK characters a model slipped into an English question); and being empty.
   `flag_not_fluent` is the union.
 - *Low coverage*: `flag_low_coverage` is a nearest-summary share below `LOW_COVERAGE_BELOW`.
 
@@ -56,6 +58,7 @@ Rows are produced for non-empty clusters with a summary; empty clusters and `Non
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Iterator, Sequence
 
@@ -80,6 +83,10 @@ NAMED_ENTITY_LABELS = frozenset(
 _WORD = re.compile(r"[^\W_]+")
 _MARKUP = re.compile(r"<[^>]*>|[*#`]")
 _NAN = float("nan")
+
+
+def _has_non_latin_letters(text: str) -> bool:
+    return any(ch.isalpha() and not unicodedata.name(ch, "").startswith("LATIN") for ch in text)
 
 
 def normalize(text: str) -> str:
@@ -162,6 +169,7 @@ def fluency_checks(
         "flu_no_question": asks_question and not stripped.rstrip("\"'”’ ").endswith("?"),
         "flu_echo": echoed,
         "flu_copy": bool(norm) and norm in set(member_norm),
+        "flu_script": _has_non_latin_letters(summary),
         "flu_markup": bool(_MARKUP.search(summary))
         or (asks_question and "\n" in stripped)
         or quotes % 2 == 1
@@ -454,6 +462,7 @@ FLAG_COLUMNS = (
     "flu_echo",
     "flu_copy",
     "flu_markup",
+    "flu_script",
     "flu_empty",
     "flag_low_coverage",
     "flag_generic",

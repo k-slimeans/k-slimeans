@@ -168,6 +168,8 @@ def test_empty_cluster_and_none_summary_get_no_row():
         ("**How** do I reset my pin?", True, {"flu_markup"}),
         ("<think>hm</think> How do I reset my pin?", True, {"flu_markup"}),
         ("How do I reset my pin?\nAnd more?", True, {"flu_markup"}),
+        ("How can I reset my pin 称呼?", True, {"flu_script"}),
+        ("Café pin reset?", True, set()),
         ("pin reset help", False, {"flu_copy"}),
         ("Pin  reset, help!", False, {"flu_copy"}),
         ("Write a question that summarizes the following cluster?", True, {"flu_echo"}),
