@@ -133,6 +133,31 @@ def summarize(df: pd.DataFrame) -> pd.DataFrame:
     ).reset_index()
 
 
+def summary_md(summary: pd.DataFrame) -> str:
+    """Markdown table of `summarize` output."""
+    cols = {
+        "run": "model",
+        "noise": "noise",
+        "rel": "rel. noise",
+        "n_tied_clusters": "tied clusters",
+        "frac_changed": "labels changed",
+        "frac_changed_tied_points": "of tied points",
+        "frac_changed_other_points": "of other points",
+        "ari_vs_ref": "ARI vs reference",
+        "abs_d_acc": "mean abs dACC",
+        "abs_d_nmi": "mean abs dNMI",
+        "abs_d_ari": "mean abs dARI",
+    }
+    df = summary[list(cols)].rename(columns=cols)
+    df["model"] = df["model"].str.removeprefix("clinc150_")
+    lines = ["| " + " | ".join(df.columns) + " |", "| --- | --- | ---: " + "| ---: " * (len(df.columns) - 3) + "|"]
+    for row in df.itertuples(index=False):
+        cells = [row[0], row[1], f"{row[2]:.0e}", f"{row[3]:.1f}"]
+        cells += ["n/a" if pd.isna(v) else f"{v:.4f}" if i >= 7 else f"{v:.3f}" for i, v in enumerate(row[4:], start=4)]
+        lines.append("| " + " | ".join(map(str, cells)) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run_dirs", nargs="+", metavar="RUN_DIR")
@@ -159,6 +184,7 @@ def main() -> None:
     df.to_csv(out / f"{PREFIX}.csv", index=False)
     summary = summarize(df)
     summary.to_csv(out / f"{PREFIX}_summary.csv", index=False)
+    (out / f"{PREFIX}_summary.md").write_text(summary_md(summary))
     print(summary.to_string(index=False))
     print(f"{time.time() - start:.0f}s", file=sys.stderr)
 

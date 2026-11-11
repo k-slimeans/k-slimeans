@@ -162,7 +162,9 @@ def md_table(df: pd.DataFrame, formats: dict[str, str] | None = None) -> str:
 
     def cell(col, value):
         if isinstance(value, (float, np.floating)):
-            return "n/a" if np.isnan(value) else format(value, formats.get(col, ".3g"))
+            if np.isnan(value):
+                return "n/a"
+            return format(value, formats.get(col, ",.0f" if abs(value) >= 1000 else ".3g"))
         return str(value)
 
     df = df.rename(columns=str)
