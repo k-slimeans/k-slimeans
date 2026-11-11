@@ -25,7 +25,8 @@ embeddings the runs used. No cluster was empty at a scored step.
 Four families, never merged into one number. Thresholds are constants in the module and were set before any hand rating.
 
 - **Coverage.** *Nearest-summary share*: the share of the cluster's members whose nearest of the k summary embeddings
-  (Euclidean, the metric of the assignment step) is this cluster's summary. *Intent coverage*: among gold intents with at least
+  (Euclidean, the metric of the assignment step) is this cluster's summary. Clusters with an identical summary text tie; the first copy
+  is their representative for both coverage scores and later copies score 0 on both (the assignment step also gives tied points to the lowest index). *Intent coverage*: among gold intents with at least
   10% of the cluster's members, the share whose members are on average strictly closer to this summary than to any other.
   Flag `low coverage`: nearest-summary share below 0.5. #8's label alignment is included as an extra (Hungarian match of
   summaries to embedded label names per step: mean matched cosine / share of clusters matched to their majority intent).
@@ -42,8 +43,10 @@ Four families, never merged into one number. Thresholds are constants in the mod
   prompt (shares a word 3-gram with it that no member contains), is a verbatim copy of a member, stray markup or quotes,
   letters outside the Latin script, empty. `not fluent` is the union. These say nothing about content.
 
-The extractive LSA summaries act as a control: they are member sentences, so unsupported content should be near zero and
-they are not expected to be generic. They are (0.1% unsupported lemmas, 0% generic on CLINC150).
+Members are lemmatized one text at a time and summaries one line at a time with the same spaCy pipeline (NER is on for summaries only), so the
+extractive LSA summaries, which are member sentences, are analysed exactly as their sources. They act as a control: on CLINC150 they score 0 unsupported
+lemmas in all but 1 of 3,750 summaries (one summary, not examined further) and 0% generic. On BANKING77, 29 of 385 LSA summaries have a non-zero share (4 flagged on any count). The likely cause is the final-partition approximation (an extracted
+sentence whose source member is no longer in the cluster it is scored against); this was not checked per case.
 
 ## 3. Score tables
 
@@ -55,29 +58,29 @@ separately on purpose.
 
 **Scores** (mean / median over clusters; `n` = summaries)
 
-| method (scope) | n | nearest-summary share | intent coverage | specificity margin | max cos to another summary | unsupported lemma share | genericity (#7) | label align sim / acc (#8) |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| k-NLPmeans (all steps) | 3,750 | 0.791 / 0.849 | 0.959 | 0.247 / 0.248 | 0.567 | 0.001 / 0.000 | 0.204 | 0.390 / 0.523 |
-| k-SLMmeans (Qwen3-0.6B) (all steps) | 3,750 | 0.599 / 0.672 | 0.752 | 0.136 / 0.164 | 0.581 | 0.128 / 0.000 | 0.193 | 0.477 / 0.390 |
-| k-SLMmeans (Qwen3-1.7B) (all steps) | 3,750 | 0.604 / 0.675 | 0.764 | 0.109 / 0.134 | 0.638 | 0.298 / 0.267 | 0.274 | 0.419 / 0.451 |
-| k-SLMmeans (Qwen3-4B) (all steps) | 3,750 | 0.493 / 0.548 | 0.595 | 0.003 / 0.084 | 0.702 | 0.438 / 0.409 | 0.290 | 0.409 / 0.322 |
-| k-NLPmeans (last step) | 750 | 0.796 / 0.855 | 0.962 | 0.250 / 0.252 | 0.566 | 0.001 / 0.000 | 0.205 | 0.388 / 0.521 |
-| k-SLMmeans (Qwen3-0.6B) (last step) | 750 | 0.607 / 0.684 | 0.764 | 0.146 / 0.171 | 0.570 | 0.128 / 0.000 | 0.193 | 0.472 / 0.345 |
-| k-SLMmeans (Qwen3-1.7B) (last step) | 750 | 0.614 / 0.700 | 0.768 | 0.112 / 0.136 | 0.635 | 0.304 / 0.267 | 0.275 | 0.413 / 0.443 |
-| k-SLMmeans (Qwen3-4B) (last step) | 750 | 0.494 / 0.569 | 0.590 | 0.003 / 0.086 | 0.702 | 0.454 / 0.429 | 0.289 | 0.402 / 0.304 |
+| method (scope) | n | nearest-summary share | intent coverage | specificity margin | max cos to another summary | unsupported lemma share | genericity (#7) | label align sim / acc (#8) | nearest-summary share without exact duplicates |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| k-NLPmeans (all steps) | 3,750 | 0.791 / 0.849 | 0.959 | 0.247 / 0.248 | 0.567 | 0.000 / 0.000 | 0.204 | 0.390 / 0.523 | 0.791 |
+| k-SLMmeans (Qwen3-0.6B) (all steps) | 3,750 | 0.599 / 0.672 | 0.753 | 0.136 / 0.164 | 0.581 | 0.128 / 0.000 | 0.193 | 0.477 / 0.390 | 0.607 |
+| k-SLMmeans (Qwen3-1.7B) (all steps) | 3,750 | 0.604 / 0.675 | 0.764 | 0.109 / 0.134 | 0.638 | 0.298 / 0.267 | 0.274 | 0.419 / 0.451 | 0.608 |
+| k-SLMmeans (Qwen3-4B) (all steps) | 3,750 | 0.493 / 0.548 | 0.595 | 0.003 / 0.084 | 0.702 | 0.438 / 0.409 | 0.290 | 0.409 / 0.322 | 0.555 |
+| k-NLPmeans (last step) | 750 | 0.796 / 0.855 | 0.962 | 0.250 / 0.252 | 0.566 | 0.000 / 0.000 | 0.205 | 0.388 / 0.521 | 0.796 |
+| k-SLMmeans (Qwen3-0.6B) (last step) | 750 | 0.607 / 0.684 | 0.764 | 0.146 / 0.171 | 0.570 | 0.128 / 0.000 | 0.193 | 0.472 / 0.345 | 0.613 |
+| k-SLMmeans (Qwen3-1.7B) (last step) | 750 | 0.614 / 0.700 | 0.768 | 0.112 / 0.136 | 0.635 | 0.304 / 0.267 | 0.275 | 0.413 / 0.443 | 0.619 |
+| k-SLMmeans (Qwen3-4B) (last step) | 750 | 0.494 / 0.569 | 0.590 | 0.003 / 0.086 | 0.702 | 0.454 / 0.429 | 0.289 | 0.402 / 0.304 | 0.564 |
 
 **Flags** (share of summaries)
 
-| method (scope) | not fluent | low coverage | generic | duplicate | near-duplicate | mentions | margin <= 0 | unsupported |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| k-NLPmeans (all steps) | 1% | 11% | 0% | 0% | 0% | 0% | 0% | 0% |
-| k-SLMmeans (Qwen3-0.6B) (all steps) | 28% | 35% | 19% | 1% | 2% | 8% | 16% | 12% |
-| k-SLMmeans (Qwen3-1.7B) (all steps) | 9% | 34% | 22% | 1% | 1% | 8% | 19% | 24% |
-| k-SLMmeans (Qwen3-4B) (all steps) | 34% | 48% | 46% | 11% | 14% | 34% | 39% | 46% |
-| k-NLPmeans (last step) | 1% | 9% | 0% | 0% | 0% | 0% | 0% | 0% |
-| k-SLMmeans (Qwen3-0.6B) (last step) | 29% | 35% | 17% | 1% | 2% | 9% | 14% | 12% |
-| k-SLMmeans (Qwen3-1.7B) (last step) | 9% | 32% | 21% | 1% | 1% | 9% | 19% | 25% |
-| k-SLMmeans (Qwen3-4B) (last step) | 35% | 47% | 47% | 13% | 15% | 36% | 39% | 47% |
+| method (scope) | not fluent | low coverage | low coverage without exact duplicates | generic | duplicate | near-duplicate | mentions | margin <= 0 | unsupported |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| k-NLPmeans (all steps) | 1% | 11% | 11% | 0% | 0% | 0% | 0% | 0% | 0% |
+| k-SLMmeans (Qwen3-0.6B) (all steps) | 28% | 35% | 34% | 19% | 1% | 2% | 8% | 16% | 12% |
+| k-SLMmeans (Qwen3-1.7B) (all steps) | 9% | 34% | 34% | 22% | 1% | 1% | 8% | 19% | 24% |
+| k-SLMmeans (Qwen3-4B) (all steps) | 34% | 48% | 41% | 46% | 11% | 14% | 34% | 39% | 46% |
+| k-NLPmeans (last step) | 1% | 9% | 9% | 0% | 0% | 0% | 0% | 0% | 0% |
+| k-SLMmeans (Qwen3-0.6B) (last step) | 29% | 35% | 34% | 17% | 1% | 2% | 9% | 14% | 12% |
+| k-SLMmeans (Qwen3-1.7B) (last step) | 9% | 32% | 32% | 21% | 1% | 1% | 9% | 19% | 25% |
+| k-SLMmeans (Qwen3-4B) (last step) | 35% | 47% | 40% | 47% | 13% | 15% | 36% | 39% | 47% |
 
 **Fluency checks** (share of summaries failing each)
 
@@ -92,18 +95,18 @@ separately on purpose.
 | k-SLMmeans (Qwen3-1.7B) (last step) | 3% | 7% | 1% | 0% | 0% | 0% |
 | k-SLMmeans (Qwen3-4B) (last step) | 15% | 31% | 1% | 13% | 0% | 0% |
 
-**Members at the step** (pooled over clusters, as a share of the members the summaries were written from; `lost in uncovered intents` is the share of lost members whose gold intent the summary does not cover, to compare with `members in uncovered intents`)
+**Members at the step** (pooled over clusters, as a share of the members the summaries were written from, counted on the partition after the step's Lloyd block. A member is *uncovered* when its gold intent is one the summary does not cover; `lost if uncovered` / `lost if covered` are the shares of uncovered / covered members that left their cluster)
 
-| method (scope) | kept | lost | gained | lost in uncovered intents | members in uncovered intents |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| k-NLPmeans (all steps) | 95% | 5% | 5% | 40% | 9% |
-| k-SLMmeans (Qwen3-0.6B) (all steps) | 72% | 28% | 28% | 72% | 31% |
-| k-SLMmeans (Qwen3-1.7B) (all steps) | 76% | 24% | 24% | 72% | 31% |
-| k-SLMmeans (Qwen3-4B) (all steps) | 59% | 41% | 41% | 83% | 45% |
-| k-NLPmeans (last step) | 98% | 2% | 2% | 36% | 9% |
-| k-SLMmeans (Qwen3-0.6B) (last step) | 76% | 24% | 24% | 72% | 28% |
-| k-SLMmeans (Qwen3-1.7B) (last step) | 75% | 25% | 25% | 73% | 31% |
-| k-SLMmeans (Qwen3-4B) (last step) | 59% | 41% | 41% | 82% | 45% |
+| method (scope) | kept | lost | gained | members uncovered | lost if uncovered | lost if covered |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| k-NLPmeans (all steps) | 95% | 5% | 5% | 9% | 19% | 3% |
+| k-SLMmeans (Qwen3-0.6B) (all steps) | 72% | 28% | 28% | 30% | 66% | 11% |
+| k-SLMmeans (Qwen3-1.7B) (all steps) | 76% | 24% | 24% | 31% | 57% | 10% |
+| k-SLMmeans (Qwen3-4B) (all steps) | 59% | 41% | 41% | 45% | 76% | 13% |
+| k-NLPmeans (last step) | 98% | 2% | 2% | 9% | 9% | 1% |
+| k-SLMmeans (Qwen3-0.6B) (last step) | 76% | 24% | 24% | 28% | 61% | 10% |
+| k-SLMmeans (Qwen3-1.7B) (last step) | 75% | 25% | 25% | 31% | 58% | 10% |
+| k-SLMmeans (Qwen3-4B) (last step) | 59% | 41% | 41% | 45% | 75% | 14% |
 
 ### bank77
 
@@ -111,21 +114,21 @@ Last summary step scored against the FINAL assignments (approximation: the summa
 
 **Scores** (mean / median over clusters; `n` = summaries)
 
-| method (scope) | n | nearest-summary share | intent coverage | specificity margin | max cos to another summary | unsupported lemma share | genericity (#7) | label align sim / acc (#8) |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| k-NLPmeans (final (approx.)) | 385 | 0.801 / 0.842 | 0.943 | 0.179 / 0.165 | 0.662 | 0.017 / 0.000 | 0.382 | 0.461 / 0.473 |
-| k-SLMmeans (Qwen3-0.6B) (final (approx.)) | 385 | 0.736 / 0.804 | 0.877 | 0.172 / 0.165 | 0.641 | 0.040 / 0.000 | 0.288 | 0.575 / 0.468 |
-| k-SLMmeans (Qwen3-1.7B) (final (approx.)) | 385 | 0.680 / 0.745 | 0.806 | 0.121 / 0.122 | 0.670 | 0.200 / 0.143 | 0.370 | 0.501 / 0.429 |
-| k-SLMmeans (Qwen3-4B) (final (approx.)) | 385 | 0.680 / 0.765 | 0.809 | 0.119 / 0.122 | 0.686 | 0.177 / 0.000 | 0.375 | 0.541 / 0.418 |
+| method (scope) | n | nearest-summary share | intent coverage | specificity margin | max cos to another summary | unsupported lemma share | genericity (#7) | label align sim / acc (#8) | nearest-summary share without exact duplicates |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| k-NLPmeans (final (approx.)) | 385 | 0.801 / 0.842 | 0.943 | 0.179 / 0.165 | 0.662 | 0.017 / 0.000 | 0.382 | 0.461 / 0.473 | 0.801 |
+| k-SLMmeans (Qwen3-0.6B) (final (approx.)) | 385 | 0.736 / 0.804 | 0.877 | 0.172 / 0.165 | 0.641 | 0.040 / 0.000 | 0.288 | 0.575 / 0.468 | 0.736 |
+| k-SLMmeans (Qwen3-1.7B) (final (approx.)) | 385 | 0.680 / 0.745 | 0.806 | 0.121 / 0.122 | 0.670 | 0.200 / 0.143 | 0.370 | 0.501 / 0.429 | 0.680 |
+| k-SLMmeans (Qwen3-4B) (final (approx.)) | 385 | 0.680 / 0.765 | 0.809 | 0.119 / 0.122 | 0.686 | 0.177 / 0.000 | 0.375 | 0.541 / 0.418 | 0.680 |
 
 **Flags** (share of summaries)
 
-| method (scope) | not fluent | low coverage | generic | duplicate | near-duplicate | mentions | margin <= 0 | unsupported |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| k-NLPmeans (final (approx.)) | 0% | 8% | 1% | 0% | 0% | 0% | 1% | 1% |
-| k-SLMmeans (Qwen3-0.6B) (final (approx.)) | 89% | 16% | 5% | 0% | 0% | 0% | 5% | 3% |
-| k-SLMmeans (Qwen3-1.7B) (final (approx.)) | 9% | 25% | 12% | 0% | 1% | 1% | 12% | 14% |
-| k-SLMmeans (Qwen3-4B) (final (approx.)) | 7% | 25% | 17% | 0% | 0% | 0% | 17% | 11% |
+| method (scope) | not fluent | low coverage | low coverage without exact duplicates | generic | duplicate | near-duplicate | mentions | margin <= 0 | unsupported |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| k-NLPmeans (final (approx.)) | 0% | 8% | 8% | 1% | 0% | 0% | 0% | 1% | 1% |
+| k-SLMmeans (Qwen3-0.6B) (final (approx.)) | 89% | 16% | 16% | 5% | 0% | 0% | 0% | 5% | 3% |
+| k-SLMmeans (Qwen3-1.7B) (final (approx.)) | 9% | 25% | 25% | 12% | 0% | 1% | 1% | 12% | 14% |
+| k-SLMmeans (Qwen3-4B) (final (approx.)) | 7% | 25% | 25% | 17% | 0% | 0% | 0% | 17% | 11% |
 
 **Fluency checks** (share of summaries failing each)
 
@@ -140,34 +143,40 @@ Files: `summary_quality_table.md` / `.csv` (this table), `summary_quality_per_st
 
 ### What the tables show
 
-- On CLINC150 the Qwen3 summaries get worse on coverage, specificity and support with size, while fluency does not follow that order.
-  Last step, mean nearest-summary share: LSA 0.80, 0.6B 0.61, 1.7B 0.61, 4B 0.49; share with a non-positive specificity margin:
-  0%, 14%, 19%, 39%; share flagged unsupported: 0%, 12%, 25%, 47%. The 4B has the most exact duplicates (13% of its
-  last-step summaries) and the most that mention the cluster (36%).
+- On CLINC150 the 4B is worst on coverage and specificity. Last step, mean nearest-summary share: LSA 0.80, 0.6B 0.61, 1.7B 0.61, 4B 0.49;
+  share with a non-positive specificity margin: 0%, 14%, 19%, 39%. The 0.6B and 1.7B are about level on coverage (0.607 vs 0.614 nearest-summary
+  share, 0.764 vs 0.768 intent coverage) and the 1.7B has a lower margin. The unsupported share rises across the three sizes on CLINC150 (flagged: 12%, 25%, 47%).
+  The 4B has the most exact duplicates (13% of its last-step summaries) and the most that mention the cluster (36%). Model size is confounded with how each
+  model reads the prompt (#46), and this analysis does not separate the two.
+- The 4B's low coverage is partly the duplicate rule. Exact-duplicate rows (12.5% of the 4B's last-step summaries) share one embedding, only the first copy
+  wins members, and the later copies score 0.001 on average. Without them the 4B's mean nearest-summary share is 0.564 instead of 0.494 and its low-coverage
+  share 40% instead of 47%. The other methods barely change (0.6B 0.613, 1.7B 0.619). So the gap to the 0.6B and 1.7B is smaller than the headline 0.49, though it remains.
 - Fluency proxies are not aligned with the other three families. The 1.7B fails the proxies least among the Qwen3 sizes (9%) but has
   more unsupported lemmas than the 0.6B (25% vs 12% flagged). The 0.6B and 4B fail the proxies in 28% and 34% of all summaries
   (for the 0.6B mostly copying a member verbatim and a missing "?"; for the 4B echoing the prompt, a missing "?" and quotes).
 - Among CLINC150 summaries that pass every fluency proxy, a substantial share still fails another family
   (low coverage, generic or unsupported): 11% for LSA, 34% for the 0.6B, 42% for the 1.7B, 44% for the 4B.
-- BANKING77 (approximate, last step): the same ordering by size appears for coverage and for the unsupported share but is weaker
-  (nearest-summary share 0.80 / 0.74 / 0.68 / 0.68, in the order LSA, 0.6B, 1.7B, 4B), and the 4B has no duplicates and does not mention
+- BANKING77 (approximate, last step): nearest-summary share is 0.80 / 0.74 / 0.68 / 0.68 (LSA, 0.6B, 1.7B, 4B). The unsupported share
+  is 0.017 / 0.040 / 0.200 / 0.177, so it is not monotone in size there (1.7B above the 4B). The 4B has no duplicates and does not mention
   the cluster, consistent with `prelim_bank77.md`. The 0.6B's 89% "not fluent" is almost entirely the proxy for answers wrapped in double quotes (83%).
-- Members at the step (CLINC150, "Members at the step" table): the share of members lost at a replacement step is larger for the
-  Qwen3 summaries and largest for the 4B (last step: LSA 2%, 0.6B 24%, 1.7B 25%, 4B 41%). Among lost members, 72-83% belong to a gold intent the
-  summary does not cover, against 28-45% of all members in such intents. This association is partly built in:
-  a member whose intent the summary does not cover is a member that is nearer to another summary, so it is the kind of member that moves. It
+- Members at the step (CLINC150, "Members at the step" table, counted after the full Lloyd block): the share of members lost is larger for the
+  Qwen3 summaries and largest for the 4B (last step: LSA 2%, 0.6B 24%, 1.7B 25%, 4B 41%). A member is much more likely to leave when its gold intent is one the
+  summary does not cover than when it is covered: lost if uncovered vs lost if covered, last step, LSA 9% vs 1%, 0.6B 61% vs 10%, 1.7B 58% vs 10%, 4B 75% vs 14%.
+  This association is partly built in: a member whose intent the summary does not cover is nearer to another summary, so it is the kind of member the next assignment moves. It
   is not evidence that the summary caused the move (#47).
 
 ## 4. Worked examples: fluent summaries that do not represent their cluster
 
 Selection rule (`scripts/summary_quality_examples.py`; applied once to the final scores. A first pass picked a 1.7B summary containing a Chinese word, which led to adding the non-Latin-letters fluency check; the rule itself did not change): per model, seed 0, last summary step (step 4), among summaries that pass every
 fluency proxy, have a nearest-summary share below 0.3 and at least 50 members, the one that lost the most members. This picks the most
-extreme case that fits the rule for each model. It is not a typical cluster: the tables above give the rates.
+extreme case that fits the rule for each model. It is not a typical cluster: the tables above give the rates. The filter itself (a summary nearest to under 30% of its
+members, then the most members lost) nearly guarantees a large loss, so these cases show what the loss looks like, not that it follows from the scores.
+All kept/lost/gained counts are after the full Lloyd block (`partition_after`), not at the replacement itself.
 
 **Qwen3-0.6B, cluster 69.** Summary: "What are the key transfers and actions you need to perform to move money between accounts and handle
 account-related tasks?" A well-formed single question. 206 members, whose most common gold intents are order_checks (50), transfer (39),
 freeze_account (23) and balance (15). Nearest-summary share 0.00, intent coverage 0.00 (none of its intents), margin -0.059. Flagged generic
-(margin) and unsupported. At the replacement all 206 members left (134 of them to cluster 110) and 118 others joined.
+(margin) and unsupported. After the Lloyd block all 206 members had left (134 of them to cluster 110) and 118 others had joined.
 
 **Qwen3-1.7B, cluster 121.** Summary: "What is the impact of opening a new account on a credit score and how can it be managed?" A well-formed
 question. 250 members: pin_change (99), account_blocked (51), freeze_account (33), report_fraud (16). Nearest-summary share 0.08, intent coverage 0.00,
@@ -178,7 +187,7 @@ lemmas are absent from the members, so the lexical unsupported rule does not fir
 restaurant_suggestion (113), meal_suggestion (95), restaurant_reviews (35), how_busy (31). Nearest-summary share 0.00, margin -0.309. Flagged generic (mentions
 the cluster, negative margin) and unsupported. No member stayed; 313 went to cluster 123 and 37 to cluster 17, while 50 others joined.
 
-In all three the cluster's members left at the replacement step and the cluster that carries the same id afterwards is made mostly of other queries (the "gained" counts). These are single seed-0 cases; they illustrate the kept/lost link and do not establish how often this happens (the tables do).
+In all three the cluster's members had left by the end of the step's Lloyd block and the cluster that carries the same id afterwards is made mostly of other queries (the "gained" counts). These are single seed-0 cases; they illustrate the kept/lost link and do not establish how often this happens (the tables do).
 
 ## 5. Hand check: pending
 
@@ -191,13 +200,16 @@ there is no agreement number yet.
   Recovery uses the max-count rule of `prelim_bank77.md` section 6 to match an intent to a cluster, graded by the Jaccard overlap of the
   matched cluster with the intent (well at least 0.5, poor below 0.25, minimum over the four methods). Each row shows the cluster size and 10 random members.
 - Sheets: `summary_audit_sheet_clinc150_intent.csv` and `summary_audit_sheet_bank77.csv` (plus `.md` copies for reading); the keys
-  (`summary_audit_key_*.csv`) hold the method and the automatic flags and should stay closed while rating. The BANKING77 sheet uses the
+  (method, cluster and automatic flags) are deliberately **not** in the repo, so the rater cannot see them. They regenerate deterministically with
+  `make_audit_sheet.py ... --write-key results/audit_keys` (command in section 7); do that after rating. The BANKING77 sheet uses the
   approximate final partition.
-- After rating, `python scripts/audit_agreement.py SHEET KEY` prints, per property (low coverage, generic, unsupported, not fluent), the 2 x 2 table, raw agreement and
+- After rating, `python scripts/audit_agreement.py SHEET results/audit_keys/summary_audit_key_<dataset>.csv` prints, per property (low coverage, generic, unsupported, not fluent), the 2 x 2 table, raw agreement and
   Cohen's kappa. One rater; with 40 summaries per dataset the numbers will be rough.
 
 ## 6. Limitations
 
+- Blinding is imperfect: the LSA rows are recognisably member sentences joined by line breaks, the 0.6B often wraps its answer in quotes, and the 4B's "main theme of the cluster" is recognisable. A rater can often tell the method.
+- "Well recovered" requires every one of the four methods to reach Jaccard 0.5 with the intent, which tilts the sample toward easy intents and under-samples the 4B's failures.
 - Lexical unsupported rule (paraphrase counts as unsupported; shared common words hide invented topics, see the 1.7B example).
 - Nearest-summary share depends on the other k-1 summaries, so it is a property of the step's whole set, not of one summary alone. Identical summaries tie and only the first keeps its members.
 - The specificity margin uses the members' mean as the cluster's representative; a cluster that mixes intents has a mean that fits nothing well.
@@ -214,9 +226,10 @@ python scripts/summary_quality.py $R/clinc150_lsa/20261027-174631 $R/clinc150_qw
     $R/clinc150_qwen3-1.7b/20261027-202532 $R/clinc150_qwen3-4b/20261027-221042 $R/prelim_bank77_*/* \
     --cache-dir ../k-slimeans/cache --out-dir results/summary_quality
 python scripts/make_audit_sheet.py <the same run dirs> --scores results/summary_quality/summary_quality_per_cluster.csv \
-    --cache-dir ../k-slimeans/cache --out-dir docs/results
+    --cache-dir ../k-slimeans/cache --out-dir docs/results --write-key results/audit_keys
 ```
 
-CPU only (the script hides the GPU); 16,540 summaries took about 2.5 minutes (12 cores, spaCy plus re-encoding).
-The per-cluster CSV (`summary_quality_per_cluster.csv`, 6.5 MB, keyed by dataset, method, run, seed, step, cluster, with the kept/lost/gained counts
-for #33 and #50) is not committed; `results/` is untracked, and it regenerates with the command above.
+CPU only (the script hides the GPU); 16,540 summaries took about 2 minutes (12 cores, spaCy plus re-encoding).
+The per-cluster CSV (`summary_quality_per_cluster.csv`, 6.5 MB, keyed by dataset, method, run, seed, step, cluster, with the kept/lost/gained counts and the cluster's
+purity after the step, `purity_after`, for #33 and #50). Join note: `method` is the label ("k-NLPmeans", "k-SLMmeans (Qwen3-4B)"), because the Qwen runs share the
+method name `k-SLMmeans`; `run` (`<config name>/<timestamp>`) disambiguates is not committed; `results/` is untracked, and it regenerates with the command above.
