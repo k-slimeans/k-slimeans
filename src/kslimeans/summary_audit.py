@@ -9,7 +9,8 @@ section 6, lowest cluster id on ties) and its recovery is the Jaccard overlap wi
 the minimum over methods, so that every method recovers a "well" intent and none recovers a "poor" one (section 6
 takes the same minimum over methods). Intents with a score of at least `WELL_FROM` are well recovered, below
 `POOR_BELOW` poorly, the rest mixed. `PLAN` intents are drawn per class with `random.Random(seed)` from the
-candidates sorted by intent id. A drawn intent yields one row per method: that method's summary, its cluster size
+candidates sorted by intent id, skipping an intent whose matched cluster for some method was already drawn
+(a summary is rated once). A drawn intent yields one row per method: that method's summary, its cluster size
 and up to `N_MEMBERS` of the cluster's members drawn with a generator seeded by (seed, intent, method index). The
 four rows of an intent get shuffled letters A to D so the method is hidden.
 """
@@ -18,7 +19,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Callable, Sequence
 
 import numpy as np
 
@@ -79,13 +80,23 @@ def intent_scores(partitions: Sequence[MethodPartition], gold: np.ndarray, n_int
     }
 
 
-def sample_items(scores: dict[int, float], seed: int, plan=PLAN) -> list[tuple[int, str]]:
-    """The audited intents with their class, in plan order; a class with too few candidates gives all it has."""
+def sample_items(
+    scores: dict[int, float], seed: int, plan=PLAN, accept: Callable[[int], bool] = lambda g: True
+) -> list[tuple[int, str]]:
+    """The audited intents with their class, in plan order; a class with too few candidates gives all it has.
+
+    Per class the candidates (sorted by intent id) are put in a random order by `random.Random(seed)` and the first
+    `n` that `accept` takes are kept. `accept` is called once per intent in that order, so it may keep state.
+    """
     rng = random.Random(seed)
     items: list[tuple[int, str]] = []
     for cls, n in plan:
         candidates = sorted(g for g, s in scores.items() if recovery_class(s) == cls)
-        items += [(g, cls) for g in rng.sample(candidates, min(n, len(candidates)))]
+        taken = 0
+        for g in rng.sample(candidates, len(candidates)):
+            if taken < n and accept(g):
+                items.append((g, cls))
+                taken += 1
     return items
 
 
@@ -104,7 +115,17 @@ def build_audit(
     scores = intent_scores(partitions, gold, int(gold.max()) + 1)
     sheet: list[dict] = []
     key: list[dict] = []
-    for item_no, (intent, cls) in enumerate(sample_items(scores, seed, plan), start=1):
+    used: set[tuple[int, int]] = set()
+
+    def unused_clusters(intent: int) -> bool:
+        """Reject an intent whose matched cluster of some method is already audited (one row per summary)."""
+        matched = {(m, matched_cluster(np.asarray(p.labels), gold, intent)[0]) for m, p in enumerate(partitions)}
+        if matched & used:
+            return False
+        used.update(matched)
+        return True
+
+    for item_no, (intent, cls) in enumerate(sample_items(scores, seed, plan, unused_clusters), start=1):
         order = np.random.default_rng([seed, intent]).permutation(len(partitions))
         for letter, m in zip(LETTERS, order):
             p = partitions[int(m)]

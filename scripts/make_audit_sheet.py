@@ -82,7 +82,7 @@ def main() -> None:
                 )
             )
 
-    scores = pd.read_csv(args.scores)
+    scores = pd.read_csv(args.scores, low_memory=False)
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     for dataset, partitions in by_dataset.items():

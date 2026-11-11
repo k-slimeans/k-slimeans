@@ -164,3 +164,14 @@ def test_make_audit_sheet_markdown_view():
     md = script.sheet_markdown("toy", sheet, approx=True)
     assert "## toy-01" in md and "### toy-01-A" in md and "FINAL assignments" in md
     assert "perfect-m" not in md and "blurry-m" not in md
+
+
+def test_an_intent_sharing_a_matched_cluster_with_an_earlier_item_is_skipped():
+    # Method "merged" puts intents 0 and 1 in one cluster, so only one of them can be audited.
+    gold = np.repeat(np.arange(3), 5)
+    merged = np.where(gold < 2, 0, 2)
+    parts = [MethodPartition("merged", "r", 0, 0, ["s0", "s1", "s2"], merged)]
+    texts = [f"t{i}" for i in range(15)]
+    _, key = build_audit("toy", texts, gold, None, parts, 0, 3, (("mixed", 2), ("well", 2)))
+    assert len({(k["method"], k["cluster"]) for k in key}) == len(key)
+    assert len(key) == 2  # intents 0/1 share a cluster (one kept), intent 2 is recovered perfectly
