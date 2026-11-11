@@ -92,8 +92,3 @@ def test_script_prints_one_row_per_summarizing_method(tmp_path, capsys):
     assert len(lines) == 3  # header, rule, one row: the kmeans baseline has no summaries
     assert lines[2].startswith("| r | Tiny-1B (k-SLMmeans) | 11 |")
     assert "| 0–2 | 2 | 1 | 1 |" in lines[2]
-
-
-def test_script_is_executable_with_shebang():
-    assert SCRIPT.read_text().startswith("#!/usr/bin/env python3")
-    assert SCRIPT.stat().st_mode & 0o111

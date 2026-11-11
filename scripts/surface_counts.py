@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Print the summary surface checks (docs/results/clinc150_summarizers.md section 2.4) for run directories.
 
 One row per method that logged summaries, pooled over its seeds; see `kslimeans.surface` for the rules.
