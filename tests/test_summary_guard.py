@@ -357,6 +357,49 @@ def test_guarded_start_keeps_the_wider_dtype_and_copies():
     assert emb[1, 0] == 1.0  # the summary embeddings (also `ref`) are not modified
 
 
+def test_guarded_start_same_dtype_is_a_new_array_and_changes_neither_input():
+    emb = np.ones((3, 2), dtype=np.float32)
+    centers = np.full((3, 2), 0.5, dtype=np.float32)
+    start = _guarded_start(emb, centers, [0, 2])
+    assert start is not emb and not np.shares_memory(start, emb) and not np.shares_memory(start, centers)
+    assert start.dtype == np.float32 and (start[[0, 2]] == 0.5).all() and (start[1] == 1.0).all()
+    assert (emb == 1.0).all() and (centers == 0.5).all()  # a copy=False mutation would write into `emb` (also `ref`)
+
+
+class _SnapshotSchedule(_Scripted):
+    """`_Scripted` that also copies each state's centers at the moment the step is chosen."""
+
+    def next_step(self, state):
+        self.snapshots = getattr(self, "snapshots", []) + [state.centers.copy()]
+        return super().next_step(state)
+
+
+def test_guarded_partial_steps_do_not_mutate_earlier_centers_or_results(synthetic):
+    def mask(*on):
+        return [c in on for c in range(N_BLOBS)]
+
+    def choose(c, _call=0):
+        return DUP if c in (0, 1, 3) else plain(c)
+
+    schedule = _SnapshotSchedule([Step(True, 20, mask(0, 1, 2)), Step(True, 20, mask(3, 4))])
+    result, embedder = run(synthetic, choose, schedule, guard=SummaryGuard(duplicate=True))
+    assert result.guarded_evolution == [[0, 1], [3]]
+
+    # km.cluster_centers_ of each earlier fit (what `State.centers` holds) is exactly as it was when the step began.
+    for state, snapshot in zip(schedule.states, schedule.snapshots):
+        assert np.array_equal(state.centers, snapshot)
+    first, second = result.centroids_evolution
+    for state, start in zip(schedule.states, (first, second)):
+        assert not np.shares_memory(start, state.centers)
+    # Earlier centroids_evolution entries still hold what that step started from, after the later step ran.
+    assert np.array_equal(first[[0, 1]], schedule.snapshots[0][[0, 1]])
+    assert np.array_equal(first[2], embedder.vector(plain(2)))
+    assert np.array_equal(second[3], schedule.snapshots[1][3])
+    assert not np.shares_memory(first, second)
+    for start in (first, second):
+        assert not np.shares_memory(result.centroids, start)
+
+
 def test_build_summary_guard_accepts_dicts_and_rejects_typos():
     assert build_summary_guard(None) is None
     assert build_summary_guard({"duplicate": True}) == SummaryGuard(duplicate=True)

@@ -416,7 +416,7 @@ cluster starts that step's Lloyd block from its previous k-means center instead 
 still generated and logged as they are, and the stopping rule is unchanged: `ref`, `summary_embeddings` and the `tol` shift
 keep using the summary embeddings of all clusters. With the guard on, `trace.jsonl` rows gain `n_guarded`,
 `n_guarded_duplicate` and `n_guarded_mentions`, and `summaries.jsonl` gains `guarded_evolution` (the flagged cluster ids per
-summary step); `centroids_evolution` holds the start centers actually used.
+summary step); `centroids_evolution` holds the start centers actually used. On a final step that stops on `tol`, `guarded_evolution` has an entry (what the guard would have flagged) but there is no trace row or `centroids_evolution` entry, since nothing was replaced.
 
 `configs/clinc150_guard.yaml` is the #31 protocol for the 4B (batch size 1, seeds 0-4) with the guard on, named
 `k-SLMmeans-guard`. `scripts/run_clinc150_guard.sh` runs it and builds a table next to the #31 4B and k-means rows, which it
