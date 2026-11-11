@@ -20,11 +20,13 @@ Every run gets its own directory, `<results_dir>/<name>/<timestamp>/`, containin
                      assignments it was written from): summary step `j` was written from
                      `assignments_evolution[summary_source_steps[j]]` and its Lloyd block ended in
                      `assignments_evolution[summary_source_steps[j] + 1]` (absent for a final step that
-                     stopped on `tol`, which fits no KMeans),
+                     stopped on `tol`, which fits no KMeans). A run with a `summary_guard` (#47) also has
+                     `guarded_evolution`: per summary step, the cluster ids that kept their k-means center,
 - `trace.jsonl`      one row per KMeans fit per (seed, method) from `Result.trace` (inertia, label churn,
                      summary shift, ...) and that step's cost deltas (`input_tokens`, `output_tokens`,
                      `summarizer_seconds`, `n_empty_summaries`, `n_truncated_clusters`, `n_dropped_texts`; 0 on
-                     non-summary rows), written only for summary-centroids methods,
+                     non-summary rows) and, with a `summary_guard`, `n_guarded`, `n_guarded_duplicate` and
+                     `n_guarded_mentions`; written only for summary-centroids methods,
 
 and `summary.csv` with mean / std over seeds is written when the run finishes.
 """

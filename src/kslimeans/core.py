@@ -26,6 +26,7 @@ from .embeddings import Embedder, get_embedder
 from .schedules import FixedSchedule, State, SummarySchedule
 from .sentences import SentenceCorpus
 from .summarizers import Cluster, Summarizer, build_summarizer
+from .surface import duplicate_groups, mentions_cluster
 
 COST_KEYS = (
     "input_tokens",
@@ -40,6 +41,86 @@ COST_KEYS = (
 
 def _zero_cost() -> dict:
     return {key: 0.0 if key == "summarizer_seconds" else 0 for key in COST_KEYS}
+
+
+GUARD_COUNT_KEYS = ("n_guarded", "n_guarded_duplicate", "n_guarded_mentions")
+"""Trace-row keys present only when a `SummaryGuard` is on (see `SummaryGuard`)."""
+
+
+@dataclass(frozen=True)
+class SummaryGuard:
+    """Diagnostic switch (#47): a flagged summary does not become its cluster's centroid.
+
+    At every summary step, after the summaries are produced, a cluster is flagged when
+
+    - `duplicate`: its summary is identical to another cluster's on that step (every member of a
+      duplicate group is flagged; empty summaries never count, as in `surface.duplicate_groups`), or
+    - `mentions_cluster`: its summary talks about the cluster (`surface.mentions_cluster`).
+
+    A flagged cluster starts that step's Lloyd block from its pre-replacement k-means center
+    (`km.cluster_centers_` of the previous fit) instead of its summary embedding. Nothing else
+    changes: the summaries are logged as generated, the memo cache is untouched, and `ref`,
+    `summary_embeddings` and the `tol` shift still use the summary embeddings of all clusters, so the
+    stopping rule is the unguarded one and only the start centroids differ. This is a diagnostic
+    variant for testing whether flagged summaries cause lower scores, not a method.
+    """
+
+    duplicate: bool = False
+    mentions_cluster: bool = False
+
+
+def build_summary_guard(spec) -> SummaryGuard | None:
+    """`SummaryGuard` from a config value: `None` (off), a `SummaryGuard`, or `{duplicate: bool, mentions_cluster: bool}`.
+
+    Raises `ValueError` for unknown keys, non-boolean flags, or a guard with no flag on (use `None` for off).
+    """
+    if spec is None or isinstance(spec, SummaryGuard):
+        guard = spec
+    elif isinstance(spec, dict):
+        unknown = set(spec) - {"duplicate", "mentions_cluster"}
+        if unknown:
+            raise ValueError(
+                f"Unknown summary_guard key(s) {sorted(unknown)}, expected a subset of ['duplicate', 'mentions_cluster']"
+            )
+        for key, value in spec.items():
+            if not isinstance(value, bool):
+                raise ValueError(f"summary_guard.{key} must be true or false, got {value!r}")
+        guard = SummaryGuard(**spec)
+    else:
+        raise TypeError(f"summary_guard must be a dict or null, got {type(spec).__name__}")
+    if guard is not None and not (guard.duplicate or guard.mentions_cluster):
+        raise ValueError("summary_guard has no flag on; set duplicate and/or mentions_cluster, or omit summary_guard")
+    return guard
+
+
+def _guard_flags(guard: SummaryGuard, latest: list[str | None], active: list[int]) -> tuple[list[int], dict]:
+    """Flagged cluster ids (ascending) among `active`, and the step's `GUARD_COUNT_KEYS` counts.
+
+    `latest` is the step's full summary row as logged in `summaries_evolution` (on a partial step it
+    also holds the stale summaries of masked-off clusters, which can make an active summary a
+    duplicate); only `active` clusters can be flagged.
+    """
+    active_set = set(active)
+    dup: set[int] = set()
+    if guard.duplicate:
+        dup = {c for group in duplicate_groups(latest) for c in group if c in active_set}
+    ment = {c for c in active if guard.mentions_cluster and mentions_cluster(latest[c])}
+    flagged = sorted(dup | ment)
+    counts = {"n_guarded": len(flagged), "n_guarded_duplicate": len(dup), "n_guarded_mentions": len(ment)}
+    return flagged, counts
+
+
+def _guarded_start(summary_emb: np.ndarray, centers: np.ndarray, flagged: list[int]) -> np.ndarray:
+    """`summary_emb` with the rows of `flagged` clusters replaced by their k-means `centers`.
+
+    A copy when something is flagged, `summary_emb` itself otherwise. The copy takes the wider of the two
+    dtypes, so no center loses precision.
+    """
+    if not flagged:
+        return summary_emb
+    start = summary_emb.astype(np.result_type(summary_emb, centers), copy=True)
+    start[flagged] = centers[flagged]
+    return start
 
 
 @dataclass
@@ -80,6 +161,11 @@ class Result:
     was written from. Summary step `j` was written from `assignments_evolution[summary_source_steps[j]]`;
     the assignments after its Lloyd block are `assignments_evolution[summary_source_steps[j] + 1]`,
     which doesn't exist for a final step that stopped on `tol` (it fits no KMeans)."""
+    guarded_evolution: list[list[int]] | None = None
+    """`None` unless a `SummaryGuard` was on. Then one ascending list of flagged cluster ids per
+    `summaries_evolution` entry; those clusters started that step's Lloyd block from their previous
+    k-means center, not their summary embedding (`centroids_evolution` holds the starts actually used).
+    A final step that stopped on `tol` replaced no centroid, so its list is what the guard would have flagged."""
 
     def as_tuple(self):
         """Upstream's 6-tuple return order, for drop-in compatibility."""
@@ -142,6 +228,7 @@ def _trace_row(
     n_calls: int,
     n_summarized: int,
     cost: dict | None = None,
+    guard_counts: dict | None = None,
 ) -> dict:
     """One `Result.trace` row for the fit that just produced `state`.
 
@@ -152,7 +239,9 @@ def _trace_row(
     `n_summarized` the number of clusters whose start centroid came from a summary (k on a
     full step); both are 0 on non-summary rows and step 0. `cost` holds that step's `COST_KEYS`
     counters (zeros when omitted, as on non-summary rows and step 0); the counters of a summary
-    step that stopped on `tol` appear in no row, only in `Result.cost`.
+    step that stopped on `tol` appear in no row, only in `Result.cost`. `guard_counts`
+    (`GUARD_COUNT_KEYS`) is given only when a `SummaryGuard` is on and adds those keys last; with a guard,
+    `n_summarized` still counts the clusters summarized, `n_guarded` of which kept their k-means center.
     """
     return {
         "step": state.step,
@@ -167,6 +256,7 @@ def _trace_row(
         "n_calls": n_calls,
         "n_summarized": n_summarized,
         **(_zero_cost() if cost is None else cost),
+        **({} if guard_counts is None else guard_counts),
     }
 
 
@@ -288,6 +378,7 @@ def summary_kmeans(
     init="k-means++",
     verbose: bool = True,
     clock: Callable[[], float] = time.perf_counter,
+    summary_guard: SummaryGuard | dict | None = None,
 ) -> Result:
     """Run the summary-centroids clustering loop.
 
@@ -295,8 +386,11 @@ def summary_kmeans(
     `get_embedder`. `text_features`, if given, is used instead of
     embedding `texts` from scratch. `sentences`, if given, is used instead
     of building a `SentenceCorpus` for summarizers that need one. `clock` times the
-    summarizer (`Result.cost["summarizer_seconds"]`); tests inject a fake.
+    summarizer (`Result.cost["summarizer_seconds"]`); tests inject a fake. `summary_guard` (a
+    `SummaryGuard` or its dict form) is the #47 diagnostic: flagged summaries fall back to their
+    cluster's k-means center; off (None) by default, and then nothing about the output changes.
     """
+    guard = build_summary_guard(summary_guard)
     if not isinstance(texts, list):
         raise TypeError(f"Expected a list for variable texts, but got {type(texts).__name__}")
 
@@ -344,7 +438,10 @@ def summary_kmeans(
         cluster_rms_radius=_cluster_rms_radius(X, labels, ref),
     )
 
-    trace = [_trace_row(state, False, None, 0, 0, dict(zero_cost))]
+    guarded_evolution: list[list[int]] | None = None if guard is None else []
+    no_guard_counts = None if guard is None else dict.fromkeys(GUARD_COUNT_KEYS, 0)
+
+    trace = [_trace_row(state, False, None, 0, 0, dict(zero_cost), no_guard_counts)]
     assignments_evolution = [labels]
 
     pbar = tqdm(desc="Iterating KMeans", disable=not verbose)
@@ -358,6 +455,8 @@ def summary_kmeans(
             n_summarized = 0
             mask = step.summarize_mask
             summarized_now: list[int] = []  # clusters whose summary anchors move to the pre-summary state
+            guard_counts = no_guard_counts
+            flagged: list[int] = []
             if mask is not None and len(mask) != n_clusters:
                 raise ValueError(f"summarize_mask has length {len(mask)}, expected n_clusters={n_clusters}")
             if step.summarize and (mask is None or all(mask)):
@@ -375,6 +474,10 @@ def summary_kmeans(
                 summaries_evolution.append(summaries)
                 summary_source_steps.append(state.step)
 
+                if guard is not None:
+                    flagged, guard_counts = _guard_flags(guard, summaries, summarized_now)
+                    guarded_evolution.append(flagged)
+
                 s_emb = _encode_summaries(embedder, summaries, step_cost, total_cost)
                 shift = float(np.linalg.norm(ref - s_emb, axis=1).sum())
                 if shift < tol:
@@ -384,8 +487,9 @@ def summary_kmeans(
                     break
 
                 ref = s_emb
-                centroids_evolution.append(s_emb)
-                start = s_emb
+                # Guarded rows start from the previous k-means center; `ref` and `s_emb` stay the summary embeddings.
+                start = _guarded_start(s_emb, km.cluster_centers_, flagged)
+                centroids_evolution.append(start)
                 summary_inertia = _objective(X, start)
             elif step.summarize:
                 # Partial step: only masked-on clusters are selected, summarized and encoded. The
@@ -410,6 +514,10 @@ def summary_kmeans(
                 summaries_evolution.append(list(latest))
                 summary_source_steps.append(state.step)
 
+                if guard is not None:
+                    flagged, guard_counts = _guard_flags(guard, latest, active)
+                    guarded_evolution.append(flagged)
+
                 # Masked-off rows keep the current k-means center. `start` copies the centers (so it
                 # keeps KMeans' own dtype, which is also what KMeans casts any `init` to); the float32
                 # summary embeddings are written into it exactly, with no precision lost.
@@ -419,7 +527,9 @@ def summary_kmeans(
                     new_emb = _encode_summaries(embedder, new_summaries, step_cost, total_cost)
                     shift = float(np.linalg.norm(ref[active] - new_emb, axis=1).sum())
                     ref[active] = new_emb
-                    start[active] = new_emb
+                    # Guarded rows keep the k-means center `start` already holds.
+                    taken = np.array([c not in flagged for c in active])
+                    start[np.asarray(active)[taken]] = new_emb[taken]
                     if s_emb is None:
                         s_emb = np.full((n_clusters, new_emb.shape[1]), np.nan, dtype=new_emb.dtype)
                     else:
@@ -468,7 +578,9 @@ def summary_kmeans(
                 anchor_members=anchor_members,
                 cluster_rms_radius=_cluster_rms_radius(X, labels, km.cluster_centers_),
             )
-            trace.append(_trace_row(state, step.summarize, summary_inertia, step_calls, n_summarized, step_cost))
+            trace.append(
+                _trace_row(state, step.summarize, summary_inertia, step_calls, n_summarized, step_cost, guard_counts)
+            )
             assignments_evolution.append(labels)
     finally:
         pbar.close()
@@ -486,6 +598,7 @@ def summary_kmeans(
         cost=total_cost,
         assignments_evolution=assignments_evolution,
         summary_source_steps=summary_source_steps,
+        guarded_evolution=guarded_evolution,
     )
 
 

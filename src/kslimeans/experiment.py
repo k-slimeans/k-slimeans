@@ -25,7 +25,7 @@ from sklearn.cluster import KMeans
 
 from .cache import cached_sentences, dataset_embeddings
 from .config import check_keys, default_method_name
-from .core import summary_kmeans
+from .core import build_summary_guard, summary_kmeans
 from .data import Dataset, load_dataset
 from .embeddings import Embedder, build_corpus_embedder, get_embedder
 from .environment import collect_environment, peak_gpu_memory_gb, reset_peak_gpu_memory
@@ -50,6 +50,7 @@ _ALLOWED_KEYS = frozenset(
         "cache_dir",
         "results_dir",
         "gpu_check",
+        "summary_guard",
     }
 )
 _REQUIRED_KEYS = frozenset({"name", "dataset", "embedder", "schedule", "summarizer"})
@@ -133,6 +134,7 @@ def run_offline(cfg: dict) -> Path:
     Wraps the run in the config's `gpu_check` policy (pre-run idle check, `gpu_samples.csv` / `gpu.json`).
     """
     _check_keys(cfg)
+    build_summary_guard(cfg.get("summary_guard"))  # a bad guard fails before the GPU check and the model load
     with GpuSession(cfg.get("gpu_check")) as gpu:
         return _run_offline(cfg, gpu)
 
@@ -147,6 +149,7 @@ def _run_offline(cfg: dict, gpu: GpuSession) -> Path:
     tol = cfg.get("tol", 1e-4)
     force_context_length = cfg.get("force_context_length", 0)
     method_name = cfg.get("method_name") or default_method_name(cfg["summarizer"])
+    summary_guard = build_summary_guard(cfg.get("summary_guard"))
 
     X = dataset_embeddings(ds, embedder, cache_dir)
     summarizer = build_summarizer(cfg["summarizer"], prompt=ds.prompt, text_type=ds.text_type)
@@ -188,6 +191,7 @@ def _run_offline(cfg: dict, gpu: GpuSession) -> Path:
             force_context_length=force_context_length,
             tol=tol,
             random_state=seed,
+            summary_guard=summary_guard,
         )
         elapsed = time.perf_counter() - start
         peak_alloc_gb, peak_reserved_gb = peak_gpu_memory_gb()
@@ -224,6 +228,7 @@ def _run_offline(cfg: dict, gpu: GpuSession) -> Path:
                 "summaries_evolution": result.summaries_evolution,
                 "assignments_evolution": result.assignments_evolution,
                 "summary_source_steps": result.summary_source_steps,
+                **({} if result.guarded_evolution is None else {"guarded_evolution": result.guarded_evolution}),
             }
         )
 
