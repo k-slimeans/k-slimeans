@@ -260,6 +260,8 @@ def test_baseline_only_run_logs_just_the_baselines_and_never_builds_the_summary_
     ]
     assert all(r["peak_rss_mb"] > 0 and r["sum_cen_dist"] is None for r in rows)
     assert (run_path / "summary.csv").exists()
+    table = aggregate_runs([run_path])  # a baseline-only run directory aggregates too
+    assert len(table) == 2 and table[["acc_mean", "nmi_mean", "ari_mean"]].notna().all().all()
 
 
 def test_load_texts_false_is_forwarded_to_the_loader(run_streaming_module, fake_stream, monkeypatch):

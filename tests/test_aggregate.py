@@ -458,3 +458,48 @@ def test_gpu_summary_combines_runs():
     assert aggregate._gpu_summary([{"idle_check": {"idle": True}}, {}])[0] is None  # one run unverified
     mixed = aggregate._gpu_summary([{"idle_check": {"idle": False}}, {}, {"non_torch_above_baseline_mib": 5.0}])
     assert mixed == (False, 5.0)
+
+
+# --- baseline-only runs (no summarizer in the config, e.g. configs/arxiv_full_baselines.yaml) ---
+
+
+def _write_baseline_only(path):
+    path.mkdir(parents=True)
+    cfg = {"name": "r", "dataset": "synth", "embedder": "emb", "baselines": {"kmeans": {}}}
+    (path / "config.yaml").write_text(yaml.safe_dump(cfg))
+    rows = [{"seed": s, "method": m, "acc": a, "nmi": n, "ari": r, "runtime": 5.0, "peak_rss_mb": 900.0}
+            for m, a, n, r in (("kmeans", 0.5, 0.6, 0.3), ("minibatchkmeans", 0.4, 0.5, 0.2)) for s in (0, 1)]
+    (path / "metrics.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    return path
+
+
+def test_method_label_and_own_name_are_none_without_a_summarizer():
+    cfg = {"name": "r", "dataset": "synth"}
+    assert aggregate.method_label(cfg) is None
+    assert aggregate._own_name(cfg) is None
+    assert aggregate.method_label({"summarizer": LSA, "method_name": "k-NLPmeans"}) == "k-NLPmeans (LSA)"
+
+
+def test_baseline_only_run_aggregates(tmp_path):
+    df = aggregate.aggregate_runs([_write_baseline_only(tmp_path / "b")])
+    assert list(df["method"]) == ["k-means", "minibatchkmeans"]
+    assert list(df["n_seeds"]) == [2, 2]
+    assert df.iloc[0]["acc_mean"] == pytest.approx(0.5)
+    assert df.iloc[0]["runtime_s"] == pytest.approx(5.0)  # the streaming runner logs `runtime`
+    assert "k-means" in set(aggregate.format_table(df)["Method"])
+    costs = aggregate.cost_table([tmp_path / "b"])
+    assert list(costs["method"]) == ["k-means", "minibatchkmeans"]
+
+
+def test_baseline_only_run_next_to_a_summary_run_keeps_the_summary_method(tmp_path):
+    base = _write_baseline_only(tmp_path / "b")
+    slm = _write_run(tmp_path / "s", HF, "k-SLMmeans", OWN, KM)
+    with pytest.warns(UserWarning, match="differs"):  # kmeans scores differ between the two fixtures
+        df = aggregate.aggregate_runs([base, slm])
+    assert list(df["method"]) == ["k-means", "minibatchkmeans", "k-SLMmeans (Qwen3-0.6B)"]
+
+
+def test_baseline_only_run_has_no_summaries_to_show(tmp_path):
+    base = _write_baseline_only(tmp_path / "b")
+    with pytest.raises(ValueError, match="baseline-only"):
+        aggregate._load_seed_summaries(base, 0)

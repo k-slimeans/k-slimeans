@@ -57,9 +57,15 @@ def _load_config(run_dir: Path) -> dict:
         return yaml.safe_load(f)
 
 
-def method_label(cfg: dict) -> str:
-    """Display label of the summary-centroids method of a run, from its config."""
-    summarizer = cfg["summarizer"]
+def method_label(cfg: dict) -> str | None:
+    """Display label of the summary-centroids method of a run, from its config.
+
+    `None` for a baseline-only run (a streaming config with no `summarizer`): it has no summary method,
+    only baseline rows, which are labelled like any run's baselines.
+    """
+    summarizer = cfg.get("summarizer")
+    if summarizer is None:
+        return None
     name = cfg.get("method_name") or default_method_name(summarizer)
     if summarizer.get("type") == "hf":
         detail = str(summarizer["model_id"]).rstrip("/").split("/")[-1]
@@ -68,7 +74,10 @@ def method_label(cfg: dict) -> str:
     return f"{name} ({detail})"
 
 
-def _own_name(cfg: dict) -> str:
+def _own_name(cfg: dict) -> str | None:
+    """The run's summary method's name in `metrics.jsonl`, or `None` for a baseline-only run."""
+    if cfg.get("summarizer") is None:
+        return None
     return cfg.get("method_name") or default_method_name(cfg["summarizer"])
 
 
@@ -76,6 +85,8 @@ def _labelled_rows(run_dir: Path, cfg: dict) -> pd.DataFrame:
     """The run's metrics rows with `method` replaced by its display label."""
     own = _own_name(cfg)
     rows = pd.DataFrame(_read_jsonl(run_dir / "metrics.jsonl"))
+    if "runtime_s" not in rows and "runtime" in rows:  # the streaming runner's name for the same seconds
+        rows = rows.rename(columns={"runtime": "runtime_s"})
     rows["method"] = [
         method_label(cfg) if m == own else _DISPLAY_NAMES.get(m, m) for m in rows["method"]
     ]
@@ -424,6 +435,8 @@ def _load_seed_summaries(run_dir: Path, seed: int):
     """(config, dataset, summaries, assignments) of the run's summary method at `seed`."""
     cfg = _load_config(run_dir)
     own = _own_name(cfg)
+    if own is None:
+        raise ValueError(f"{run_dir} is a baseline-only run: it has no summaries")
     row = next(
         (r for r in _read_jsonl(run_dir / "summaries.jsonl") if r["method"] == own and r["seed"] == seed),
         None,
