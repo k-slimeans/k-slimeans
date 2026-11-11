@@ -295,7 +295,7 @@ def test_load_run_dataset_miss_raises_and_names_the_path(cached_run, tmp_path, m
     monkeypatch.setattr("kslimeans.cache.get_embedder", lambda name: pytest.fail("encode attempted"))
     with pytest.raises(CacheMissError, match=r"synth__fake_embeddings\.npz") as err:
         load_run_dataset(log, tmp_path / "empty")
-    assert "k-slimeans/cache" in str(err.value) and "allow_encode" in str(err.value)
+    assert "cache_dir" in str(err.value) and "allow_encode" in str(err.value)
 
 
 def test_load_run_dataset_stale_cache_counts_as_miss(cached_run, tmp_path):

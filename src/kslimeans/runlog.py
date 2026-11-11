@@ -41,7 +41,8 @@ from .summarizers import Cluster
 _IDENTITY_KEYS = ("seed", "method")
 
 
-REAL_CACHE_HINT = "/home/cooper/mst/clusteralgs/k-slimeans/cache"
+# Where the real caches usually live: the `cache/` of the checkout the runs were made from (worktrees have none).
+REAL_CACHE_HINT = "the main checkout's cache/ directory"
 
 
 class CacheMissError(FileNotFoundError):
