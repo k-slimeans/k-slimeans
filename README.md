@@ -333,7 +333,8 @@ python scripts/run_streaming.py configs/arxiv_sub200k_stream.yaml --set dataset.
 The full corpus (baselines only, CPU), the cost estimate for the summary methods and the 200k pilot are described in
 `docs/results/arxiv_status.md` (`configs/arxiv_full_baselines.yaml`, `scripts/estimate_stream_cost.py`,
 `configs/arxiv_sub200k_pilot.yaml`). A config without a `summarizer` block runs only the baselines, and
-`summary_every: m` summarizes only every m-th batch.
+`summary_every: m` summarizes only every m-th batch; the summary-distance columns then compare the last
+*summarized* batch's summaries with the end-of-stream centroids.
 
 ### GPU idle check
 

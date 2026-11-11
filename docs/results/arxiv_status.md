@@ -4,10 +4,10 @@ This is a progress status, not a results report. The only scores in it are from 
 
 ## TL;DR
 
-- **Baselines at full scale** (3,035,644 abstracts, k = 171, seeds 0-2) are ready to run as a CPU job, `configs/arxiv_full_baselines.yaml`. Expected: about 6-7 GB peak RAM, about 1 hour (worst case about 2.5 hours). Full-batch k-means fits the 15 GB box only with `copy_x: false`; with sklearn's default copy it would need 11-13 GB and is not safe.
+- **Baselines at full scale** (3,035,644 abstracts, k = 171, seeds 0-2) are ready to run as a CPU job, `configs/arxiv_full_baselines.yaml`. Expected: about 5.7 GB steady (X plus interpreter), up to about 7 GB during `kmeans`; the logged `peak_rss_mb` may read about 7.5-8 GB at load because it counts the clean mapped float16 pages touched while X is filled. Stop if it passes 10 GB. About 1 hour (worst case about 2.5 hours). Full-batch k-means fits the 15 GB box only with `copy_x: false`; with sklearn's default copy it would need 11-13 GB and is not safe.
 - **LSA (k-NLPmeans) should use the 200k subsample, not the full corpus.** At full scale the sentence embeddings alone are 29 GB in float32 and segmentation is about 10 hours on one CPU core.
 - **The current streaming schedule is out of reach**: up to 259,920 summarizer calls, about 74 GPU-hours with Qwen3-0.6B and 103 with Qwen3-1.7B.
-- **Recommended for the full summary run (#49): Qwen3-1.7B, 150,000-row batches (21 batches), two summary steps per batch.** At most 7,182 calls, about 2.9 GPU-hours on an idle card (4.9 if the card is as slow as during the CLINC150 runs).
+- **Recommended for the full summary run (#49): Qwen3-1.7B, 150,000-row batches (21 batches), two summary steps per batch.** At most 7,182 calls, **2.9 GPU-hours if the card is idle, up to 4.9 if it is as slow as during the CLINC150 runs.** The idle figure divides the logged rates by 1.7, which rests on a single BANKING77 re-timing (185 s against 105-115 s), so treat the range, not 2.9 alone, as the budget until the pilot measures the real rate.
 - **LSA** (`configs/arxiv_sub200k_lsa.yaml`): 200k subsample, about 45-80 minutes (spaCy dominates), GPU only for the MiniLM sentence embedding.
 - **Pilot** (`configs/arxiv_sub200k_pilot.yaml`): the same model and steps on the 200k subsample with 20,000-row batches, at most 3,360 calls, about 1.3 GPU-hours idle (2.3 as logged). It measures the real per-call cost on arXiv prompts, which this estimate has only from CLINC150 and one smoke run.
 
@@ -42,7 +42,7 @@ One seed, a non-random prefix of the subsample (file order), so these say only t
 - A config without a `summarizer` block is baseline-only: no schedule, embedder object, summarizer or sentence corpus is built, and the summary-method keys are not required. With a `summarizer` nothing changes (the same keys are required, the typo guard is intact).
 - `dataset.load_texts: false` skips the abstracts. At full scale they are about 3 GB of Python strings that the baselines never read. The arXiv loaders return `""` for every text and keep the labels and vector rows.
 - Every metrics row now logs `peak_rss_mb`, the process high-water mark after that method (so it never decreases within a run).
-- New `summary_every` for the summary method, see section 4.
+- New `summary_every` for the summary method, see section 4. With `summary_every > 1` the last batch may be skipped; the summary-distance columns (`sum_cen_dist`, `sum_sum_dist`) then compare the last *summarized* batch's summaries with the end-of-stream centroids, not the final batch's.
 
 ### 2.2 Peak RAM
 
@@ -55,11 +55,13 @@ The box has 15 GB (about 12 GB available when idle; the Windows side and other j
 | Labels, oracle centroids, metrics | < 0.1 GB | |
 | Load transient | + up to 2.3 GB | file-backed memmap pages, reclaimable, released after the conversion |
 
+The logged `peak_rss_mb` can read higher than these steady figures, about 7.5-8 GB at load: `ru_maxrss` counts mapped file pages, and the float16 mapping is touched (clean, reclaimable pages, up to 2.3 GB) while the float32 array fills. `oracle_centroids` adds small transients (a copy of each class's rows, at most about 0.15 GB for the largest class). The rule stays: stop if the first `kmeans` row reads above about 10 GB.
+
 **The vectors cannot stay memory-mapped.** `cache.dataset_embeddings` reads the float16 memmap and converts it to a float32 array in one step, which is the 4.7 GB. That is necessary: sklearn accepts float32 or float64 only, and given float16 it upcasts to float64 (9.3 GB). The memmap is used only so the conversion streams from disk.
 
 | Baseline | Peak RAM (estimate) | Basis |
 | --- | ---: | --- |
-| `seqminibatchkmeans` | ~6 GB | X + one 10k-row batch; `partial_fit` copies nothing else |
+| `seqminibatchkmeans` | ~5.7-6 GB | X + one 10k-row batch; `partial_fit` copies nothing else |
 | `minibatchkmeans` | ~6-7 GB | X + 30k-row init sample + sklearn's chunked distance buffers (capped by `working_memory`, 1 GiB) |
 | `kmeans`, default | ~11-13 GB | X + a second 4.7 GB centered copy (`copy_x=True`) + buffers. Not safe in 12 GB. |
 | `kmeans`, `copy_x: false` | ~7 GB | centers X in place and restores it; exact up to float32 rounding (~1e-7 per value) |
@@ -111,7 +113,7 @@ For arXiv: N = 3,035,644 and k = 171. A call sends 10 abstracts (`force_context_
 
 **Rate per input token.** From the CLINC150 table (`clinc150_summarizers.md` section 3): summarizer seconds divided by input tokens, at each size's logged batch size (8 / 4 / 1): 0.805, 1.124 and 1.656 ms per token. Those runs shared the GPU and were about 1.7x slow, so the estimator divides by 1.7 (`--gpu-slowdown`) to get an idle-card figure: **0.473, 0.661 and 0.974 ms per input token** for 0.6B / 1.7B / 4B. This is a single all-in rate (prefill, decoding of the roughly 15-25 output tokens, padding, tokenization), not a split into prefill and decode, because the data to separate them do not exist yet; the pilot will provide it.
 
-**Check against the smoke run.** Qwen3-0.6B, 4 batches x 149 clusters x 5 steps = at most 2,980 calls at 2,163 tokens: 3,049 s predicted, 2,938 s measured (+4%). The smoke call count is an upper bound, and its GPU load is unknown, so the agreement is a sanity check on the order of magnitude, not a validation. Two independent anchors (CLINC150 deflated, and the smoke run) both give about 0.47 ms per token for the 0.6B.
+**Check against the smoke run.** Qwen3-0.6B, 4 batches x 149 clusters x 5 steps = at most 2,980 calls at 2,163 tokens: 3,049 s predicted, 2,938 s measured (+4%). The smoke call count is an upper bound, and its GPU load is unknown, so the agreement is a sanity check on the order of magnitude, not a validation. The check assumes all 2,980 calls were made at 2,163 tokens (an upper bound; the run predates the cost fields, so the real count is unknown), compares against the run's total runtime rather than its summarizer seconds, and the smoke run's GPU load is unknown. It is an order-of-magnitude sanity check only.
 
 ### 4.2 Options
 
