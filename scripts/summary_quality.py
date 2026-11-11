@@ -45,7 +45,7 @@ def score_run(run_dir: str, cache_dir: str, corpora: dict, nlp, final_only: bool
     ds, X = load_run_dataset(runlog, cache_dir=cache_dir)
     if ds.name not in corpora:
         corpora[ds.name] = analyze_corpus(ds.texts, nlp)
-    embedder = load_run_embedder(runlog)
+    embedder = load_run_embedder(runlog, ds)
     label_emb = (
         embedder.encode([n.replace("_", " ") for n in ds.label_names]) if ds.label_names is not None else None
     )
