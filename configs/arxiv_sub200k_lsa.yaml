@@ -1,0 +1,28 @@
+# k-NLPmeans (LSA extractive summaries) on the 200k arXiv subsample (#48): the extractive baseline at the scale
+# of the pilot, with the pilot's schedule (two summary steps on each of 10 batches of 20k rows,
+# force_context_length 10). LSA is run at 200k, not at 3.0M: the full-scale sentence corpus (19 M sentences,
+# 29 GB of embeddings) does not fit in RAM, see docs/results/arxiv_status.md section 3.
+#
+#   HF_HUB_OFFLINE=1 python -u scripts/run_streaming.py configs/arxiv_sub200k_lsa.yaml
+#
+# Cost: the sentence corpus is built once and cached (cache/arxiv_sub200k__minilm_sentences.*, about 2 GB):
+# spaCy segmentation of 200k abstracts on one CPU core (about 45 min), then MiniLM embedding of the 1.26 M
+# sentences on the GPU (about 5-30 min). A rerun reads the cache. The LSA summaries themselves take about a
+# minute. No baselines here: the pilot run has them (aggregate both run directories).
+
+name: arxiv_sub200k_lsa
+dataset: {name: arxiv_sub200k, limit: null}
+embedder: minilm
+seeds: [0]
+max_batch_size: 20000
+summary_every: 1
+eval_assign: lloyd1        # lloyd1 (paper) | nearest
+baselines: {}              # name -> sklearn kwargs; the pilot run has the baselines
+method_name: k-NLPmeans
+force_context_length: 10
+tol: 1.0e-4
+schedule: {type: fixed, n_summaries: 2, max_iter: 120}
+summarizer: {type: lsa, top_k: 5}
+gpu_check: {require_idle: warn}
+cache_dir: cache
+results_dir: results

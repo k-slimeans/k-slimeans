@@ -309,3 +309,18 @@ def test_summary_every_is_optional_and_defaults_to_every_batch(run_streaming_mod
     run_streaming_module.run_streaming(fake_stream)
     run_streaming_module.run_streaming({**fake_stream, "summary_every": 2})
     assert seen == [1, 2]
+
+
+@pytest.mark.parametrize(
+    "name", ["arxiv_full_baselines", "arxiv_sub200k_pilot", "arxiv_sub200k_lsa", "arxiv_sub200k_stream"]
+)
+def test_arxiv_configs_pass_the_typo_guard_and_build_their_schedule(run_streaming_module, name):
+    from kslimeans.config import check_keys, load_config
+    from kslimeans.schedules import build_schedule
+
+    cfg = load_config(str(REPO_ROOT / "configs" / f"{name}.yaml"), [])
+    check_keys(cfg, run_streaming_module._ALLOWED_KEYS, run_streaming_module._required_keys(cfg))
+    if cfg.get("summarizer") is None:
+        assert cfg["dataset"]["load_texts"] is False and "schedule" not in cfg
+    else:
+        build_schedule(cfg["schedule"])
