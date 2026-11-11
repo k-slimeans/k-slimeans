@@ -149,7 +149,7 @@ def summary_md(summary: pd.DataFrame) -> str:
     df["model"] = df["model"].str.removeprefix("clinc150_")
     lines = ["| " + " | ".join(df.columns) + " |", "| --- | --- | ---: " + "| ---: " * (len(df.columns) - 3) + "|"]
     for row in df.itertuples(index=False):
-        cells = [row[0], row[1], f"{row[2]:.0e}", f"{row[3]:.3f}", f"{row[4]:.1f}"]
+        cells = [row[0], row[1], f"{row[2]:.0e}", f"{row[3]:.2g}", f"{row[4]:.1f}"]
         cells += ["n/a" if pd.isna(v) else f"{v:.4f}" if i >= 8 else f"{v:.3f}" for i, v in enumerate(row[5:], start=5)]
         lines.append("| " + " | ".join(map(str, cells)) + " |")
     return "\n".join(lines) + "\n"

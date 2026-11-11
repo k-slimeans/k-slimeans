@@ -1,4 +1,4 @@
-### Step 1 (shared step-0 partition): means over seeds
+### Step 1 (shared step-0 partition; replayed from CPU embeddings): means over seeds
 
 Objective (J_before; relative jump at replacement; relative change at block end vs before and vs the no-replacement counterfactual; iterations run)
 
@@ -27,14 +27,14 @@ Partition change (fraction of points moved at the replacement and over the block
 | qwen3-1.7b | 0.468 | 0.287 | 0.371 | 0.708 | 0.652 |
 | qwen3-4b | 0.561 | 0.447 | 0.317 | 0.653 | 0.473 |
 
-Movers at the replacement (counts toward/away from the gold majority, ends in own majority, total, move rates by margin and flag)
+Movers at the replacement (total, counts toward/away from the gold majority and ending in their own gold majority, each beside the mean of a shuffled-destination baseline; share of all points in their own cluster's majority; move rates by margin and flag)
 
-| model | toward_replacement | away_replacement | ends_in_own_majority_replacement | n_moved_replacement | move_rate_boundary | move_rate_core | move_rate_flagged | move_rate_unflagged | share_movers_from_flagged | share_points_in_flagged |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| lsa | 603 | 2,141 | 724 | 5,698 | 0.569 | 0.148 | n/a | 0.253 | 0 | 0 |
-| qwen3-0.6b | 694 | 4,666 | 937 | 10,502 | 0.731 | 0.379 | 0.849 | 0.427 | 0.172 | 0.0953 |
-| qwen3-1.7b | 731 | 4,487 | 985 | 10,520 | 0.747 | 0.374 | 0.725 | 0.441 | 0.145 | 0.0933 |
-| qwen3-4b | 723 | 5,707 | 978 | 12,620 | 0.802 | 0.481 | 0.904 | 0.364 | 0.586 | 0.364 |
+| model | n_moved_replacement | toward_replacement | toward_shuffled | away_replacement | away_shuffled | ends_in_own_majority_replacement | ends_in_own_majority_shuffled | share_in_own_majority_pre | move_rate_boundary | move_rate_core | move_rate_flagged | move_rate_unflagged | share_movers_from_flagged | share_points_in_flagged |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| lsa | 5,698 | 603 | 19.3 | 2,141 | 2,249 | 724 | 32.7 | 0.578 | 0.569 | 0.148 | n/a | 0.253 | 0 | 0 |
+| qwen3-0.6b | 10,502 | 694 | 26.4 | 4,666 | 4,875 | 937 | 61.5 | 0.578 | 0.731 | 0.379 | 0.849 | 0.427 | 0.172 | 0.0953 |
+| qwen3-1.7b | 10,520 | 731 | 28.2 | 4,487 | 4,711 | 985 | 57.5 | 0.578 | 0.747 | 0.374 | 0.725 | 0.441 | 0.145 | 0.0933 |
+| qwen3-4b | 12,620 | 723 | 30.5 | 5,707 | 5,931 | 978 | 60.2 | 0.578 | 0.802 | 0.481 | 0.904 | 0.364 | 0.586 | 0.364 |
 
 Duplicates and collapsed centroids (clusters per step)
 
@@ -45,7 +45,7 @@ Duplicates and collapsed centroids (clusters per step)
 | qwen3-1.7b | 0.8 | 13.6 | 0.6 | 0 | 0.6 |
 | qwen3-4b | 18.8 | 50.2 | 11.2 | 0 | 11.2 |
 
-### All five steps pooled: means over seeds
+### All five steps pooled (replayed; from step 2 on the previous block is replayed too): means over seeds
 
 Objective (J_before; relative jump at replacement; relative change at block end vs before and vs the no-replacement counterfactual; iterations run)
 
@@ -74,14 +74,14 @@ Partition change (fraction of points moved at the replacement and over the block
 | qwen3-1.7b | 0.444 | 0.244 | 0.383 | 0.747 | 0.708 |
 | qwen3-4b | 0.54 | 0.417 | 0.335 | 0.691 | 0.487 |
 
-Movers at the replacement (counts toward/away from the gold majority, ends in own majority, total, move rates by margin and flag)
+Movers at the replacement (total, counts toward/away from the gold majority and ending in their own gold majority, each beside the mean of a shuffled-destination baseline; share of all points in their own cluster's majority; move rates by margin and flag)
 
-| model | toward_replacement | away_replacement | ends_in_own_majority_replacement | n_moved_replacement | move_rate_boundary | move_rate_core | move_rate_flagged | move_rate_unflagged | share_movers_from_flagged | share_points_in_flagged |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| lsa | 552 | 2,015 | 638 | 5,313 | 0.542 | 0.134 | n/a | 0.236 | 0 | 0 |
-| qwen3-0.6b | 644 | 4,438 | 803 | 9,891 | 0.716 | 0.347 | 0.823 | 0.397 | 0.187 | 0.1 |
-| qwen3-1.7b | 689 | 4,402 | 896 | 9,999 | 0.73 | 0.349 | 0.739 | 0.413 | 0.156 | 0.0927 |
-| qwen3-4b | 653 | 5,320 | 880 | 12,149 | 0.788 | 0.457 | 0.887 | 0.337 | 0.604 | 0.368 |
+| model | n_moved_replacement | toward_replacement | toward_shuffled | away_replacement | away_shuffled | ends_in_own_majority_replacement | ends_in_own_majority_shuffled | share_in_own_majority_pre | move_rate_boundary | move_rate_core | move_rate_flagged | move_rate_unflagged | share_movers_from_flagged | share_points_in_flagged |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| lsa | 5,313 | 552 | 17.4 | 2,015 | 2,088 | 638 | 29.8 | 0.584 | 0.542 | 0.134 | n/a | 0.236 | 0 | 0 |
+| qwen3-0.6b | 9,891 | 644 | 26.6 | 4,438 | 4,566 | 803 | 58.6 | 0.571 | 0.716 | 0.347 | 0.822 | 0.397 | 0.187 | 0.1 |
+| qwen3-1.7b | 9,999 | 689 | 25.8 | 4,402 | 4,580 | 896 | 54.4 | 0.592 | 0.73 | 0.349 | 0.739 | 0.413 | 0.156 | 0.0927 |
+| qwen3-4b | 12,149 | 653 | 30 | 5,320 | 5,516 | 880 | 61.1 | 0.557 | 0.788 | 0.457 | 0.883 | 0.339 | 0.602 | 0.369 |
 
 Duplicates and collapsed centroids (clusters per step)
 
@@ -92,9 +92,54 @@ Duplicates and collapsed centroids (clusters per step)
 | qwen3-1.7b | 0.92 | 12.6 | 0.48 | 0 | 0.48 |
 | qwen3-4b | 16.9 | 51.6 | 10.5 | 0 | 10.5 |
 
-### Outcome per step
+### Outcome
 
-Mean over seeds of (score after the block) minus (score after plain Lloyd from the pre-replacement state, same iterations).
+**Step 1 headline.** Step 0 replays exactly, so at step 1 the pre state and the plain-Lloyd counterfactual are exact and `assignments_evolution[1]` is the real post-block partition. Mean over seeds of (score of the logged partition after the block) minus (score after plain Lloyd from the step-0 partition, same 20 iterations); `seeds_below` counts seeds with a lower ACC than the counterfactual; `d_acc_replayed` is the same from the CPU-embedding replay, as a check.
+
+| model | d_acc | d_nmi | d_ari | seeds_below | d_acc_replayed | replay_vs_logged_points |
+| --- | ---: | ---: | ---: | --- | ---: | ---: |
+| lsa | +0.0051 | +0.0019 | +0.0048 | 0/5 | +0.0051 | 0 |
+| qwen3-0.6b | +0.0016 | +0.0022 | +0.0048 | 3/5 | +0.0029 | 390 |
+| qwen3-1.7b | +0.0106 | +0.0076 | +0.0177 | 0/5 | +0.0106 | 0 |
+| qwen3-4b | -0.0159 | +0.0011 | -0.0012 | 5/5 | -0.0165 | 682 |
+
+Per seed, step 1, logged partition minus counterfactual.
+
+| model | seed | d_acc | d_nmi | d_ari |
+| --- | ---: | ---: | ---: | ---: |
+| lsa | 0 | +0.0047 | +0.0032 | +0.0085 |
+| lsa | 1 | +0.0040 | +0.0014 | +0.0038 |
+| lsa | 2 | +0.0144 | +0.0045 | +0.0110 |
+| lsa | 3 | +0.0016 | +0.0003 | +0.0004 |
+| lsa | 4 | +0.0007 | +0.0000 | +0.0004 |
+| qwen3-0.6b | 0 | +0.0162 | +0.0032 | +0.0099 |
+| qwen3-0.6b | 1 | -0.0077 | +0.0011 | -0.0012 |
+| qwen3-0.6b | 2 | -0.0055 | -0.0023 | -0.0005 |
+| qwen3-0.6b | 3 | -0.0102 | -0.0022 | -0.0045 |
+| qwen3-0.6b | 4 | +0.0149 | +0.0113 | +0.0201 |
+| qwen3-1.7b | 0 | +0.0044 | +0.0066 | +0.0107 |
+| qwen3-1.7b | 1 | +0.0117 | +0.0086 | +0.0191 |
+| qwen3-1.7b | 2 | +0.0151 | +0.0092 | +0.0261 |
+| qwen3-1.7b | 3 | +0.0140 | +0.0064 | +0.0187 |
+| qwen3-1.7b | 4 | +0.0078 | +0.0070 | +0.0139 |
+| qwen3-4b | 0 | -0.0104 | +0.0035 | +0.0001 |
+| qwen3-4b | 1 | -0.0264 | +0.0005 | -0.0017 |
+| qwen3-4b | 2 | -0.0128 | +0.0020 | -0.0000 |
+| qwen3-4b | 3 | -0.0212 | -0.0041 | -0.0090 |
+| qwen3-4b | 4 | -0.0087 | +0.0035 | +0.0048 |
+
+**Step 1, both sides run to sklearn's own stop** (cap 300 iterations; replayed from the CPU embeddings). A fixed 20-iteration budget can leave the replacement block less converged than the counterfactual (which starts converged), so this separates a worse end state from less convergence. `n_iter` and `n_iter_cf` are mean iterations to the stop, `capped*` the runs that hit the cap, `j_end_rel` the mean relative objective of the replacement run over the counterfactual's, and `d_*` the score differences (replacement minus counterfactual).
+
+| model | n_iter | n_iter_cf | capped | capped_cf | j_end_rel | d_acc | d_nmi | d_ari | seeds_below |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| lsa | 31.8 | 15.2 | 0 | 0 | -0.0019 | +0.0050 | +0.0019 | +0.0049 | 0/5 |
+| qwen3-0.6b | 53.8 | 15.2 | 0 | 0 | +0.0019 | +0.0033 | +0.0028 | +0.0059 | 3/5 |
+| qwen3-1.7b | 48.4 | 15.2 | 0 | 0 | +0.0008 | +0.0121 | +0.0088 | +0.0190 | 0/5 |
+| qwen3-4b | 53.6 | 15.2 | 0 | 0 | +0.0112 | -0.0131 | +0.0033 | +0.0023 | 5/5 |
+
+**Per step, replayed.** From step 2 on every row starts from a replayed previous block.
+
+Mean over seeds of (replayed score after the block) minus (score after plain Lloyd from the replayed pre-replacement state, same iterations).
 
 | model | step | d_acc | d_nmi | d_ari |
 | --- | ---: | ---: | ---: | ---: |
@@ -135,13 +180,13 @@ Spearman correlation across all (model, seed) pairs at step 1; a descriptive num
 | jump_rel | d_step_acc | -0.32 |
 | jump_rel | d_final_acc | -0.44 |
 | jump_rel | d_final_nmi | -0.36 |
-| drift_median | d_step_acc | -0.45 |
+| drift_median | d_step_acc | -0.44 |
 | drift_median | d_final_acc | -0.35 |
 | drift_median | d_final_nmi | -0.29 |
-| n_empty_replacement | d_step_acc | -0.58 |
+| n_empty_replacement | d_step_acc | -0.60 |
 | n_empty_replacement | d_final_acc | -0.73 |
 | n_empty_replacement | d_final_nmi | -0.61 |
-| frac_moved_replacement | d_step_acc | -0.52 |
+| frac_moved_replacement | d_step_acc | -0.55 |
 | frac_moved_replacement | d_final_acc | -0.63 |
 | frac_moved_replacement | d_final_nmi | -0.52 |
 
@@ -153,14 +198,14 @@ Share of final summaries that are out of date: Jaccard between the members each 
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | lsa | 750 | 0.965 | 0.00133 | 0.00533 | 0.00933 | 0 | 0.00133 | 0.00533 | 0.00933 |
 | qwen3-0.6b | 750 | 0.699 | 0.18 | 0.244 | 0.351 | 0.155 | 0.236 | 0.287 | 0.387 |
-| qwen3-1.7b | 750 | 0.711 | 0.161 | 0.231 | 0.325 | 0.212 | 0.259 | 0.303 | 0.384 |
-| qwen3-4b | 750 | 0.484 | 0.417 | 0.484 | 0.559 | 0.427 | 0.497 | 0.545 | 0.596 |
+| qwen3-1.7b | 750 | 0.711 | 0.159 | 0.231 | 0.325 | 0.212 | 0.259 | 0.303 | 0.384 |
+| qwen3-4b | 750 | 0.484 | 0.416 | 0.484 | 0.56 | 0.427 | 0.499 | 0.547 | 0.597 |
 
 Share stale@0.5 by summary step (summary of step j against the partition after its own block).
 
 | model | 1 | 2 | 3 | 4 | 5 |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | lsa | 0.060 | 0.035 | 0.013 | 0.008 | 0.005 |
-| qwen3-0.6b | 0.388 | 0.345 | 0.300 | 0.280 | 0.287 |
-| qwen3-1.7b | 0.351 | 0.319 | 0.289 | 0.292 | 0.303 |
-| qwen3-4b | 0.531 | 0.515 | 0.549 | 0.517 | 0.545 |
+| qwen3-0.6b | 0.383 | 0.345 | 0.300 | 0.283 | 0.287 |
+| qwen3-1.7b | 0.351 | 0.319 | 0.291 | 0.292 | 0.303 |
+| qwen3-4b | 0.525 | 0.519 | 0.552 | 0.519 | 0.547 |
