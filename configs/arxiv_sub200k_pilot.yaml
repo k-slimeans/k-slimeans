@@ -1,0 +1,35 @@
+# Pilot of the schedule chosen in #48 for the full-scale summary run (#49): Qwen3-1.7B, two summary steps on
+# every batch, on the 200k subsample (168 labels) with 20k batches (10 batches). Budget and reasoning:
+# docs/results/arxiv_status.md. Estimated 3,360 summarizer calls at most, about 1.3 GPU-hours idle-equivalent
+# (2.3 as logged on the shared card), so about 1.5-2.5 h wall including the three baselines.
+#
+#   HF_HUB_OFFLINE=1 python -u scripts/run_streaming.py configs/arxiv_sub200k_pilot.yaml
+#
+# Run it on an idle GPU (#35): `require_idle: fail` stops before the model loads if the card is busy; use
+# `--set gpu_check.require_idle=warn` to run anyway (the cost fields are then inflated, and flagged in gpu.json).
+# The full run keeps the schedule (n_summaries 2, force_context_length 10, batch_size 4) and changes the
+# batch size to 150000, which splits 3,035,644 rows into 21 batches.
+
+name: arxiv_sub200k_pilot
+dataset: {name: arxiv_sub200k, limit: null}
+embedder: minilm
+seeds: [0]
+max_batch_size: 20000
+summary_every: 1           # summarize every batch (1 is the default; the estimator tabulates other values)
+eval_assign: lloyd1        # lloyd1 (paper) | nearest
+baselines:                 # name -> sklearn kwargs
+  minibatchkmeans: {}
+  seqminibatchkmeans: {}
+  kmeans: {}
+method_name: k-SLMmeans
+force_context_length: 10
+tol: 1.0e-4
+schedule: {type: fixed, n_summaries: 2, max_iter: 120}
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-1.7B
+  max_new_tokens: 64
+  batch_size: 4
+gpu_check: {require_idle: fail}
+cache_dir: cache
+results_dir: results

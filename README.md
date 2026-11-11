@@ -154,7 +154,8 @@ scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_st
                    fixed_workload.py, compare_workloads.py, run_clinc150_prompt_v2.sh,
                    verify_cost.py (check a run's logged cost counters),
                    summary_quality.py (per-cluster summary-quality CSV and tables), summary_quality_examples.py (worked examples),
-                   make_audit_sheet.py (blinded hand-check sheet and key), audit_agreement.py (hand vs automatic flags)
+                   make_audit_sheet.py (blinded hand-check sheet and key), audit_agreement.py (hand vs automatic flags),
+                   estimate_stream_cost.py (calls and GPU-hours of a streaming summary run, before running it)
 data/              datasets, checked in except the generated data/arxiv/ (see data/README.md)
 tests/             pytest suite, incl. exact-equivalence fixtures generated from the original code
 ```
@@ -328,6 +329,11 @@ For arXiv abstracts (200k subsample, MiniLM vectors precomputed once), there is 
 python scripts/prepare_arxiv.py     # one-time: download, filter and embed ~3.0M abstracts (~75 min on an RTX 3060)
 python scripts/run_streaming.py configs/arxiv_sub200k_stream.yaml --set dataset.limit=20000 --set max_batch_size=5000  # smoke
 ```
+
+The full corpus (baselines only, CPU), the cost estimate for the summary methods and the 200k pilot are described in
+`docs/results/arxiv_status.md` (`configs/arxiv_full_baselines.yaml`, `scripts/estimate_stream_cost.py`,
+`configs/arxiv_sub200k_pilot.yaml`). A config without a `summarizer` block runs only the baselines, and
+`summary_every: m` summarizes only every m-th batch.
 
 ### GPU idle check
 
