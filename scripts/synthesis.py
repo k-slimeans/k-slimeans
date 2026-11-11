@@ -54,10 +54,12 @@ def build_joined(args) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
     diag = pd.read_csv(args.diag_clusters)
     stale = pd.read_csv(args.diag_stale) if args.diag_stale else None
 
-    extras = [syn.run_extras(d, args.cache_dir, load_local_tokenizer) for d in args.run_dirs]
+    cf_cache: dict = {}
+    extras = [syn.run_extras(d, args.cache_dir, load_local_tokenizer, cf_cache) for d in args.run_dirs]
     cost = pd.concat([e["cost"] for e in extras], ignore_index=True)
     after = pd.concat([e["after"] for e in extras], ignore_index=True)
     runs = pd.concat([e["runs"] for e in extras], ignore_index=True)
+    ref = pd.concat([e["ref"] for e in extras], ignore_index=True)
 
     wanted = set(runs["run"])
     missing = wanted - set(quality["run"])
@@ -79,7 +81,10 @@ def build_joined(args) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
     bad = logged["majority_before"].astype("Int64") != logged["majority_intent"].astype("Int64")
     if bad.any():
         raise syn.JoinError(f"{int(bad.sum())} rows: the majority intent rebuilt from the logs differs from #34's")
-    joined = pd.concat([logged, old], ignore_index=True)
+    first = logged["step"] == 1
+    step1, rep = syn.attach_by_key(logged[first], ref, syn.RUN_KEYS, "quality x step-1 references", extra_unmatched_ok=True)
+    reports.append(rep)
+    joined = pd.concat([step1, logged[~first], old], ignore_index=True)
 
     joined, rep = syn.attach_by_key(joined, cost, syn.RUN_KEYS, "quality x cost", extra_unmatched_ok=True)
     reports.append(rep)
@@ -219,7 +224,8 @@ def plot_strata(table: pd.DataFrame, strata: list[str], outcomes: list[str], sco
                 y = t[outcome].to_numpy(float)
                 err = np.vstack([y - t[f"{outcome}_lo"].to_numpy(float), t[f"{outcome}_hi"].to_numpy(float) - y])
                 ax.errorbar(x, y, yerr=np.nan_to_num(err), color=colors[m], marker="o", ms=4, elinewidth=1, capsize=2, label=m)
-            ax.set_xticks(range(len(labels)), labels, fontsize=8)
+            ax.set_xticks(range(len(labels)), labels, fontsize=8 if len(labels) <= 6 else 6.5,
+                          rotation=0 if len(labels) <= 6 else 60, ha="center" if len(labels) <= 6 else "right")
             ax.axhline(0, color=KMEANS_COLOR, linewidth=0.6)
             ax.grid(alpha=0.3)
             ax.set_ylabel(outcome)
@@ -316,6 +322,13 @@ def main() -> None:
                    "**Partial rank correlation of the number of failed fluency proxies** (mean over seeds [95% interval over seeds])\n",
                    correlation_markdown(res["fluency_partial"])]  # fmt: skip
             md += ["## Q3 help: where purity rises\n", strata_markdown(res["help_strata"], outs)]
+            if "help_reference" in res:
+                md += ["## Q3 help: against the no-replacement counterfactual and the random-shuffle null (step 1)\n",
+                       strata_markdown(res["help_reference"], list(syn.REF_OUTCOMES))]  # fmt: skip
+                plot_strata(res["help_reference"], ["purity", "purity_x_size"], ["d_member_purity_vs_cf", "d_member_purity_vs_null"],
+                            "step 1", f"{dataset}: member-purity change minus counterfactual and minus shuffle null, step 1",
+                            out / f"{tag}_help_reference.png")  # fmt: skip
+            md += ["## Size and the purity change (Spearman rho of cluster size)\n", correlation_markdown(res["size_corr"])]
             plot_strata(res["harm_strata"], ["coverage_nearest", "specificity_margin", "unsupported_lemma_share"], ["lost_share", "d_member_purity"],
                         "step 1", f"{dataset}: members lost and change in purity by summary property, step 1", out / f"{tag}_harm_strata.png")  # fmt: skip
             plot_strata(res["help_strata"], ["purity", "label_top1", "coverage_nearest"], ["d_member_purity", "helped"],

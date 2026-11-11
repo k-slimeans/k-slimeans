@@ -229,3 +229,103 @@ def test_stratified_difference_skips_cells_without_both_groups():
     df = pd.DataFrame({"seed": [0] * 6, "flag": [1.0] * 6, "y": range(6)})
     out = syn.stratified_difference(df, "flag", "y")
     assert np.isnan(out["mean"]) and out["n_strata_used"] == 0.0
+
+
+# ------------------------------------------------------------------ method table, cost reconciliation, references
+
+
+def test_join_refuses_a_non_key_column_that_both_frames_have():
+    left = pd.DataFrame({"k": [1], "v": [1]})
+    with pytest.raises(syn.JoinError, match="non-key"):
+        syn.one_to_one_join(left, pd.DataFrame({"k": [1], "v": [2]}), ["k"], "t")
+
+
+def test_method_table_pairs_each_seed_with_its_kmeans_run():
+    runs = pd.DataFrame(
+        {"run": "r", "seed": [0, 1, 2], "final_acc": [0.60, 0.50, 0.70], "final_nmi": 0.7, "final_ari": 0.4,
+         "kmeans_acc": [0.50, 0.50, 0.60], "kmeans_nmi": 0.6, "kmeans_ari": 0.3, "runtime_s": 10.0,
+         "summarizer_seconds": 9.0, "n_calls": 5, "total_input_tokens": 100, "total_output_tokens": 10}
+    )  # fmt: skip
+    df = pd.DataFrame({"run": "r", "method_id": "m", "seed": np.repeat([0, 1, 2], 2)})
+    for col in syn.QUALITY_MEANS:
+        df[col] = 0.5
+    row = syn.method_table(df, runs).iloc[0]
+    assert row["d_acc"] == pytest.approx(0.2 / 3)  # mean of +0.10, 0.00, +0.10
+    assert row["d_acc_lo"] < row["d_acc"] < row["d_acc_hi"]
+    assert row["final_acc"] == pytest.approx(0.6) and row["kmeans_acc"] == pytest.approx(0.2 / 3 * 0 + 0.5333, abs=1e-3)
+    assert row["d_nmi"] == pytest.approx(0.1) and row["n_seeds"] == 3
+
+
+def _cost_record():
+    from kslimeans.runlog import RunRecord
+
+    labels = [np.array([0, 0, 1, 1, 2, 2]), np.array([0, 0, 1, 2, 2, 2]), np.array([0, 0, 1, 2, 2, 2])]
+    return RunRecord(
+        method="m", seed=0, metrics={},
+        trace=[{"step": 1, "n_summarized": 3}, {"step": 2, "n_summarized": 3}],
+        summaries=None, assignments=labels[-1],
+        summaries_evolution=[["a b", "c d e", "f"], ["a b", "g", "h i"]],
+        assignments_evolution=labels, summary_source_steps=[0, 1],
+    )  # fmt: skip
+
+
+def test_record_cost_rows_reconcile_with_a_fake_tokenizer_and_charge_memo_hits_nothing():
+    record = _cost_record()
+    texts = ["one", "two words", "three words here", "x", "y z", "w"]
+    X = np.zeros((6, 2))
+    cost = syn.record_cost_rows(record, texts, X, 0, lambda ts: sum(len(t.split()) for t in ts), lambda s: len(s.split()))
+    s1, s2 = (cost[cost["step"] == j].set_index("cluster") for j in (1, 2))
+    assert list(s1["sent"]) == [True] * 3
+    assert list(s1["input_tokens"]) == [3, 4, 3] and list(s1["output_tokens"]) == [2, 3, 1]
+    # step 2: cluster 0 has the same members as at step 1 (a memo hit): not sent, free; the others are sent
+    assert list(s2["sent"]) == [False, True, True]
+    assert list(s2["input_tokens"]) == [0, 3, 4] and list(s2["output_tokens"]) == [0, 1, 2]
+    assert int(cost["sent"].sum()) == 5 and (cost["cost_approx"] == False).all()  # noqa: E712
+
+
+def test_member_agreement_matches_the_purity_and_after_overlap():
+    gold = np.array([0, 0, 0, 1, 1, 1, 2, 2])
+    source = np.array([0, 0, 0, 1, 1, 2, 2, 2])
+    after = np.array([0, 0, 1, 1, 1, 2, 2, 2])
+    purity = syn.member_agreement(source, source, gold, 3)
+    assert list(purity.round(3)) == [1.0, 1.0, 0.667]
+    expected = syn.after_overlap(source, after, gold, 3)["member_agree_after"].to_numpy()
+    assert syn.member_agreement(source, after, gold, 3) == pytest.approx(expected)
+
+
+def test_shuffle_null_keeps_each_clusters_loss_and_is_the_identity_at_zero_loss():
+    source = np.repeat(np.arange(4), 10)
+    rng = np.random.default_rng(0)
+    assert (syn.shuffle_null_labels(source, np.zeros(4, dtype=int), rng) == source).all()
+    lost = np.array([0, 3, 10, 5])
+    new = syn.shuffle_null_labels(source, lost, rng)
+    assert [int(np.sum(new[source == c] != c)) for c in range(4)] == list(lost)  # destinations never the own cluster
+
+
+def test_reference_rows_score_the_counterfactual_and_the_null():
+    gold = np.array([0] * 6 + [1] * 6)
+    source = np.array([0] * 6 + [1] * 6)
+    after = np.array([0] * 3 + [1] * 3 + [1] * 6)  # cluster 0 lost half its members to the other intent's cluster
+    ref = syn.reference_rows(source, after, source, gold, 2, n_draws=5).set_index("cluster")
+    assert list(ref["cf_lost_share"]) == [0.0, 0.0] and list(ref["cf_member_agree_after"]) == [1.0, 1.0]  # no replacement
+    assert ref.loc[0, "null_member_agree_after"] < 1.0  # three of six moved to the other cluster: they now disagree
+
+
+def test_counterfactual_labels_are_plain_lloyd_on_a_converged_state():
+    rng = np.random.default_rng(0)
+    X = np.vstack([rng.normal(0, 0.1, (20, 2)), rng.normal(5, 0.1, (20, 2))])
+    labels = syn.counterfactual_labels(X, np.array([[0.2, 0.2], [4.8, 4.8]]), 5)
+    assert (labels[:20] == 0).all() and (labels[20:] == 1).all()
+
+
+def test_add_derived_scores_the_references():
+    df = _quality(steps=(1,), n_clusters=2).assign(
+        run_config="cfg", has_diag=True, purity=[0.5, 0.9], purity_after=0.5, n_lost=1, n_gained=1, n_after=9,
+        member_agree_after=[0.7, 0.5], cf_member_agree_after=[0.5, 0.9], null_member_agree_after=[0.4, 0.6],
+        input_tokens=0, output_tokens=0,
+    )  # fmt: skip
+    out = syn.add_derived(df)
+    assert list(out["cf_d_member_purity"].round(2)) == [0.0, 0.0]
+    assert list(out["d_member_purity_vs_cf"].round(2)) == [0.2, -0.4]
+    assert list(out["d_member_purity_vs_null"].round(2)) == [0.3, -0.1]
+    assert list(out["cf_helped"]) == [0.0, 0.0] and list(out["helped"]) == [1.0, 0.0]

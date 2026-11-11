@@ -83,7 +83,10 @@ def one_to_one_join(
         dup = frame.duplicated(on, keep=False)
         if dup.any():
             raise JoinError(f"{name}: {int(dup.sum())} rows of the {side} frame share a key on {on}")
-    merged = left.merge(right, on=on, how="outer", indicator=True, suffixes=("", "_r"))
+    clash = sorted((set(left.columns) & set(right.columns)) - set(on))
+    if clash:
+        raise JoinError(f"{name}: both frames have the non-key column(s) {clash}")
+    merged = left.merge(right, on=on, how="outer", indicator=True)
     counts = merged["_merge"].value_counts()
     report = {
         "join": name,
@@ -238,19 +241,102 @@ def cost_rows(k: int, sent: list[int], input_tokens: dict[int, int], output_toke
     )
 
 
-def run_extras(run_dir, cache_dir, load_tokenizer=None) -> dict[str, pd.DataFrame]:
-    """Outcome, cost and run-level frames of one run directory (CPU; tokenizer only, no model, no GPU).
+def record_cost_rows(record, texts, X, force_context_length: int, prompt_tokens, output_tokens) -> pd.DataFrame:
+    """Per summary step and cluster of a record that logged its assignments: `sent`, `input_tokens`, `output_tokens`.
 
-    Returns `after` and `cost` (one row per run, seed, step, cluster; steps numbered from 1) and `runs` (one row
-    per (run, seed): the final metrics, the k-means baseline's, and the run totals). `load_tokenizer(model_id,
-    trust_remote_code)` supplies the tokenizer of an `hf` summarizer. Old-format runs get no `after` rows, and their
-    costs are rebuilt from the FINAL partition (`cost_approx`; every non-empty cluster is assumed sent).
+    `sent_clusters` and `step_inputs` (the live member selection and memo rule) say which clusters were sent and with
+    which texts; `prompt_tokens(texts)` and `output_tokens(summary)` count tokens (the script passes tokenizer-based
+    counters, tests pass fakes). Steps are numbered from 1; a cluster that was not sent costs 0.
+    """
+    from .runlog import sent_clusters, step_inputs
+
+    parts = []
+    for j in range(record.n_summary_steps):
+        summaries = record.summaries_evolution[j]
+        sent = sent_clusters(record, j, texts, X, force_context_length)
+        inputs = step_inputs(record, j, texts, X, force_context_length)
+        n_in = {c: prompt_tokens(inputs[c].texts) for c in sent}
+        n_out = {c: output_tokens(summaries[c]) for c in sent}
+        parts.append(cost_rows(len(summaries), sent, n_in, n_out).assign(step=j + 1, cost_approx=False))
+    return pd.concat(parts, ignore_index=True)
+
+
+def member_agreement(source: np.ndarray, new: np.ndarray, gold: np.ndarray, k: int) -> np.ndarray:
+    """Per source cluster, the share of its members whose gold intent is the majority intent of their cluster in `new`.
+
+    `new = source` gives the purity. The majority of a cluster is its lowest-id most common intent; NaN for an empty
+    source cluster.
+    """
+    gold = np.asarray(gold)
+    counts = np.zeros((k, int(gold.max()) + 1))
+    np.add.at(counts, (new, gold), 1)
+    agree = (gold == counts.argmax(axis=1)[new]).astype(float)
+    size = np.bincount(source, minlength=k)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return np.bincount(source, weights=agree, minlength=k) / np.where(size == 0, np.nan, size)
+
+
+def shuffle_null_labels(source: np.ndarray, lost: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """`source` with, for every cluster `c`, `lost[c]` randomly chosen members sent to a uniformly random other cluster."""
+    k = len(lost)
+    new = source.copy()
+    for c in range(k):
+        idx = np.flatnonzero(source == c)
+        n = int(min(lost[c], len(idx)))
+        if n == 0 or k < 2:
+            continue
+        moved = rng.choice(idx, size=n, replace=False)
+        dest = rng.integers(0, k - 1, size=n)
+        new[moved] = dest + (dest >= c)  # skip the cluster itself
+    return new
+
+
+def reference_rows(
+    source: np.ndarray, after: np.ndarray, counterfactual: np.ndarray, gold: np.ndarray, k: int, n_draws: int = 20, seed: int = 0
+) -> pd.DataFrame:
+    """The two references for one summary step (used at step 1), one row per cluster.
+
+    `counterfactual` is the partition plain Lloyd reaches from the pre-replacement state (no replacement). The random
+    null moves each cluster's members at the cluster's own logged loss (`after`) to random destinations, averaged over
+    `n_draws` draws. Both are scored like the outcome: `cf_lost_share`, `cf_member_agree_after`,
+    `null_member_agree_after` (compare `member_agree_after`; before the step the same quantity is the purity).
+    """
+    size = np.bincount(source, minlength=k).astype(float)
+    size[size == 0] = np.nan
+    lost = np.array([np.sum(after[source == c] != c) for c in range(k)])
+    cf_lost = np.array([np.sum(counterfactual[source == c] != c) for c in range(k)]) / size
+    rng = np.random.default_rng(seed)
+    null = np.mean([member_agreement(source, shuffle_null_labels(source, lost, rng), gold, k) for _ in range(n_draws)], axis=0)
+    return pd.DataFrame(
+        {"cluster": range(k), "cf_lost_share": cf_lost, "cf_member_agree_after": member_agreement(source, counterfactual, gold, k),
+         "null_member_agree_after": null}
+    )  # fmt: skip
+
+
+def counterfactual_labels(X: np.ndarray, pre_centers: np.ndarray, n_iter: int) -> np.ndarray:
+    """Labels after `n_iter` plain Lloyd iterations from `pre_centers` (#33's no-replacement counterfactual)."""
+    from .replay import LloydReplayer
+
+    return LloydReplayer(X).run_block(pre_centers, n_iter, stop=False).end.labels
+
+
+def run_extras(run_dir, cache_dir, load_tokenizer=None, cf_cache: dict | None = None) -> dict[str, pd.DataFrame]:
+    """Outcome, cost, reference and run-level frames of one run directory (CPU; tokenizer only, no model, no GPU).
+
+    Returns `after`, `cost` and `ref` (one row per run, seed, step, cluster; steps numbered from 1; `ref` only for step
+    1, see `reference_rows`) and `runs` (one row per (run, seed): the final metrics, the k-means baseline's, the run
+    totals). `load_tokenizer(model_id, trust_remote_code)` supplies the tokenizer of an `hf` summarizer. Old-format runs
+    get no `after` or `ref` rows, and their costs are rebuilt from the FINAL partition (`cost_approx`; every non-empty
+    cluster is assumed sent). The counterfactual is the same for every method of a seed (the step-0 state is shared),
+    so `cf_cache` lets several runs reuse one k-means++ fit.
     """
     from .core import _select_cluster
     from .costcheck import PromptSettings, count_tokens, rebuild_prompt
-    from .runlog import load_run, load_run_dataset, sent_clusters, step_inputs
+    from .replay import fit_initial
+    from .runlog import load_run, load_run_dataset
     from .summarizers.hf import supports_system_role
 
+    cf_cache = {} if cf_cache is None else cf_cache
     runlog = load_run(run_dir)
     cfg = runlog.config
     run = f"{cfg['name']}/{runlog.path.name}"
@@ -267,38 +353,46 @@ def run_extras(run_dir, cache_dir, load_tokenizer=None) -> dict[str, pd.DataFram
     def prompt_tokens(texts: list[str]) -> int:
         return rebuild_prompt(tokenizer, settings, texts, fold_system).input_tokens if tokenizer else 0
 
-    after_parts, cost_parts, run_rows = [], [], []
+    def output_tokens(summary: str) -> int:
+        return count_tokens(tokenizer, summary) if tokenizer else 0
+
+    after_parts, cost_parts, ref_parts, run_rows = [], [], [], []
     baselines = {r.seed: r.metrics for r in runlog.records.values() if not r.summaries_evolution}
     for method in runlog.methods:
         for record in runlog.method_records(method):
             if not record.summaries_evolution:
                 continue
             key = {"run": run, "seed": record.seed}
-            logged = record.assignments_evolution is not None and record.summary_source_steps is not None
-            for j in range(record.n_summary_steps):
-                summaries = record.summaries_evolution[j]
-                k = len(summaries)
-                if logged:
-                    sent = sent_clusters(record, j, ds.texts, X, fcl)
-                    inputs = step_inputs(record, j, ds.texts, X, fcl)
-                    approx = False
+            if record.assignments_evolution is not None and record.summary_source_steps is not None:
+                cost_parts.append(record_cost_rows(record, ds.texts, X, fcl, prompt_tokens, output_tokens).assign(**key))
+                for j in range(record.n_summary_steps):
                     try:
                         post = record.partition_after(j)
                     except IndexError:  # a final step that stopped on tol has no block after it
-                        post = None
-                    if post is not None:
-                        after_parts.append(
-                            after_overlap(record.source_partition(j), post, ds.labels, k).assign(**key, step=j + 1)
+                        continue
+                    k = len(record.summaries_evolution[j])
+                    source = record.source_partition(j)
+                    after_parts.append(after_overlap(source, post, ds.labels, k).assign(**key, step=j + 1))
+                    if j == 0:
+                        by_step = {row["step"]: row for row in record.trace}
+                        block = by_step[record.summary_source_steps[0] + 1]
+                        ckey = (ds.name, record.seed, k, by_step[0]["last_max_iter"], block["last_n_iter"])
+                        if ckey not in cf_cache:
+                            pre, _ = fit_initial(X, k, by_step[0]["last_max_iter"], record.seed)
+                            if not np.array_equal(pre.labels, source):
+                                raise ValueError(f"{run} seed {record.seed}: the step-0 fit does not replay the logged partition")
+                            cf_cache[ckey] = counterfactual_labels(X, pre.centers, block["last_n_iter"])
+                        ref_parts.append(
+                            reference_rows(source, post, cf_cache[ckey], ds.labels, k, seed=record.seed).assign(**key, step=1)
                         )
-                elif j == record.n_summary_steps - 1 and record.assignments is not None:
-                    inputs = [_select_cluster(c, record.assignments, X, ds.texts, fcl, record.seed, None) for c in range(k)]
-                    sent = [c for c in range(k) if inputs[c].doc_ids]
-                    approx = True
-                else:
-                    continue
+            elif record.assignments is not None:
+                j = record.n_summary_steps - 1
+                k = len(record.summaries_evolution[j])
+                inputs = [_select_cluster(c, record.assignments, X, ds.texts, fcl, record.seed, None) for c in range(k)]
+                sent = [c for c in range(k) if inputs[c].doc_ids]
                 n_in = {c: prompt_tokens(inputs[c].texts) for c in sent}
-                n_out = {c: count_tokens(tokenizer, summaries[c]) if tokenizer else 0 for c in sent}
-                cost_parts.append(cost_rows(k, sent, n_in, n_out).assign(**key, step=j + 1, cost_approx=approx))
+                n_out = {c: output_tokens(record.summaries_evolution[j][c]) for c in sent}
+                cost_parts.append(cost_rows(k, sent, n_in, n_out).assign(**key, step=j + 1, cost_approx=True))
             metrics = record.metrics
             base = baselines.get(record.seed, {})
             run_rows.append(
@@ -314,6 +408,7 @@ def run_extras(run_dir, cache_dir, load_tokenizer=None) -> dict[str, pd.DataFram
             )
     out = {"cost": pd.concat(cost_parts, ignore_index=True), "runs": pd.DataFrame(run_rows)}
     out["after"] = pd.concat(after_parts, ignore_index=True) if after_parts else pd.DataFrame(columns=[*RUN_KEYS, "majority_before"])
+    out["ref"] = pd.concat(ref_parts, ignore_index=True) if ref_parts else pd.DataFrame(columns=RUN_KEYS)
     return out
 
 
@@ -342,6 +437,16 @@ def add_derived(df: pd.DataFrame) -> pd.DataFrame:
     out["d_member_purity"] = out["member_agree_after"] - out["purity"]
     out["helped"] = np.where(out["d_member_purity"].isna(), np.nan, (out["d_member_purity"] >= HELP_DELTA).astype(float))
     out["harmed"] = np.where(out["d_member_purity"].isna(), np.nan, (out["d_member_purity"] <= -HELP_DELTA).astype(float))
+    if "cf_member_agree_after" in out:
+        out["cf_d_member_purity"] = out["cf_member_agree_after"] - out["purity"]
+        out["null_d_member_purity"] = out["null_member_agree_after"] - out["purity"]
+        out["d_member_purity_vs_cf"] = out["d_member_purity"] - out["cf_d_member_purity"]
+        out["d_member_purity_vs_null"] = out["d_member_purity"] - out["null_d_member_purity"]
+        out["lost_share_vs_cf"] = out["lost_share"] - out["cf_lost_share"] if "cf_lost_share" in out else np.nan
+        for name in ("helped", "harmed"):
+            sign = 1 if name == "helped" else -1
+            hit = sign * out["cf_d_member_purity"] >= HELP_DELTA
+            out[f"cf_{name}"] = np.where(out["cf_d_member_purity"].isna(), np.nan, hit.astype(float))
     if "jaccard_major_after" in out:
         out["d_jaccard_major"] = out["jaccard_major_after"] - out["jaccard_majority"]
     out["log_n_members"] = np.log(n)
@@ -455,7 +560,8 @@ BIN_SPECS = {
     "unsupported_lemma_share": BinSpec(
         "unsupported_lemma_share", (-np.inf, 1e-9, 0.25, 0.5, np.inf), ("0", "(0,.25)", "[.25,.5)", ">=.5"), right=False
     ),
-    "purity": BinSpec("purity", (-np.inf, 0.4, 0.6, 0.8, np.inf), ("<=.4", "(.4,.6]", "(.6,.8]", ">.8")),
+    "purity": BinSpec("purity", (-np.inf, 0.4, 0.6, 0.8, 0.9, np.inf), ("<=.4", "(.4,.6]", "(.6,.8]", "(.8,.9]", ">.9")),
+    "size": BinSpec("n_members", (-np.inf, 150, np.inf), ("<=150", ">150")),
     "drift": BinSpec("drift", (-np.inf, 0.5, 1.0, 1.5, np.inf), ("<=.5", "(.5,1]", "(1,1.5]", ">1.5")),
 }  # fmt: skip
 FLAG_STRATA = ("flag_generic", "flag_duplicate", "flag_mentions", "flag_unsupported", "flag_low_coverage", "flag_not_fluent",
@@ -471,6 +577,9 @@ def add_bins(df: pd.DataFrame) -> pd.DataFrame:
     for flag in FLAG_STRATA:
         if flag in out:
             out[f"bin_{flag}"] = out[flag].map({0.0: "no", 1.0: "yes"})
+    if "bin_purity" in out and "bin_size" in out:
+        both = out["bin_purity"].notna() & out["bin_size"].notna()
+        out["bin_purity_x_size"] = (out["bin_purity"] + " / " + out["bin_size"]).where(both)
     return out
 
 
@@ -587,6 +696,11 @@ HARM_STRATA = (
     "drift", "own_nearest",
 )  # fmt: skip
 HELP_STRATA = ("all", "purity", "label_top1", "coverage_nearest")
+REF_STRATA = ("all", "purity", "purity_x_size")
+REF_OUTCOMES = (
+    "d_member_purity", "cf_d_member_purity", "null_d_member_purity", "d_member_purity_vs_cf", "d_member_purity_vs_null",
+    "helped", "cf_helped", "harmed", "cf_harmed", "lost_share", "cf_lost_share",
+)  # fmt: skip
 FLUENCY_CONTROLS = ["coverage_nearest", "specificity_margin", "unsupported_lemma_share", "purity", "log_n_members"]
 SIZE_CONTROLS = ["purity", "log_n_members"]
 
@@ -609,7 +723,10 @@ def _stratified(df: pd.DataFrame, props: tuple[str, ...], outcomes: tuple[str, .
     parts = []
     for prop in props:
         if f"bin_{prop}" in df and df[f"bin_{prop}"].notna().any():
-            order = list(BIN_SPECS[prop].labels) if prop in BIN_SPECS else ["no", "yes", "all"]
+            if prop == "purity_x_size":
+                order = [f"{p} / {z}" for p in BIN_SPECS["purity"].labels for z in BIN_SPECS["size"].labels]
+            else:
+                order = list(BIN_SPECS[prop].labels) if prop in BIN_SPECS else ["no", "yes", "all"]
             parts.append(_in_bin_order(stratified_table(df, f"bin_{prop}", list(outcomes)), order).assign(strata=prop))
     return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
 
@@ -639,7 +756,7 @@ def fluency_table(df: pd.DataFrame) -> pd.DataFrame:
 
 def analyse_with_outcomes(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """All tables for the rows that have #33 columns and logged outcomes (CLINC150): one frame per question."""
-    out: dict[str, list[pd.DataFrame]] = {k: [] for k in ("harm_strata", "help_strata", "correlations", "fluency", "fluency_partial")}
+    out: dict[str, list[pd.DataFrame]] = {k: [] for k in ("harm_strata", "help_strata", "help_reference", "correlations", "size_corr", "fluency", "fluency_partial")}
     for scope, rows in scopes(df).items():
         if rows.empty:
             continue
@@ -649,6 +766,12 @@ def analyse_with_outcomes(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
         for controls in (None, SIZE_CONTROLS):
             out["correlations"].append(correlation_table(rows, props, list(OUTCOMES), controls).assign(scope=scope))
         out["fluency"].append(fluency_table(rows).assign(scope=scope))
+        for controls in (None, ["purity"]):
+            out["size_corr"].append(
+                correlation_table(rows, ["n_members"], ["d_member_purity", "lost_share"], controls).assign(scope=scope)
+            )
+        if scope == "step 1" and "cf_member_agree_after" in rows:
+            out["help_reference"].append(_stratified(rows, REF_STRATA, REF_OUTCOMES).assign(scope=scope))
         for controls in (None, FLUENCY_CONTROLS):
             out["fluency_partial"].append(
                 correlation_table(rows, ["n_flu_flags"], ["d_member_purity", "lost_share"], controls).assign(scope=scope)
