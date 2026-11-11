@@ -142,9 +142,11 @@ src/kslimeans/
   results.py       results/<name>/<timestamp>/ writer
   aggregate.py     combine run directories into a mean ± std table + example summaries (scripts/aggregate_results.py)
   rq2.py           RQ2 sweep planning, resumability and report (scripts/run_rq2.py, scripts/rq2_report.py)
+  runlog.py        load a run directory back: per-(method, seed) summaries, partitions, and the summarizer inputs of a step
+  surface.py       surface checks on logged summaries (length, "?", mentions of the cluster, duplicates; scripts/surface_counts.py)
 configs/           experiment configs (YAML)
 scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_stackexchange.py, prepare_arxiv.py,
-                   aggregate_results.py, run_prelim.sh
+                   aggregate_results.py, surface_counts.py (summary surface-check table), run_prelim.sh
 data/              datasets, checked in except the generated data/arxiv/ (see data/README.md)
 tests/             pytest suite, incl. exact-equivalence fixtures generated from the original code
 ```
