@@ -1,0 +1,445 @@
+row_id,item,summary,cluster_size,members_shown,members,members_fit,generic,unsupported,fluent,notes
+clinc150_intent-01-A,clinc150_intent-01,Can you help me spell some words?,101,10,"1. tell me how many a's are in magical
+2. how do you spell antithesis
+3. how do i spell ambitious
+4. i want to know how to correctly spell cemetery
+5. how do you spell guerrilla
+6. how does the dictionary spell antipathy
+7. tell me how to spell malignant
+8. can i bring perfume on the plane or what is the size limit
+9. please tell me how to spell the word coup
+10. how do you spell ""montpelier",,,,,
+clinc150_intent-01-B,clinc150_intent-01,"What are the main topics and requests related to spelling, trivia, math, and general assistance?",130,10,"1. how do you spell tomato
+2. tell me how to spell anonymous
+3. tell me how many a's are in magical
+4. what's the spelling of cancer
+5. tell me the complete spelling of definitely
+6. can you find me a recipe for quiche
+7. tell me how to spell doctor
+8. how would i go about spelling malignant
+9. how should i spell malignant
+10. can you tell me the correct spelling of liaison",,,,,
+clinc150_intent-01-C,clinc150_intent-01,"can you help me solve a math problem
+please spell the word umbrella
+i don't know how to spell malfeasance
+i need help spelling superficial
+how do you spell friend",134,10,"1. i want to know all about trivia for the office
+2. please help me apply for a silver card
+3. can you tell me how to spell manipulation
+4. can you give me a spelling for antipathy
+5. i can't figure out how to spell superficial
+6. i don't know how to spell anethesia
+7. i don't know how to spell apparently
+8. spell curiosity for me
+9. can you spell ""fragile"" for me
+10. what's the right way to spell ""emolument",,,,,
+clinc150_intent-01-D,clinc150_intent-01,What is the main topic of the following cluster of questions?,113,10,"1. how do you spell out newspaper
+2. how do i spell acquaintance
+3. i need to know how to spell xylophone
+4. how do you spell superficial
+5. i need to know how to spell superficial
+6. can you help me spell facetiousness
+7. can you find music by slow magic to put on
+8. tell me how to spell malignant
+9. how do you spell aaron
+10. can you tell me how to spell the word schadenfreude, i don't know how it's spelt",,,,,
+clinc150_intent-02-A,clinc150_intent-02,How can I express my gratitude and appreciation for your help?,215,10,"1. i thank you
+2. thanks a lot
+3. i appreciate what you did
+4. i'm happy with your answer
+5. that'll work, good job!
+6. thank you for your time
+7. this was a great conversation
+8. great talk, take it easy
+9. that answer was very helpful, thanks
+10. thank you for that response",,,,,
+clinc150_intent-02-B,clinc150_intent-02,"thanks for your help
+it was pleasant having a conversation with you
+thanks for that answer
+i really thank you
+it's good to see you",209,10,"1. it's so much easier with you around
+2. your answer pleased me
+3. i appreciate that answer!
+4. great chat, talk to you later
+5. it's good to see you
+6. thank you for the help
+7. thank you for your help
+8. i appreciate you doing that
+9. this was a nice chat, goodbye
+10. i am grateful for the help",,,,,
+clinc150_intent-02-C,clinc150_intent-02,What is the main theme of the cluster?,130,10,"1. many thanks
+2. i'm so glad you helped me!
+3. i would like to thank you
+4. i need to thank you
+5. thank you for answering that
+6. i appreciate you doing that
+7. thank you for your assistance
+8. thank you very much
+9. thank you for that reply
+10. thanks for that response",,,,,
+clinc150_intent-02-D,clinc150_intent-02,How do you express gratitude for the help you provided?,221,10,"1. thank you kindly
+2. thanks for the answer
+3. thank you so much
+4. thank you very much for the assistance
+5. good answer, thanks for providing it
+6. thanks for your cooperation
+7. good seeing you
+8. thanks for helping me
+9. thank you for the help
+10. thank you for the chat, goodbye",,,,,
+clinc150_intent-03-A,clinc150_intent-03,"i need a hotel in phoenix near chase field from january 4th to the 8th
+find me a flight out of la to chicago on march 3rd for under $500
+how long will it take to get to phoenix
+for under 700 i need a flight from denver international to new york international on the 3rd
+what's the traffic typically like at 3:30 on the route to phoenix",174,10,"1. what southwest flights are there for lax to sfo arriving april 1st and returning april 7th
+2. i need to get a flight out of my local airport to england on monday, the 23rd for under a grand
+3. i'm looking for a roundtrip flight from aaf to dia for february 23rd to february 28th
+4. i want to find a roundtrip flight from philadelphia to sioux falls from august 3rd through august 25th
+5. search for a flight out of la to chicago on march 3rd for under $500
+6. i want to buy a plane ticket to travel from miami to honolulu on the 29th of february i need a return flight on march 5th
+7. book a flight from jacksonville, fl to atlanta, ga on 14 february 2019 and returning on 1 march 2019
+8. what is the average time it takes to get to target in los angeles
+9. i want directions to phoenix
+10. book a delta flight to arizona from pittsburgh",,,,,
+clinc150_intent-03-B,clinc150_intent-03,"What are the main concerns and requests related to flight bookings, luggage tracking, and travel planning in the given cluster?",190,10,"1. i'm not able to find my luggage and i was on southwest airlines flight ab123 out of houston
+2. i need to get a flight out of lax to dia on the 16th for under four hundred
+3. buy tickets for a flight from nyc to la on march 1, returning on march 5
+4. find me a flight from nyc to la on march 1, returning on march 5
+5. book a flight from tampa, fl to baltimore, md on 11 february 2019 and returning on 19 march 2019
+6. i would like to try and confirm that i have a reservation at longhorn for justin
+7. can you find me a round trip flight from denver international to new york international on the 3rd through the 7th
+8. can you find me a flight from denver international to new york international on the 4th for under 700 dollars
+9. i need a flight from denver international to new york for under 700 on the 3rd
+10. make sure i get a delta flight from pittsburgh to arizona",,,,,
+clinc150_intent-03-C,clinc150_intent-03,"What is the main topic of the following cluster of questions? 
+
+The main topic of the cluster is travel-related inquiries, including flight booking, travel time estimation, and airport distance calculations.",165,10,"1. how early should i leave to the airport in la
+2. i'm looking for a roundtrip flight from afw to dgb for tomorrow until next week
+3. i'm looking for a roundtrip flight from aaf to dia for february 23rd to february 28th
+4. i'm looking for a roundtrip flight from fwa to hsv for march first to march fifth
+5. find me a flight from ft lauderdale to houston on southwest
+6. schedule flight from madison to atlanta on delta
+7. could you check and let me know roundtrip flights from dallas to houston for march 7 and march 20
+8. can you look for a denver international to new york international round trip flight for the 5th though 8th
+9. please give me the approximate amount of time i will need to go from jfk international airport to penn station
+10. book a flight to los angeles from las vegas on american airlines",,,,,
+clinc150_intent-03-D,clinc150_intent-03,What are some roundtrip flights from Dallas to Los Angeles available for under $300?,165,10,"1. estimated time to airport from current location, la
+2. help me find a roundtrip flight for may 7th through the 20th from pittsburgh to chicago
+3. search for a flight from nyc to la on march 1, returning on march 5
+4. find me a flight from nyc to la on march 1, returning on march 5
+5. what are some roundtrip flights from dallas to los angeles from march 2 to march 10
+6. how many miles away am i from madison square garden
+7. i need to book a flight on jet blue to boston from new york
+8. i want a flight from new york to san francisco using delta
+9. ""i'm fly out from lax to phl this weekend for around $120
+10. i want to fly to atlanta for under 300 from pittsburgh",,,,,
+clinc150_intent-04-A,clinc150_intent-04,What should I do if my luggage is missing?,132,10,"1. while on flight america airlines i lost luggage in o'hare
+2. what if i lost my luggage
+3. there's a strong possibility that my luggage has gone missing
+4. can you check where my luggage is off jetblue flight ab123 out of buffalo
+5. where's my package right now
+6. where is my luggage
+7. howcan i locate my luggage
+8. what steps should i take if my luggage has been lost
+9. where would i find my luggage
+10. my luggage has disappeared",,,,,
+clinc150_intent-04-B,clinc150_intent-04,What should I do if my luggage is lost on a flight with American Airlines in O'Hare?,122,10,"1. can you please help me find my lost luggage
+2. can you tell me what to do as i am in the airport and have been for some time and there is still no sign of my suitcase
+3. there's a strong possibility that my luggage has gone missing
+4. i think my luggage got lost
+5. i'm having trouble finding my luggage i was on delta flight ab123 out of new york
+6. i need to find my luggage
+7. i'm here at dia but my luggage isn't!
+8. tell me where my luggage is
+9. i need help finding my luggage
+10. my luggage has disappeared",,,,,
+clinc150_intent-04-C,clinc150_intent-04,"what should i do if i lost my luggage
+on flight america airlines in o'hare lost luggage
+my luggage is missing
+can you please help me locate my luggage
+my luggage is lost i was on delta flight ab123 out of new york",134,10,"1. i think my luggage has been lost
+2. my luggage has not arrived and i would like assistance locating it
+3. i'm in baggage claim at the airport and my luggage didn't make it
+4. if i lost my luggage, where can i get help
+5. my luggage is missing, i think
+6. my luggage did not arrive, please investigate
+7. what should i do if i lost my luggage
+8. what can i do if i lost my luggage
+9. i think my luggage is missing
+10. where do i report if i lost my luggage",,,,,
+clinc150_intent-04-D,clinc150_intent-04,What steps should I take if my luggage has been lost or misplaced?,106,10,"1. my luggage was lost so what do i do
+2. i think my luggage was misplaced or has been lost
+3. i lost my luggage, what now
+4. my luggage is lost and i would like help trying to locate it
+5. do you know whom i should contact since my luggage did not arrive
+6. who do i go to to find lost luggage
+7. who can i call about my luggage
+8. i think my luggage is missing
+9. what steps should i follow if i lost my luggage
+10. i can't find my luggage",,,,,
+clinc150_intent-05-A,clinc150_intent-05,How can I request that a response be repeated again?,99,10,"1. i need you to repeat that, please
+2. will you repeat that, please
+3. i am going to need you to say that again
+4. may you repeat what you said again
+5. i need to know again
+6. can you ask me that again
+7. repeat that once more
+8. can you please say that again
+9. can you repeat the question again
+10. can you say that again, please",,,,,
+clinc150_intent-05-B,clinc150_intent-05,"would you repeat that, please
+it might be either
+talk to you later
+repeat what you just said
+say it one more time",202,10,"1. it could be either
+2. restate the last thing you told me
+3. will you repeat what you just said
+4. come again with that
+5. do that
+6. i would like to be reminded
+7. until next time!
+8. stop and go back
+9. i would like you to repeat it
+10. repeat that",,,,,
+clinc150_intent-05-C,clinc150_intent-05,What is the most likely answer to the question?,215,10,"1. perhaps either of them
+2. maybe yes, maybe no
+3. i'm pretty sure it could be either
+4. say it again please
+5. would you repeat that
+6. can you say what you just said again
+7. can i get you to say that once more
+8. set a reminder for later
+9. either of them could be i'm not sure
+10. come again",,,,,
+clinc150_intent-05-D,clinc150_intent-05,What is the most appropriate way to request someone to repeat what they just said?,120,10,"1. ai could you say that again
+2. please repeat yourself
+3. i missed what you said, can you say it again
+4. i didn't hear say it again please
+5. may you repeat what you said again
+6. will you please repeat what you said
+7. can you please sat it one more time
+8. repeat that for me
+9. could that be repeated
+10. can you please repeat that",,,,,
+clinc150_intent-06-A,clinc150_intent-06,What is the fuel economy and type of gas required for this car?,206,10,"1. what's the mileage on my car
+2. what type of gas does the car use
+3. i need to know what kind of fuel this car needs
+4. is regular gas ok or does this car need something else
+5. what kind of gas should i put into this car
+6. what type of fuel should i get for mainly city driving
+7. should i a gas refill for my car at the next gas station
+8. how much gas does my car currently have
+9. for this car what kind of fuel does it take
+10. which gas type goes into this car",,,,,
+clinc150_intent-06-B,clinc150_intent-06,What is the fuel economy of your car?,204,10,"1. look up the gas mileage for my vehicle
+2. what kind of gas does my car use
+3. tell me the right kind of gas for this car
+4. what kind of gas does this car need
+5. does my car have enough gas to get to chicago
+6. does my car have enough gas to get to atlantic city
+7. how many miles will i get for one gallon on this car
+8. how many gallons of gas are in my car
+9. how much gas does my car currently have
+10. i need to know the gas type for this vehicle",,,,,
+clinc150_intent-06-C,clinc150_intent-06,"what kind of gas does this car use
+how many miles does my car get per gallon
+what type of fuel does my car need
+tell me the gas mileage on my car
+what type of gas do i need for this car",205,10,"1. what'll this car do for gas mileage on the open road
+2. what type of fuel does my car need
+3. what kind of fuel should i use to fill the car
+4. what gas does my car use
+5. look up the type of gas needed for this vehicle
+6. can you tell me what kind of gas this car uses
+7. what kind of fuel should i put in my car
+8. how is the car's fuel economy
+9. i need to know the gas type for this vehicle
+10. which gas type goes into this car",,,,,
+clinc150_intent-06-D,clinc150_intent-06,What is the fuel economy and gas type for my car?,264,10,"1. what's the mpg for the car when it's on the highway
+2. are the reviews for chevy's any good
+3. what kind of gas should i put in this car
+4. what kind of gas does my car currently need
+5. what type of gas do i need to put in this car
+6. tell me the fuel my car takes
+7. does this car take regular or diesel fuel
+8. how many mpg does this car get in the city
+9. what fuel do i put in this car
+10. what type of gas do i put in this new car",,,,,
+clinc150_intent-07-A,clinc150_intent-07,"What is the best way to pay bills, including utilities, and how can I track the due dates and amounts for my various bills?",316,10,"1. i want to pay my bill, please
+2. i must pay my cable bill
+3. how do i find when my medical bill is due
+4. was a hold placed on my wells fargo account, and if so why
+5. i want to know if there is any transaction fee using washington federal card when i am in canada
+6. for my water and electricity, how much is the bill
+7. how much are my bills
+8. let me know the amounts i owe for my utilities and tuition bills
+9. i need to know the cost of the cable bill
+10. when do i need to pay my car insurance bill by",,,,,
+clinc150_intent-07-B,clinc150_intent-07,"how much is my cable bill
+i need to pay my water bill
+how do i pay my electric bill
+i want to know when a bill is due
+for my water and electricity, how much is the bill",236,10,"1. can you show me transactions related to utilities
+2. i need to pay my water bill
+3. i need help paying my electric bill
+4. when is too late to pay my cable bill
+5. how much are utilities
+6. how much is my cable bill
+7. can i get some funds to pay my utility bill
+8. how much is my kill bill bill for
+9. when is my electric bill due by
+10. how much is due for my water bill",,,,,
+clinc150_intent-07-C,clinc150_intent-07,"How can I pay my bills, including utilities, and what is the due date for my water, electric, and other bills?",262,10,"1. i need to pay this month's tv subscription fee
+2. i need help paying my electric bill
+3. i need to know what i spend on utilities for the last year
+4. when's the electric bill due
+5. what is the latest date that i can pay my direct tv bill this month
+6. can you tell me what i owe for this month's phone bill
+7. my dte and water bills are how much
+8. how much do i need to pay on my bills
+9. pay my electric bill for me
+10. pull up my electric bill, i want to pay it",,,,,
+clinc150_intent-07-D,clinc150_intent-07,**Can you help me pay my bills?**,324,10,"1. please go ahead and make my student loan payment
+2. i need to pay this month's tv subscription fee
+3. i want to pay my water bill
+4. make a payment on the electric bill
+5. how much is my water bill
+6. what is the due date of my bill
+7. when does the electric bill up
+8. can you tell bill and craig where i am
+9. can you tell me when my cable bill is due
+10. what is the electricity bill",,,,,
+clinc150_intent-08-A,clinc150_intent-08,"what is the square root of sixteen
+could you tell me what 30% off 235 is, please
+what is 78 times 85
+define ataraxy
+what is 13 times 45",305,10,"1. please add 456 and 781 for me
+2. what is 34 times 80908
+3. tell me the date 650 days from now
+4. i need to know the date in 256 days
+5. routing number for american river
+6. what is the routing number of cadence
+7. what's the spelling of multimedia
+8. can you play right above it
+9. idk
+10. what is 543 times 344",,,,,
+clinc150_intent-08-B,clinc150_intent-08,"What is the definition of ""qat"" and what does it mean in different contexts?",250,10,"1. flange means what
+2. tell me what the word arboreal means
+3. can you tell me what 30% off 279 is, please
+4. shhhh
+5. can i call you betty
+6. what's your age alexa
+7. how is the word umbrella spelled
+8. find the square root of 1243435
+9. how much is alorie intake
+10. abort mission",,,,,
+clinc150_intent-08-C,clinc150_intent-08,What is the solution to 60 times 30?,151,10,"1. remind me that time is up in sixty minutes
+2. what is 8 factorial
+3. what is 4 + 7
+4. if i win 200000 how do i split it 7 ways
+5. how many times does 8 go into 2000
+6. what is 35 times 23
+7. what is 22 meters in inches
+8. please make sure the temperature is set to 68
+9. what's today's high and low
+10. abort mission",,,,,
+clinc150_intent-08-D,clinc150_intent-08,What is the main topic of the following cluster of questions?,165,10,"1. remind me in (x) hours
+2. what is 1785 minus 334 minus 87 plus 374 minus 400 plus 17
+3. what is six divided by 16
+4. what is the square root of 66
+5. can you calculate 18 divided by 45
+6. what is 15 ounces in grams, please
+7. multiply 7 and 42
+8. what is the square root of 888
+9. can you calculate the square root of 172
+10. what's the exhange rate between mxn and gbp",,,,,
+clinc150_intent-09-A,clinc150_intent-09,Please confirm my reservation for 2/20 at 8 pm.,274,10,"1. please confirm my reservation for march 8th at 12:00
+2. tell me what is showing on my calendar for the 17th of march
+3. read me my schedule for march 2
+4. can you tell me how busy chipotle will be at nine tonight
+5. how busy is zippy around 12 for lunch
+6. what is the traffic like on the way to north shore
+7. how is the traffic on the way to the mall
+8. how is the traffic on the way to work
+9. how do i get to the court house on foot
+10. can you tell me what the traffic is usually like at 7:00 pm from philadelphia to ocean city, new jersey",,,,,
+clinc150_intent-09-B,clinc150_intent-09,"what do i have scheduled on march 2nd on my calendar
+check what's on my calendar for tuesday
+what is showing on my calendar for the 17th of march
+do i have anything scheduled for thursday the 14th
+does my calendar have anything for january 1st",177,10,"1. tell me what is on my calendar for march 2
+2. tell me everything on my calendar for may 1
+3. search my calendar for birthday party
+4. what do i have on my calendar for monday the 1st of march
+5. please put annie's baby shower on march 30 in my calendar
+6. march 3rd needs to be cleared on my calendar
+7. what appointments do i have tomorrow after 1:00pm
+8. can you tell me what my calendar is like for thursday the 14th
+9. my card will work until what month
+10. you have yo go to school on calendar",,,,,
+clinc150_intent-09-C,clinc150_intent-09,"What is the summary of the following cluster of questions? 
+
+The cluster of questions revolves around confirming reservations, checking the status of day off requests, and managing calendar events, including adding, removing, and checking appointments, as well as inquiring about calendar availability and specific dates.",228,10,"1. any news for me regarding my day off request
+2. i need to know the status of my day off request
+3. tell me everything on my calendar for may 1
+4. is there an event titled anniversary dinner on my calendar
+5. do i have 30th birthday party on my calendar
+6. check my calendar for 30th birthday party
+7. call hr so i can figure out how many days off i've taken
+8. what is the due date of my att bill
+9. please scratch my march 1st meeting off my calendar
+10. do i have any calendar entries for march 8th",,,,,
+clinc150_intent-09-D,clinc150_intent-09,"Summarize the cluster of questions about scheduling, calendar management, reservations, meetings, and reminders.",452,10,"1. do i still have the reservation on march 21 at 8pm
+2. can you schedule a meeting with jessica at the office, please
+3. could you please schedule a meeting with carrie and lisa
+4. how does scheduling a meeting work
+5. a meeting needs to be schedule and i need to know how
+6. i want to confirm friday's reservation at 2:00
+7. add a doctor's appointment to my calendar for friday
+8. can you confirm that i have a reservation for 2/20 at 6:00 pm
+9. is the breakfast place full in the mornings
+10. is the meeting with lisa today",,,,,
+clinc150_intent-10-A,clinc150_intent-10,Can you book a table for 3 people at Olive Garden at 7 pm?,218,10,"1. i need to make a reservation for 8 pm at red robin for 3
+2. what's it been costing me to buy three packs a day
+3. book me a hotel in seattle near the space needle from march 3rd to 5th
+4. i want a hotel room for 6 from the 1st through the 3rd in seattle
+5. i will be in lakewood from monday to wednesday and i need a hotel room for 4 people
+6. book a reservation for 3 at xenophobe under the name zebee
+7. make a reservation for wheeler party of 3 for 5pm at andrea's steakhouse
+8. id like a room in jacksonville near the stadium between january 1st to 3rd
+9. i'm travelling to boston on march 2 until march 4 please make a hotel reservation for me
+10. find a decent rental care for next week at the philadelphia airport",,,,,
+clinc150_intent-10-B,clinc150_intent-10,"Summarize the cluster of questions about making reservations, booking hotel rooms, scheduling meetings, and managing calendar events.",222,10,"1. i need a reservation for one at applebee's, four in the afternoon on march 3rd
+2. i need to make a reservation for 8 pm at red robin for 3
+3. what's it been costing me to buy three packs a day
+4. would you be able to help me with a meeting room on wednesday at 3pm
+5. i want to book a hotel room for 10 people from monday to tuesday in manhattan
+6. text billy and tell him to be at monday's meeting at 3pm
+7. reserve a table for 3 under the name wheeler at andrea's steakhouse for 5pm
+8. i need a hotel room for 7 people in st louis for november 3rd through 5th
+9. help me book a place to stay from may 2 to may 4 in tampa
+10. make a reservation for chik-fil-a at 3 o' clock please",,,,,
+clinc150_intent-10-C,clinc150_intent-10,"i want you to book a reservation for 8 pm at red robin under the name kevin
+i'd like to confirm my reservation for 2/20 at 8 pm
+please reserve a table for two at olive garden at 7:00pm for michael
+can you reserve a table for 2 at red lobster at 8pm
+are there any openings in new york city from april 2 through april 8",102,10,"1. please book a reservation for 8 pm at red robin under the name kevin
+2. reserve a table for 2 at red lobster at 8:00
+3. reserve a table for four for tonight at 7 at the fatted calf
+4. please confirm my reservation at parc for 8:00 pm, with the name denise jack
+5. confirm my reservation for red robin at 8
+6. please confirm my reservation for march 8th at 12:00
+7. set up a meeting with frank at 2pm
+8. what's the crowd like at hopper's bar around 11pm
+9. how bad is the traffic waiting for the staten island ferry at 8 am
+10. please confirm my reservation for bar les freres at 7",,,,,
+clinc150_intent-10-D,clinc150_intent-10,What is the main topic of the following cluster of questions?,105,10,"1. you have to reserve a table for 4 at red robin under the name kevin at 7
+2. i really need you to confirm my reservation for kevin at red robin
+3. i would like to try and confirm that i have a reservation at kelly's for moreno
+4. i'd like for you to make sure my reservation is there for charlie's under jack
+5. cancel my reservation for 4 at red robin
+6. in aiken, get me a rental for may 12 to may 16
+7. book a reservation for 3 at xenophobe under the name zebee
+8. make a reservation for wheeler party of 3 for 5pm at andrea's steakhouse
+9. on my citi card, the one that ends 1234, what's the apr
+10. find my reservation for steve at crucere's and confirm it, please",,,,,
