@@ -23,7 +23,14 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from .cache import cached_sentences, dataset_embeddings
+from .cache import (
+    cached_sentences,
+    dataset_embeddings,
+    embeddings_cache_path,
+    has_cached_embeddings,
+    has_cached_sentences,
+    sentences_cache_base,
+)
 from .core import _members_by_cluster, _select_cluster
 from .data import Dataset
 from .experiment import _resolve_dataset
@@ -31,6 +38,13 @@ from .sentences import SentenceCorpus
 from .summarizers import Cluster
 
 _IDENTITY_KEYS = ("seed", "method")
+
+
+REAL_CACHE_HINT = "/home/cooper/mst/clusteralgs/k-slimeans/cache"
+
+
+class CacheMissError(FileNotFoundError):
+    """The run's embeddings or sentences are not in the cache and encoding was not allowed."""
 
 
 class MissingAssignmentsError(ValueError):
@@ -185,10 +199,25 @@ def step_inputs(
     used (`load_run_dataset`), `force_context_length` the config's, and `sentences` the run's corpus for
     summarizers that need one.
 
+    What this is and is not:
+
+    - These are the members `summary_kmeans` selected, not necessarily what the summarizer was called on.
+      The loop sends no empty cluster and no cluster whose `doc_ids` it already summarized earlier in the
+      run (it reuses that summary); `sent_clusters` says which were sent. `summaries_evolution[j][c]` still
+      belongs to cluster `c`'s members here either way, but call and token counts must skip unsent clusters.
+    - The members are those before any token-budget trimming. `HFSummarizer` fits the texts to its prompt
+      budget afterwards (`hf.fit_texts_to_budget`, seeded with `TRUNCATION_SEED`), so a token recount over
+      these texts overcounts truncated clusters.
+
     Only full summary steps are supported: a masked step summarized a subset of clusters that is not logged.
+    This is verified from the step's trace row (`n_summarized`); a run with no trace rows at all raises, since
+    a full step cannot be confirmed. A final step that stopped on `tol` has no row of its own and is accepted
+    (masked steps never stop on `tol`).
     """
     labels = record.source_partition(j)
     k = len(record.summaries_evolution[j])
+    if not record.trace:
+        raise ValueError(f"({record.method!r}, seed {record.seed}) has no trace rows: cannot confirm step {j} was full")
     # Trace row `t` is the fit after step `t - 1`, so summary step `j`'s own row has step `source + 1`.
     own = [r for r in record.trace if r["step"] == record.summary_source_steps[j] + 1]
     if own and own[0]["n_summarized"] != k:
@@ -196,19 +225,67 @@ def step_inputs(
     return [_select_cluster(c, labels, X, texts, force_context_length, record.seed, sentences) for c in range(k)]
 
 
-def load_run_dataset(runlog: RunLog, cache_dir: str | Path | None = None) -> tuple[Dataset, np.ndarray]:
+def sent_clusters(
+    record: RunRecord, j: int, texts: list[str], X: np.ndarray, force_context_length: int
+) -> list[int]:
+    """Indices of the clusters `summary_kmeans` actually sent to the summarizer at summary step `j`.
+
+    Reproduces the loop's memo: a cluster is skipped when it has no members or when its selected `doc_ids`
+    were already summarized at an earlier step of this run (or, impossibly within one step, earlier in this one).
+    Arguments are those of `step_inputs`; every step up to `j` is rebuilt to know what was already seen.
+    """
+    seen: set[tuple[int, ...]] = set()
+    sent: list[int] = []
+    for step in range(j + 1):
+        inputs = step_inputs(record, step, texts, X, force_context_length)
+        sent = [c.index for c in inputs if c.doc_ids and c.doc_ids not in seen]
+        seen.update(c.doc_ids for c in inputs)
+    return sent
+
+
+def _check_cache(hit: bool, what: str, path: str, allow_encode: bool) -> None:
+    if not hit and not allow_encode:
+        raise CacheMissError(
+            f"no valid cached {what} at {path}; loading would encode them. Pass cache_dir pointing at the real "
+            f"cache ({REAL_CACHE_HINT}), or allow_encode=True to encode here."
+        )
+
+
+def load_run_dataset(
+    runlog: RunLog, cache_dir: str | Path | None = None, allow_encode: bool = False
+) -> tuple[Dataset, np.ndarray]:
     """The run's `Dataset` and its embeddings, resolved the way `experiment.run_offline` does.
 
-    `cache_dir` defaults to the config's (a path relative to the current directory). The embedder is passed by
-    name, so an embedding cache hit loads no model; a miss encodes the whole dataset.
+    `cache_dir` defaults to the config's (a path relative to the current directory, so a worktree without a
+    `cache/` misses). Unless `allow_encode`, a missing or stale cache entry raises `CacheMissError` instead of
+    loading the embedder and encoding the whole dataset. Datasets with precomputed vectors need no cache.
     """
     cfg = runlog.config
+    cache = str(cache_dir or cfg.get("cache_dir", "cache"))
     ds = _resolve_dataset(cfg["dataset"])
-    X = dataset_embeddings(ds, cfg["embedder"], str(cache_dir or cfg.get("cache_dir", "cache")))
-    return ds, X
+    if ds.embeddings_path is None:
+        _check_cache(
+            has_cached_embeddings(ds.name, ds.texts, cfg["embedder"], cache),
+            "embeddings",
+            str(embeddings_cache_path(ds.name, cfg["embedder"], cache)),
+            allow_encode,
+        )
+    return ds, dataset_embeddings(ds, cfg["embedder"], cache)
 
 
-def load_run_sentences(runlog: RunLog, ds: Dataset, cache_dir: str | Path | None = None) -> SentenceCorpus:
-    """The run's cached `SentenceCorpus`, for extractive summarizers (`step_inputs(..., sentences=...)`)."""
+def load_run_sentences(
+    runlog: RunLog, ds: Dataset, cache_dir: str | Path | None = None, allow_encode: bool = False
+) -> SentenceCorpus:
+    """The run's cached `SentenceCorpus`, for extractive summarizers (`step_inputs(..., sentences=...)`).
+
+    Raises `CacheMissError` on a missing or stale cache entry unless `allow_encode`.
+    """
     cfg = runlog.config
-    return cached_sentences(ds.name, ds.texts, cfg["embedder"], str(cache_dir or cfg.get("cache_dir", "cache")))
+    cache = str(cache_dir or cfg.get("cache_dir", "cache"))
+    _check_cache(
+        has_cached_sentences(ds.name, ds.texts, cfg["embedder"], cache),
+        "sentences",
+        sentences_cache_base(ds.name, cfg["embedder"], cache) + ".npz",
+        allow_encode,
+    )
+    return cached_sentences(ds.name, ds.texts, cfg["embedder"], cache)

@@ -62,11 +62,29 @@ def test_surface_counts_empty_input():
     assert (c.n, c.mean_words, c.final_shared_min, c.final_shared_max, c.final_largest_group) == (0, 0.0, 0, 0, 0)
 
 
+def test_documented_rule_gaps_are_pinned():
+    # Empty summaries count toward n and mean_words (as 0 words) but never form a duplicate group.
+    c = surface_counts([[["", "", "a b"]]])
+    assert (c.n, c.final_n, c.final_shared_max) == (3, 3, 0)
+    assert c.mean_words == pytest.approx(2 / 3)
+    # Literal rules: `?"` is not a question ending, curly quotes are not quotes.
+    c = surface_counts([[['Why?"', "\u201cHi\u201d"]]])
+    assert (c.ends_with_question, c.starts_with_quote) == (0, 0)
+
+
+def _load_script():
+    spec = importlib.util.spec_from_file_location("surface_counts_script", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _write_run(path, summaries_rows):
     path.mkdir(parents=True)
     cfg = {"name": "r", "dataset": "d", "embedder": "e", "summarizer": {"type": "hf", "model_id": "Org/Tiny-1B"}}
     (path / "config.yaml").write_text(yaml.safe_dump(cfg))
     metrics = [{"seed": r["seed"], "method": r["method"]} for r in summaries_rows] + [{"seed": 0, "method": "kmeans"}]
+    (path / "summary.csv").write_text("method\n")
     (path / "metrics.jsonl").write_text("".join(json.dumps(m) + "\n" for m in metrics))
     (path / "summaries.jsonl").write_text("".join(json.dumps(r) + "\n" for r in summaries_rows))
 
@@ -78,9 +96,7 @@ def test_script_prints_one_row_per_summarizing_method(tmp_path, capsys):
     ]
     _write_run(tmp_path / "run", rows)
 
-    spec = importlib.util.spec_from_file_location("surface_counts_script", SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = _load_script()
     argv = sys.argv
     sys.argv = ["surface_counts.py", str(tmp_path / "run")]
     try:
@@ -90,5 +106,24 @@ def test_script_prints_one_row_per_summarizing_method(tmp_path, capsys):
     lines = capsys.readouterr().out.strip().splitlines()
 
     assert len(lines) == 3  # header, rule, one row: the kmeans baseline has no summaries
-    assert lines[2].startswith("| r | Tiny-1B (k-SLMmeans) | 11 |")
+    assert lines[2].startswith("| r/run | Tiny-1B (k-SLMmeans) | 11 |")
     assert "| 0–2 | 2 | 1 | 1 |" in lines[2]
+
+
+def test_script_skips_a_run_without_summary_csv(tmp_path, capsys):
+    rows = [{"seed": 0, "method": "k-SLMmeans", "summaries": SEED_B[-1], "summaries_evolution": SEED_B}]
+    _write_run(tmp_path / "done", rows)
+    _write_run(tmp_path / "aborted", rows)
+    (tmp_path / "aborted" / "summary.csv").unlink()
+
+    argv = sys.argv
+    sys.argv = ["surface_counts.py", str(tmp_path / "aborted"), str(tmp_path / "done")]
+    try:
+        _load_script().main()
+    finally:
+        sys.argv = argv
+    captured = capsys.readouterr()
+
+    assert len(captured.out.strip().splitlines()) == 3
+    assert "r/done" in captured.out and "aborted" not in captured.out
+    assert "skipping" in captured.err and "aborted" in captured.err

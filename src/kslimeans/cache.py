@@ -43,27 +43,45 @@ def _fingerprint(texts: list[str]) -> str:
     return digest.hexdigest()
 
 
+def embeddings_cache_path(dataset_name: str, embedder: Embedder | str, cache_dir: str = "cache") -> Path:
+    """Where `cached_embeddings` keeps the embeddings of `dataset_name` under `embedder`."""
+    return Path(cache_dir) / f"{_sanitize(f'{dataset_name}__{_embedder_name(embedder)}')}_embeddings.npz"
+
+
+def _read_embeddings(path: Path, texts: list[str]) -> np.ndarray | None:
+    """The cached embeddings at `path` if they belong to `texts` (fingerprint and row count), else `None`."""
+    if not path.exists():
+        return None
+    data = np.load(path)
+    embeddings = data["embeddings"]
+    cached_fingerprint = str(data["fingerprint"]) if "fingerprint" in data.files else None
+    if cached_fingerprint == _fingerprint(texts) and embeddings.shape[0] == len(texts):
+        return embeddings
+    return None
+
+
+def has_cached_embeddings(
+    dataset_name: str, texts: list[str], embedder: Embedder | str, cache_dir: str = "cache"
+) -> bool:
+    """Whether `cached_embeddings` would return a valid cache entry instead of encoding."""
+    return _read_embeddings(embeddings_cache_path(dataset_name, embedder, cache_dir), texts) is not None
+
+
 def cached_embeddings(
     dataset_name: str, texts: list[str], embedder: Embedder | str, cache_dir: str = "cache"
 ) -> np.ndarray:
     """Embed `texts` with `embedder`, caching under `<cache_dir>/<dataset>__<embedder>_embeddings.npz`."""
-    name = _sanitize(f"{dataset_name}__{_embedder_name(embedder)}")
-    path = Path(cache_dir) / f"{name}_embeddings.npz"
-    fingerprint = _fingerprint(texts)
-
-    if path.exists():
-        data = np.load(path)
-        embeddings = data["embeddings"]
-        cached_fingerprint = str(data["fingerprint"]) if "fingerprint" in data.files else None
-        if cached_fingerprint == fingerprint and embeddings.shape[0] == len(texts):
-            return embeddings
+    path = embeddings_cache_path(dataset_name, embedder, cache_dir)
+    cached = _read_embeddings(path, texts)
+    if cached is not None:
+        return cached
 
     if isinstance(embedder, str):
         embedder = get_embedder(embedder)
     embeddings = embedder.encode(texts)
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez(path, embeddings=embeddings, fingerprint=fingerprint)
+    np.savez(path, embeddings=embeddings, fingerprint=_fingerprint(texts))
     return embeddings
 
 
@@ -90,24 +108,41 @@ def dataset_embeddings(ds: Dataset, embedder: Embedder | str, cache_dir: str = "
     return embeddings
 
 
+def sentences_cache_base(dataset_name: str, embedder: Embedder | str, cache_dir: str = "cache") -> str:
+    """Path prefix (`<base>.npz`, `<base>.json`) where `cached_sentences` keeps the corpus."""
+    return str(Path(cache_dir) / f"{_sanitize(f'{dataset_name}__{_embedder_name(embedder)}')}_sentences")
+
+
+def _read_sentences(base: str, texts: list[str]) -> SentenceCorpus | None:
+    """The cached corpus at `base` if it belongs to `texts`, else `None`."""
+    if Path(f"{base}.npz").exists() and Path(f"{base}.json").exists():
+        if SentenceCorpus.load_fingerprint(base) == _fingerprint(texts):
+            corpus = SentenceCorpus.load(base)
+            if len(corpus.doc_ptr) - 1 == len(texts):
+                return corpus
+    return None
+
+
+def has_cached_sentences(
+    dataset_name: str, texts: list[str], embedder: Embedder | str, cache_dir: str = "cache"
+) -> bool:
+    """Whether `cached_sentences` would return a valid cache entry instead of building the corpus."""
+    return _read_sentences(sentences_cache_base(dataset_name, embedder, cache_dir), texts) is not None
+
+
 def cached_sentences(
     dataset_name: str, texts: list[str], embedder: Embedder | str, cache_dir: str = "cache"
 ) -> SentenceCorpus:
     """Build a `SentenceCorpus`, caching under `<cache_dir>/<dataset>__<embedder>_sentences.*`."""
-    name = _sanitize(f"{dataset_name}__{_embedder_name(embedder)}")
-    base = str(Path(cache_dir) / f"{name}_sentences")
-    fingerprint = _fingerprint(texts)
-
-    if Path(f"{base}.npz").exists() and Path(f"{base}.json").exists():
-        if SentenceCorpus.load_fingerprint(base) == fingerprint:
-            corpus = SentenceCorpus.load(base)
-            if len(corpus.doc_ptr) - 1 == len(texts):
-                return corpus
+    base = sentences_cache_base(dataset_name, embedder, cache_dir)
+    corpus = _read_sentences(base, texts)
+    if corpus is not None:
+        return corpus
 
     if isinstance(embedder, str):
         embedder = get_embedder(embedder)
     corpus = SentenceCorpus.build(texts, embedder)
 
     Path(cache_dir).mkdir(parents=True, exist_ok=True)
-    corpus.save(base, fingerprint=fingerprint)
+    corpus.save(base, fingerprint=_fingerprint(texts))
     return corpus

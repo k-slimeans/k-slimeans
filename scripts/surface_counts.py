@@ -10,6 +10,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import sys
+from pathlib import Path
 
 from kslimeans.runlog import load_run
 from kslimeans.surface import SurfaceCounts, surface_counts
@@ -42,6 +44,9 @@ def main() -> None:
     print(HEADER)
     print("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     for run_dir in args.run_dirs:
+        if not (Path(run_dir) / "summary.csv").exists():
+            print(f"warning: skipping {run_dir}: no summary.csv (aborted run?)", file=sys.stderr)
+            continue
         runlog = load_run(run_dir)
         model = str(runlog.config["summarizer"].get("model_id") or runlog.config["summarizer"].get("type"))
         model = model.rsplit("/", 1)[-1]
@@ -49,7 +54,7 @@ def main() -> None:
             records = [r for r in runlog.method_records(method) if r.summaries_evolution]
             if records:
                 counts = surface_counts(r.summaries_evolution for r in records)
-                print(format_row(runlog.config["name"], f"{model} ({method})", counts))
+                print(format_row(f'{runlog.config["name"]}/{runlog.path.name}', f"{model} ({method})", counts))
 
 
 if __name__ == "__main__":
