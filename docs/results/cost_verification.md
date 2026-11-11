@@ -3,7 +3,7 @@
 This checks what the logged cost counters count, so the cost section of `clinc150_summarizers.md` (§3) can be built on. It uses no GPU and loads no model: the four logged CLINC150 runs are rebuilt from their logged partitions and summaries, and prompts and outputs are re-tokenized with the Qwen3 tokenizer from the local Hugging Face cache (`local_files_only`; the three sizes share one tokenizer).
 
 - **Part 2** (a GPU idle check and a monitor logged into each run directory) and **part 3** (re-timing at a fixed batch size, and measuring the inflation) are separate work. Nothing here re-times anything: the timing findings below are about what the existing seconds cover, not about how fast the model is.
-- **Result: no counting bug.** Every counter that can be rebuilt matched exactly, except the output tokens, which match within 0.1% for a reason explained below. Every number in §3 of `clinc150_summarizers.md` equals the mean and standard deviation recomputed from the runs' `metrics.jsonl`. No published number changes.
+- **Result: no counting bug.** Every counter that can be rebuilt matched exactly, except the output tokens, which match within 0.1% (cause not isolated, see below). Every number in §3 of `clinc150_summarizers.md` equals the mean and standard deviation recomputed from the runs' `metrics.jsonl`; the report prints that recomputation, formatted like §3, under each method, so the comparison can be repeated. No published number changes.
 
 ## 1. What was checked
 
@@ -38,10 +38,11 @@ All checks pass on all four runs (5 seeds each, 25 summary steps per run). Maxim
 
 - **Calls:** the logged per-step `n_calls` equals the number of clusters sent in all 100 steps (including LSA), and the per-run totals equal both the trace sums and the rebuild. The empty-cluster and memo rules in §3 of the published report are what the code does.
 - **Input tokens:** equal to the token, at batch sizes 8, 4 and 1. Left padding therefore does not leak into the count (`attention_mask.sum()` counts real tokens only). Truncated clusters and dropped texts also match exactly, so the seeded member trim (#28) is reproduced.
-- **Output tokens:** the difference is at most 15 tokens per seed (0.1%) and has no consistent sign. Two effects with opposite signs act on it, and the text alone cannot separate them:
-  - A generation that ran to `max_new_tokens` (64) has no EOS, so the logged count is one lower than the expectation. By re-tokenized length, 17–22 summaries per seed for the 0.6B, 0–5 for the 1.7B and 10–18 for the 4B reach 63 tokens or more.
-  - `decode(skip_special_tokens=True)` followed by `.strip()` can drop leading and trailing whitespace tokens (the prefill continues after `Sentence:`), and re-encoding a decoded string need not reproduce the generated token boundaries, so the re-tokenized length can be either side.
+- **Output tokens:** the difference is at most 15 tokens per seed (0.1%). Its sign is mixed for the 0.6B and 1.7B and mostly positive for the 4B (+5, +15, +6, +13, −1); the cause is not isolated. Two hypotheses, which the decoded text alone cannot test:
+  - A generation that ran to `max_new_tokens` (64) has no EOS, so the logged count would be one lower than the expectation. By re-tokenized length, 17–22 summaries per seed for the 0.6B, 0–5 for the 1.7B and 10–18 for the 4B reach 63 tokens or more.
+  - `decode(skip_special_tokens=True)` followed by `.strip()` may drop leading and trailing whitespace tokens (the prefill continues after `Sentence:`), and re-encoding a decoded string need not reproduce the generated token boundaries, so the re-tokenized length could be either side.
   - EOS counting itself is as documented: `count_generated_tokens` counts up to and including the first EOS in `generation_config.eos_token_id` (`<|im_end|>` and `<|endoftext|>`), and the padding after it is excluded, so batched runs are not inflated.
+  - **What the output check guarantees.** It fails when a seed's logged output tokens differ from the expectation by more than 0.3% (`--output-tol`, default 0.003), about 30–50 tokens per seed here, e.g. one token missing on every 15th to 25th call. A counter that missed the EOS on every call would be off by 4–7% and is caught by a wide margin (a test covers it). A drift below 0.3% passes.
 - **Seconds:** per-step `summarizer_seconds` sum to the per-run value within 1e-6 s, and `summarizer_seconds <= runtime_s` everywhere.
 
 ### Total time minus summarizer time
@@ -80,7 +81,19 @@ The first timed call also includes any one-time lazy initialization (CUDA kernel
 
 **Tokenization is a negligible part of it.** Rendering and tokenizing all prompts of a seed, plus re-tokenizing the outputs, took 2.7–3.3 s of CPU per seed here, against 850–2,050 s of `summarizer_seconds` (0.15–0.4%), so the seconds are dominated by `generate`.
 
-## 4. Known timing caveats (already documented, not re-measured here)
+## 4. What this check cannot catch
+
+The verifier shares code with the live path: it calls `fit_and_render` (the trim and the rendering), `step_inputs` (member selection) and `sent_clusters` (the memo rule). So it cannot detect:
+
+- a bug inside the trim, the rendering or the member selection themselves, since both sides would be wrong the same way;
+- a `config.yaml` that differs from what actually ran: the prompt, `text_type`, `max_input_tokens` and the rest are taken from the logged config;
+- output-token drift below the tolerance (0.3%).
+
+It does catch bugs in counter wiring (which quantity is counted, and where), in aggregation (per step into trace rows into per-run totals) and in call accounting (empty clusters, memo hits, the step that stopped on `tol`). The prompt rebuild is also an independent re-tokenization with the real tokenizer, so a stats counter that disagreed with the tokenizer would show.
+
+For the counters that are not counts (`output_tokens`, `summarizer_seconds`, and the embedder's `embed_*` counters), the check on a run that ended on `tol` is one-sided: the stopped step is in the per-run total only, so the total must be at least the trace sum, but its exact size cannot be rebuilt (seconds) or is only an expectation (output tokens, which have their own check). Call, input-token, truncation, dropped-text and empty-summary counters are rebuilt exactly for that step as well.
+
+## 5. Known timing caveats (already documented, not re-measured here)
 
 - **Shared GPU:** the wall-clock times are inflated, by roughly 1.7× according to a single BANKING77 check (185 s against 105–115 s), most likely by a Windows-side process using the same card. That 1.7× is an estimate from one BANKING77 run, not a measurement of these CLINC150 runs. Because `summarizer_seconds` is wall-clock and synchronizes with the device, anything else using the GPU or CPU at the time is inside it.
 - **Batch sizes 8 / 4 / 1** (0.6B / 1.7B / 4B) differ by model, so per-call seconds mix model size with batching. Peak memory depends on the batch size and on `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` too.
