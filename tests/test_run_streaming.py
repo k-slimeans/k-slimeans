@@ -324,3 +324,23 @@ def test_arxiv_configs_pass_the_typo_guard_and_build_their_schedule(run_streamin
         assert cfg["dataset"]["load_texts"] is False and "schedule" not in cfg
     else:
         build_schedule(cfg["schedule"])
+
+
+def test_summary_distance_with_a_skipped_last_batch_uses_the_last_summarized_batch(
+    run_streaming_module, fake_stream
+):
+    from kslimeans.metrics import avg_closest_distance, oracle_centroids
+
+    run_path = run_streaming_module.run_streaming({**fake_stream, "summary_every": 3})  # only batch 0
+    row = _rows(run_path)[next(m for m in _rows(run_path) if m != "kmeans")]
+    logged = [json.loads(line) for line in (run_path / "summaries.jsonl").read_text().splitlines()][0]
+    assert logged["summaries"][-1] is None and logged["summaries"][0] is not None
+
+    texts, X = make_synthetic_minibatch_data()
+    embed = make_lookup_embedder(texts, X)
+    base, extra = divmod(len(texts), N_BLOBS)
+    labels = np.concatenate([np.full(base + (b < extra), b) for b in range(N_BLOBS)])
+    oracle = oracle_centroids(X, labels, N_BLOBS)
+    expected = avg_closest_distance(embed([s for s in logged["summaries"][0] if s is not None]), oracle)
+    assert row["sum_cen_dist"] == pytest.approx(expected)
+    assert row["sum_sum_dist"] == pytest.approx(expected)
