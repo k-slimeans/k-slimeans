@@ -19,8 +19,9 @@ It took 48 s for the four runs (about 16 s per run with a tokenizer, under 1 s f
 | Check | How |
 | --- | --- |
 | Calls per step and per run | The logged `n_calls` against `len(sent_clusters(...))`: clusters that are non-empty and not memo-cache hits. Trace rows against the per-run total in `metrics.jsonl`; the total may exceed the trace only by a final step that stopped on `tol` (none of these runs did). |
-| Input tokens, truncated clusters, dropped texts | Each sent prompt is rebuilt with the run's prompt (the dataset's), `text_type` prefill, system prompt, chat-template kwargs (thinking off) and `max_input_tokens`, through `hf.fit_and_render`, the function `HFSummarizer._render` itself now calls. The prompt is re-tokenized as `HFSummarizer` counts it (`add_special_tokens=False`). All 25 steps of every run were checked, not a sample. |
+| Input tokens, truncated clusters, dropped texts | Each sent prompt is rebuilt with the run's prompt (the dataset's), `text_type` prefill, system prompt, chat-template kwargs (thinking off), `max_words_per_text` (when the config sets it, applied before the budget trim, as in the live call) and `max_input_tokens`, through `hf.fit_and_render`, the function `HFSummarizer._render` itself now calls. The prompt is re-tokenized as `HFSummarizer` counts it (`add_special_tokens=False`). All 25 steps of every run were checked, not a sample. |
 | Output tokens | Each sent summary is re-tokenized. The logged count is "up to and including the first EOS" of the raw generation, which cannot be recovered from decoded, stripped text, so the expectation is the re-tokenized length plus one EOS per summary. |
+| `embed_*` counters | When a run logs the embedder's counters (TF-IDF runs, #54), each must equal the sum of the trace rows. Runs without them skip this check. |
 | Empty summaries | The logged `n_empty_summaries` against the blank summaries among the clusters sent. |
 | Seconds | Trace sums against the per-run `summarizer_seconds`; `summarizer_seconds <= runtime_s`; the remainder `runtime_s - summarizer_seconds`. |
 

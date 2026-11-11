@@ -179,7 +179,6 @@ def fit_and_render(
     Returns `(rendered, n_dropped, truncated)` as `fit_texts_to_budget` reports them. The token count
     `HFSummarizer` logs as `input_tokens` is `len(tokenizer(rendered, add_special_tokens=False)["input_ids"])`.
     """
-
     if max_words_per_text is not None:
         texts = [truncate_words(text, max_words_per_text) for text in texts]
 

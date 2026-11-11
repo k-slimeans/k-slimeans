@@ -90,6 +90,7 @@ class FakeHFSummarizer(Summarizer):
             chat_template_kwargs=s.chat_template_kwargs,
             fold_system=False,
             max_input_tokens=s.max_input_tokens,
+            max_words_per_text=s.max_words_per_text,
         )
         summary = self.inner.summarize(cluster)
         self._stats["input_tokens"] += len(rendered.split())
@@ -97,6 +98,22 @@ class FakeHFSummarizer(Summarizer):
         self._stats["n_truncated_clusters"] += int(bool(n_dropped or truncated))
         self._stats["n_dropped_texts"] += n_dropped
         return summary
+
+    def stats(self):
+        return dict(self._stats)
+
+
+class StatsEmbedder(LookupEmbedder):
+    """Reports counters like `TfidfEmbedder.stats()`: one token and one OOV token per word encoded."""
+
+    def __init__(self, embed):
+        super().__init__(embed)
+        self._stats = {"embed_tokens": 0, "embed_oov_tokens": 0}
+
+    def encode(self, texts):
+        self._stats["embed_tokens"] += sum(len(t.split()) for t in texts)
+        self._stats["embed_oov_tokens"] += len(texts)
+        return super().encode(texts)
 
     def stats(self):
         return dict(self._stats)
@@ -123,18 +140,29 @@ def noisy():
     return texts, X, make_lookup_embedder(texts, X)
 
 
+@pytest.fixture(scope="module")
+def wordy(noisy):
+    """The noisy corpus with 12-word texts, so `max_words_per_text` and the token budget both matter."""
+    texts, X, _ = noisy
+    texts = [f"doc{i} " + " ".join(f"w{i % 7}x{j}" for j in range(11)) for i in range(len(texts))]
+    return texts, X, make_lookup_embedder(texts, X)
+
+
 @pytest.fixture
 def run(noisy, synthetic, tmp_path):
     """`make(...)` -> (record, texts, X, result) of a logged run; `separated=True` uses the clean corpus."""
 
-    def make(settings=SETTINGS, tol=-1.0, extractive=False, fcl=NOISY_FCL, max_iter=5, separated=False):
-        texts, X, embed = synthetic if separated else noisy
+    def make(
+        settings=SETTINGS, tol=-1.0, extractive=False, fcl=NOISY_FCL, max_iter=5, separated=False, corpus=None,
+        embedder_cls=LookupEmbedder,
+    ):
+        texts, X, embed = corpus or (synthetic if separated else noisy)
         summarizer = ClosestToMeanSummarizer(embed) if extractive else FakeHFSummarizer(embed, settings)
         result = summary_kmeans(
             texts,
             N_BLOBS,
             summarizer,
-            LookupEmbedder(embed),
+            embedder_cls(embed),
             FixedSchedule(3, max_iter, True, True),
             text_features=X,
             force_context_length=fcl,
@@ -378,3 +406,38 @@ def test_real_qwen3_tokenizer_trims_and_renders_the_non_thinking_prompt():
         max_input_tokens=200,
     )
     assert rendered.rstrip().endswith("Sentence:") and "<think>" in rendered
+
+
+def test_max_words_per_text_is_applied_before_the_token_budget(run, wordy):
+    # Cutting every member to 3 words, then fitting 150 tokens, is not the same as fitting whole 12-word members.
+    cut = PromptSettings(**{**SETTINGS.__dict__, "max_words_per_text": 3, "max_input_tokens": 150})
+    record, texts, X, result = run(settings=cut, corpus=wordy)
+    assert result.cost["input_tokens"] > 0
+
+    rc = _check(record, texts, X, settings=cut)
+    assert _failed(run_checks([rc])) == []
+    assert sum(s.counts["input_tokens"] for s in rc.steps) == result.cost["input_tokens"]
+
+    # Ignoring the option rebuilds different prompts, and the verifier notices.
+    ignored = PromptSettings(**{**cut.__dict__, "max_words_per_text": None})
+    failed = _failed(run_checks([_check(record, texts, X, settings=ignored)]))
+    assert "per step: logged `input_tokens` = re-tokenized prompts" in failed
+    # The config option reaches the settings.
+    assert PromptSettings.from_run({"max_words_per_text": 30}, "p", "t").max_words_per_text == 30
+    assert PromptSettings.from_run({}, "p", "t").max_words_per_text is None
+
+
+def test_embedder_counters_are_summed_and_older_rows_without_them_pass(run):
+    record, texts, X, result = run(embedder_cls=StatsEmbedder)
+    assert result.cost["embed_tokens"] > 0 and "embed_oov_tokens" in record.trace[1]
+
+    checks = _by_name(run_checks([_check(record, texts, X)]))
+    assert _failed(list(checks.values())) == []
+    assert checks["per run: `embed_oov_tokens` in metrics = sum of trace rows"].n == 1
+
+    record.trace[1]["embed_tokens"] += 1
+    assert "per run: `embed_tokens` in metrics = sum of trace rows" in _failed(run_checks([_check(record, texts, X)]))
+
+    plain, texts, X, _ = run()
+    names = [c.name for c in run_checks([_check(plain, texts, X)])]
+    assert not any("embed_" in n for n in names)

@@ -57,6 +57,7 @@ class PromptSettings:
     max_input_tokens: int
     max_new_tokens: int
     chat_template_kwargs: dict
+    max_words_per_text: int | None = None
 
     @classmethod
     def from_run(cls, summarizer_cfg: dict, dataset_prompt: str, dataset_text_type: str) -> PromptSettings:
@@ -69,7 +70,16 @@ class PromptSettings:
             max_input_tokens=summarizer_cfg.get("max_input_tokens", 4096),
             max_new_tokens=summarizer_cfg.get("max_new_tokens", 128),
             chat_template_kwargs={"enable_thinking": False} if kwargs is None else kwargs,
+            max_words_per_text=summarizer_cfg.get("max_words_per_text"),
         )
+
+
+def embed_keys(row: dict) -> list[str]:
+    """The embedder's optional `embed_*` counters in a trace or metrics row (e.g. TF-IDF's OOV tokens).
+
+    Runs made before #54, and runs with an embedder that reports none, have no such keys.
+    """
+    return sorted(k for k, v in row.items() if k.startswith("embed_") and isinstance(v, (int, float)))
 
 
 def count_tokens(tokenizer, text: str) -> int:
@@ -95,6 +105,7 @@ def rebuild_prompt(tokenizer, settings: PromptSettings, texts: list[str], fold_s
         chat_template_kwargs=settings.chat_template_kwargs,
         fold_system=fold_system,
         max_input_tokens=settings.max_input_tokens,
+        max_words_per_text=settings.max_words_per_text,
     )
     return PromptCount(count_tokens(tokenizer, rendered), n_dropped, truncated)
 
@@ -175,7 +186,7 @@ def check_record(
                 capped += int(n_out >= settings.max_new_tokens - 1)
             rebuild_seconds += time.perf_counter() - start
         row = rows.get(record.summary_source_steps[j] + 1)
-        logged = None if row is None else {key: row[key] for key in ("n_calls", *COST_KEYS)}
+        logged = None if row is None else {key: row[key] for key in ("n_calls", *COST_KEYS, *embed_keys(row))}
         steps.append(StepCheck(record.seed, j, logged, counts, out_tokens, capped))
     return RecordCheck(record.method, record.seed, steps, record.metrics, with_tokens, rebuild_seconds)
 
@@ -240,14 +251,15 @@ def run_checks(checks: list[RecordCheck], output_tol: float = 0.01) -> list[Chec
             check.compare(rc.metrics[key], sum(s.counts[key] for s in rc.steps))
         out.append(check)
 
-    for key in ("n_calls", *COST_KEYS):
+    extra = sorted({k for rc in checks for k in embed_keys(rc.metrics)})
+    for key in ("n_calls", *COST_KEYS, *extra):
         check = Check(f"per run: `{key}` in metrics = sum of trace rows")
         n_tol = 0
         for rc in checks:
             tol = SECONDS_TOL if key == "summarizer_seconds" else 0
             rowless = [s for s in rc.steps if s.logged is None]
-            total = rc.metrics[key]
-            traced = sum(s.logged[key] for s in _summary_steps_with_rows(rc))
+            total = rc.metrics.get(key, 0)
+            traced = sum(s.logged.get(key, 0) for s in _summary_steps_with_rows(rc))
             if rowless:
                 n_tol += 1
                 # The row-less step is in the total only: the total must exceed the trace by what it added.
