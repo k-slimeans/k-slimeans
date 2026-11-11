@@ -9,5 +9,6 @@ quality x diagnostic [prelim_bank77_qwen3-0.6b],385,0,0,385,0
 quality x diagnostic [prelim_bank77_qwen3-1.7b],385,0,0,385,0
 quality x diagnostic [prelim_bank77_qwen3-4b],385,0,0,385,0
 quality x after-partition,15000,15000,15000,0,0
+quality x step-1 references,3000,3000,3000,0,0
 quality x cost,16540,16540,16540,0,0
 cluster rows x run metrics,16540,40,16540,0,0
