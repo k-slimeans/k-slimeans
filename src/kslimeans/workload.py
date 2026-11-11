@@ -74,18 +74,19 @@ def summarize_workload(
     summarizer: Summarizer,
     clusters: list[Cluster],
     repeat: int = 1,
-    batch_size: int | None = None,
     warmup: int = 0,
     clock: Callable[[], float] = time.perf_counter,
 ) -> WorkloadRun:
     """Summarize `clusters` `repeat` times and time every batch.
 
-    The batches are cut here, `batch_size` clusters per `summarize_batch` call (default: the summarizer's own
-    `batch_size`, else everything in one call). `HFSummarizer.summarize_batch` cuts its input the same way, so
-    this is the call pattern it would have made, with a clock around each generate. `warmup` first runs the first
-    batch that many times, unrecorded, so repeat 0 does not pay one-off CUDA start-up.
+    The batches are cut here, `summarizer.batch_size` clusters per `summarize_batch` call (everything in one call
+    if it has none). `HFSummarizer.summarize_batch` cuts its input by the same attribute, so the outer chunks
+    cannot diverge from its inner ones: each call is exactly one generate. The clock wraps the whole
+    `summarize_batch` (render, tokenize, generate, decode), the same span as core's `summarizer_seconds`.
+    `warmup` first runs the first batch that many times, unrecorded, so repeat 0 does not pay one-off CUDA
+    start-up.
     """
-    size = batch_size or getattr(summarizer, "batch_size", None) or len(clusters) or 1
+    size = getattr(summarizer, "batch_size", None) or len(clusters) or 1
     chunks = [clusters[i : i + size] for i in range(0, len(clusters), size)]
     if warmup and chunks:
         for _ in range(warmup):

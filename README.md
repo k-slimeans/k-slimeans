@@ -379,6 +379,10 @@ compared on identical work. It needs the GPU. Embeddings come from the cache; no
 same `gpu_check` policy as `run_offline` (`configs/clinc150_prompt_v2.yaml` states `require_idle: warn`), so each output
 directory also gets `gpu.json` and `gpu_samples.csv`.
 
+Batch size: with `--summarizer-config`, `--set batch_size=N` is required (the script exits otherwise), because the
+config's batch 8 is the 0.6B's and a 4B at that size overflows the 12 GB card, which hangs under WSL2 instead of
+raising. Use 4B 1, 1.7B 4, 0.6B 8. The effective `model_id` and `batch_size` are printed first.
+
 Warm-up: the first batch on a cold GPU pays one-off CUDA start-up. With `--repeat 1` (the pilot) there is no warm-up pass,
 so the cost record is not inflated by work the pilot does not need; `config.yaml` then carries a `note` that repeat 0
 includes the start-up. With `--repeat N > 1` (timing, #35) one untimed warm-up pass over the first batch runs by default;

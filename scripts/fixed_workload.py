@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-from pathlib import Path
 
 import yaml
 
@@ -35,7 +34,7 @@ from kslimeans.config import apply_overrides
 from kslimeans.environment import collect_environment
 from kslimeans.gpu_monitor import GpuSession
 from kslimeans.results import RunDir
-from kslimeans.runlog import load_run, load_run_dataset
+from kslimeans.runlog import load_run, load_run_dataset, load_run_embedder
 from kslimeans.summarizers import build_summarizer
 from kslimeans.workload import build_workload, pick_record, summarize_workload, write_workload
 
@@ -52,6 +51,16 @@ def resolve_summarizer(logged_config: dict, config_path: str | None, overrides: 
             full = yaml.safe_load(f)
         block = full["summarizer"] if "summarizer" in full else full
     return apply_overrides(copy.deepcopy(block), overrides), full.get("gpu_check")
+
+
+def embedder_name(runlog, ds) -> str:
+    """The embedder's resolved name, as `experiment.py` logs it: a named spec is its own name (no model is
+    loaded for it); a corpus-fitted spec (TF-IDF) is built to read the name that encodes its settings."""
+    spec = runlog.config["embedder"]
+    if isinstance(spec, str):
+        return spec
+    embedder = load_run_embedder(runlog, ds)
+    return getattr(embedder, "name", type(embedder).__name__)
 
 
 def main() -> None:
@@ -74,12 +83,22 @@ def main() -> None:
     warmup = args.warmup if args.warmup is not None else int(args.repeat > 1)
 
     runlog = load_run(args.run_dir)
+    cfg = runlog.config
+    summarizer_cfg, gpu_spec = resolve_summarizer(cfg, args.summarizer_config, args.overrides)
+    if summarizer_cfg.get("type") != "hf":
+        parser.error("only hf summarizers are supported (the workload carries no sentences)")
+    if args.summarizer_config and not any(o.partition("=")[0] == "batch_size" for o in args.overrides):
+        parser.error(
+            f"--summarizer-config needs an explicit --set batch_size=N (its file says {summarizer_cfg.get('batch_size')}"
+            "): a batch size that is too large for the model overflows the 12 GB card, and under WSL2 that hangs "
+            "the job instead of raising (4B: 1, 1.7B: 4, 0.6B: 8)"
+        )
+    print(f"Summarizer: model_id={summarizer_cfg.get('model_id')} batch_size={summarizer_cfg.get('batch_size')}")
+
     record = pick_record(runlog, args.method, args.seed)
     ds, X = load_run_dataset(runlog, cache_dir=args.cache_dir)
-    cfg = runlog.config
     force_context_length = cfg.get("force_context_length", 0)
     clusters = build_workload(record, args.step, ds.texts, X, force_context_length)
-    summarizer_cfg, gpu_spec = resolve_summarizer(cfg, args.summarizer_config, args.overrides)
 
     config = {
         "name": args.name,
@@ -108,10 +127,8 @@ def main() -> None:
     # Like run_offline: the `gpu_check` policy (idle check on entry, before the model loads; monitor from attach).
     with GpuSession(gpu_spec) as gpu:
         summarizer = build_summarizer(summarizer_cfg, prompt=ds.prompt, text_type=ds.text_type)
-        if summarizer.needs_sentences:
-            parser.error("summarizers that need sentences are not supported (the workload carries none)")
         run = RunDir(args.results_dir, args.name, config)
-        run.log_environment(collect_environment(summarizer, cfg["embedder"], ds))
+        run.log_environment(collect_environment(summarizer, embedder_name(runlog, ds), ds))
         gpu.attach(run.path)
         result = summarize_workload(summarizer, clusters, repeat=args.repeat, warmup=warmup)
     surface = write_workload(run.path, result, record.summaries_evolution[args.step])

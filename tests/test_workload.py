@@ -116,9 +116,9 @@ def test_summarize_workload_batches_repeats_and_deltas():
         assert rep.cost == {"input_tokens": 50, "output_tokens": 5}
 
 
-def test_summarize_workload_batch_size_override_default_and_warmup():
-    fake = FakeSummarizer(batch_size=2)
-    summarize_workload(fake, _clusters(4), batch_size=3)
+def test_summarize_workload_chunks_by_the_summarizers_batch_size_and_warms_up():
+    fake = FakeSummarizer(batch_size=3)
+    summarize_workload(fake, _clusters(4))
     assert fake.batches == [[0, 1, 2], [3]]
 
     fake = FakeSummarizer()  # no batch_size attribute value: everything in one call
@@ -300,7 +300,7 @@ def test_cli_wraps_the_run_in_the_gpu_session(cli, tmp_path, monkeypatch):
     monkeypatch.setattr(main.module, "GpuSession", SpySession)
     cfg = tmp_path / "v2.yaml"
     cfg.write_text(yaml.safe_dump({"summarizer": {"type": "hf", "model_id": "M", "batch_size": 2}, "gpu_check": {"require_idle": "fail"}}))
-    out = main("--name", "gpu", "--summarizer-config", str(cfg))
+    out = main("--name", "gpu", "--summarizer-config", str(cfg), "--set", "batch_size=2")
     assert events == [("init", {"require_idle": "fail"}), ("attach", out), ("exit", None)]
 
 
@@ -309,7 +309,7 @@ def test_cli_validates_gpu_check_before_loading_the_model(cli, tmp_path):
     cfg = tmp_path / "bad.yaml"
     cfg.write_text(yaml.safe_dump({"summarizer": {"type": "hf", "batch_size": 2}, "gpu_check": {"require_idle": "sometimes"}}))
     with pytest.raises(ValueError, match="require_idle"):
-        main("--name", "bad", "--summarizer-config", str(cfg))
+        main("--name", "bad", "--summarizer-config", str(cfg), "--set", "batch_size=2")
     assert built == []
 
 
@@ -317,3 +317,52 @@ def test_cli_writes_gpu_json_under_the_default_policy(cli):
     main, _, _ = cli
     out = main("--name", "default_gpu")  # no nvidia-smi under tests/conftest.py: recorded, never an error
     assert json.loads((out / "gpu.json").read_text())["gpu_check"]["require_idle"] == "warn"
+
+
+def test_cli_refuses_a_summarizer_config_without_an_explicit_batch_size(cli, tmp_path, capsys):
+    main, built, _ = cli
+    cfg = tmp_path / "v2.yaml"
+    cfg.write_text(yaml.safe_dump({"summarizer": {"type": "hf", "model_id": "Qwen/Qwen3-4B", "batch_size": 8}}))
+    with pytest.raises(SystemExit) as err:
+        main("--name", "unsafe", "--summarizer-config", str(cfg), "--set", "max_new_tokens=16")
+    assert err.value.code == 2
+    assert "--set batch_size=N" in capsys.readouterr().err
+    assert built == [] and not (tmp_path / "out" / "unsafe").exists()
+
+
+def test_cli_prints_the_effective_model_and_batch_size(cli, tmp_path, capsys):
+    main, _, _ = cli
+    cfg = tmp_path / "v2.yaml"
+    cfg.write_text(yaml.safe_dump({"summarizer": {"type": "hf", "model_id": "Qwen/Qwen3-4B", "batch_size": 8}}))
+    main("--name", "safe", "--summarizer-config", str(cfg), "--set", "batch_size=1")
+    assert capsys.readouterr().out.splitlines()[0] == "Summarizer: model_id=Qwen/Qwen3-4B batch_size=1"
+
+
+def test_cli_refuses_a_summarizer_that_needs_sentences_before_building_anything(cli, capsys):
+    main, built, _ = cli
+    with pytest.raises(SystemExit):
+        main("--name", "lsa", "--set", "type=lsa")
+    assert built == []
+
+
+def test_environment_logs_the_resolved_embedder_name(cli, monkeypatch):
+    main, _, _ = cli
+    module = main.module
+    # A named spec is its own name and loads nothing.
+    monkeypatch.setattr(module, "load_run_embedder", lambda *a: pytest.fail("loaded an embedder"))
+    out = main("--name", "named")
+    assert json.loads((out / "environment.json").read_text())["embedder"] == "fake"
+
+    # A corpus-fitted spec (a dict) is resolved, and its name logged, never the dict.
+    class Fitted:
+        name = "tfidf_min_df20"
+
+    monkeypatch.setattr(module, "load_run_embedder", lambda runlog, ds: Fitted())
+    real_load = module.load_run
+    def with_dict_spec(path):
+        log = real_load(path)
+        log.config["embedder"] = {"name": "tfidf", "min_df": 20}
+        return log
+    monkeypatch.setattr(module, "load_run", with_dict_spec)
+    out = main("--name", "fitted")
+    assert json.loads((out / "environment.json").read_text())["embedder"] == "tfidf_min_df20"

@@ -8,9 +8,12 @@ from pathlib import Path
 
 from kslimeans.aggregate import method_label
 from kslimeans.config import load_config
+from kslimeans.data import _CLINC_PROMPT
 from kslimeans.experiment import _check_keys
 from kslimeans.gpu_monitor import parse_gpu_check
 from kslimeans.schedules import build_schedule
+from kslimeans.summarizers import build_summarizer
+from kslimeans.summarizers.hf import DEFAULT_SYSTEM_PROMPT, build_messages, render_conversation
 
 ROOT = Path(__file__).resolve().parent.parent
 V1 = ROOT / "configs" / "clinc150_summarizers.yaml"
@@ -68,4 +71,47 @@ def test_runner_is_valid_executable_bash_with_the_safety_settings():
     text = script.read_text()
     assert "PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True" in text
     assert "configs/clinc150_prompt_v2.yaml" in text and "configs/clinc150_summarizers.yaml" not in text
-    assert text.index("run_slm 4b") < text.index("run_slm 0.6b") < text.index("run_slm 1.7b")
+
+
+def test_runner_default_steps_are_4b_then_0_6b_then_1_7b():
+    line = next(l for l in (ROOT / "scripts" / "run_clinc150_prompt_v2.sh").read_text().splitlines() if "-eq 0" in l)
+    assert line.endswith("STEPS=(4b 0.6b 1.7b)")
+
+
+def test_summarizer_prompt_overrides_the_dataset_prompt_in_the_real_build(monkeypatch):
+    seen = {}
+
+    class Recorder:
+        def __init__(self, **kwargs):
+            seen.update(kwargs)
+
+    monkeypatch.setattr("kslimeans.summarizers.hf.HFSummarizer", Recorder)
+    summarizer_cfg = load_config(V2)["summarizer"]
+    build_summarizer(summarizer_cfg, prompt=_CLINC_PROMPT, text_type="Question:")
+    assert seen["prompt"] == PROMPT and seen["text_type"] == "Question:"
+    assert "system_prompt" not in seen  # the hf.py default system prompt stays
+
+    build_summarizer({k: v for k, v in summarizer_cfg.items() if k != "prompt"}, prompt=_CLINC_PROMPT, text_type="Question:")
+    assert seen["prompt"] == _CLINC_PROMPT
+
+
+class StubTokenizer:
+    """A chat template that prints every message on its own tagged line; `continue_final_message` leaves the last open."""
+
+    def apply_chat_template(self, messages, tokenize, chat_template_kwargs=None, **kw):
+        lines = [f"<|{m['role']}|>\n{m['content']}" for m in messages]
+        return "\n".join(lines)
+
+
+def test_v1_and_v2_renders_differ_only_in_the_instruction_line():
+    members = ["book a table for two", "reserve a table tonight"]
+
+    def render(prompt):
+        messages = build_messages(DEFAULT_SYSTEM_PROMPT, prompt, "Question:", members)
+        return render_conversation(StubTokenizer(), messages, "Question:", {}).split("\n")
+
+    old, new = render(_CLINC_PROMPT), render(PROMPT)
+    assert len(old) == len(new)
+    differing = [i for i, (a, b) in enumerate(zip(old, new)) if a != b]
+    assert len(differing) == 1 and old[differing[0]] == _CLINC_PROMPT and new[differing[0]] == PROMPT
+    assert old[-2:] == ["<|assistant|>", "Question:"] and old[1] == DEFAULT_SYSTEM_PROMPT
