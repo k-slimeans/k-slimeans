@@ -51,9 +51,24 @@ def test_build_table_scopes_and_link_columns():
     assert table.loc[("m1", "all steps"), "coverage_nearest_mean"] == pytest.approx(0.5)
     assert table.loc[("m1", "all steps"), "flag_generic_share"] == 0.5
     assert table.loc[("m1", "last step"), "kept"] == pytest.approx(0.8)
-    assert table.loc[("m1", "last step"), "lost_uncovered"] == pytest.approx(0.5)  # 1 of 2 lost per cluster
+    # Per cluster: 10 members, 4 uncovered of which 1 lost, so 1 of 6 covered members lost: 2 lost - 1.
+    assert table.loc[("m1", "last step"), "lost_if_uncovered"] == pytest.approx(1 / 4)
+    assert table.loc[("m1", "last step"), "lost_if_covered"] == pytest.approx(1 / 6)
     assert table.loc[("m1", "last step"), "member_uncovered"] == pytest.approx(0.4)
+    # Cluster 0 of every group is a flagged duplicate; the "distinct" columns keep cluster 1 only.
+    assert table.loc[("m1", "all steps"), "coverage_nearest_mean_distinct"] == pytest.approx(0.8)
+    assert table.loc[("m1", "all steps"), "flag_low_coverage_share_distinct"] == 0.0
     assert table.loc[("m1", "all steps"), "genericity"] == pytest.approx(0.2)
+
+
+def test_final_step_without_a_partition_after_is_left_out_of_the_member_columns():
+    script = load_script()
+    clusters, steps = frames()
+    last = (clusters["method"] == "m1") & (clusters["step"] == 1)
+    clusters.loc[last, ["n_kept", "n_lost", "n_gained", "n_members_uncovered", "n_lost_uncovered"]] = float("nan")
+    table = script.build_table(clusters, steps).set_index(["method", "scope"])
+    assert table.loc[("m1", "all steps"), "kept"] == pytest.approx(0.8)  # step 0 only
+    assert pd.isna(table.loc[("m1", "last step"), "kept"])
 
 
 def test_markdown_names_the_approximation_and_every_family():

@@ -19,11 +19,14 @@ Definitions (all thresholds are module constants so reports can quote them)
   Coverage uses Euclidean distance, the metric of the assignment step the replacement feeds; the specificity
   margin and the summary-to-summary similarities use cosine. A cluster's "mean" is the mean of its members' rows
   of `X` (k-means' centroid).
+- *Duplicates and ties.* Clusters whose summaries are identical text share one embedding and tie. The assignment step
+  gives all the tied members to the lowest cluster index, so the first copy of a group of exact duplicates is its
+  representative: it is the only copy that can win members (nearest-summary share), and the later copies are left
+  out when it is compared with the other summaries (intent coverage). Later copies therefore score 0 on both.
 - *Nearest-summary share* (coverage a): the share of the cluster's members whose nearest of the `k` summary
-  embeddings is this cluster's. Identical summaries tie and `argmin` takes the lowest index, as the assignment
-  step would, so only the first of a group of duplicates can win members.
+  embeddings (duplicates counted once, see above) is this cluster's.
 - *Intent coverage* (coverage b): a gold intent present in the cluster is covered when its members, on average, are
-  strictly closer to this summary than to every other summary. `coverage_intents` is the share of the cluster's
+  strictly closer to this summary than to every other summary (later copies of its own duplicates excluded). `coverage_intents` is the share of the cluster's
   major intents (at least `MAJOR_INTENT_SHARE` of its members) that are covered, `NaN` if none is major.
   `lost_uncovered` below counts members of any present intent that is not covered.
 - *Specificity margin*: cosine(summary, own members' mean) minus the highest cosine(summary, another non-empty
@@ -36,8 +39,9 @@ Definitions (all thresholds are module constants so reports can quote them)
   number for the members' means is given as a reference.
 - *Unsupported information.* Content words are spaCy (`en_core_web_sm`) lemmas whose part of speech is NOUN, VERB,
   ADJ or PROPN, alphabetic, longer than one letter, neither a stop word nor with a stop-word lemma. A lemma is
-  supported when it is the lemma of a content word of some member (members are lemmatized in isolation, as is the
-  summary). Numbers are the summary's tokens containing a digit; named entities are the entities spaCy labels
+  supported when it is the lemma of a content word of some member. Members are lemmatized one text at a time and
+  summaries one line at a time, with the same pipeline, so an extractive summary is analysed exactly like the member
+  sentences it is made of. Numbers are the summary's tokens containing a digit; named entities are the entities spaCy labels
   PERSON, ORG, GPE, LOC, FAC, NORP, PRODUCT, EVENT, WORK_OF_ART, LAW or LANGUAGE. A number or entity is supported when
   its normalised token sequence occurs in the normalised text of some member. `flag_unsupported`: the
   unsupported share of lemmas is at least `UNSUPPORTED_LEMMA_SHARE`, or any number or entity is unsupported.
@@ -180,11 +184,23 @@ def fluency_checks(
 # ------------------------------------------------------------------ unsupported information
 
 
-def unsupported_content(doc, member_lemmas: frozenset[str] | set[str], member_blob: str) -> dict:
-    """Content of the summary's spaCy `doc` that no member supports (see the module docstring)."""
-    lemmas = content_lemmas(doc)
-    numbers = sorted({normalize(t.text) for t in doc if any(ch.isdigit() for ch in t.text)} - {""})
-    entities = sorted({normalize(e.text) for e in doc.ents if e.label_ in NAMED_ENTITY_LABELS} - {""})
+def summary_lines(summary: str | None) -> list[str]:
+    """The non-blank lines of a summary. Each is analysed on its own, as each member is, so that a multi-sentence
+    extractive summary is lemmatized exactly like the member sentences it is made of."""
+    return [line for line in (summary or "").split("\n") if line.strip()]
+
+
+def unsupported_content(docs: Sequence, member_lemmas: frozenset[str] | set[str], member_blob: str) -> dict:
+    """Content of a summary that no member supports (see the module docstring).
+
+    `docs` are the spaCy docs of the summary's lines (`summary_lines`), analysed with the same settings as the members
+    except that NER is on.
+    """
+    lemmas = frozenset().union(*(content_lemmas(d) for d in docs))
+    numbers = sorted({normalize(t.text) for d in docs for t in d if any(ch.isdigit() for ch in t.text)} - {""})
+    entities = sorted(
+        {normalize(e.text) for d in docs for e in d.ents if e.label_ in NAMED_ENTITY_LABELS} - {""}
+    )
     unsupported_lemmas = sorted(lemmas - set(member_lemmas))
     unsupported_numbers = [n for n in numbers if not _in_blob(member_blob, n)]
     unsupported_entities = [e for e in entities if not _in_blob(member_blob, e)]
@@ -357,11 +373,18 @@ def score_step(
     d2 = (X**2).sum(1)[:, None] - 2 * X @ S.T + (S**2).sum(1)[None, :]
     d2 = np.maximum(d2, 0.0)
     dist = np.sqrt(d2)
-    nearest = d2.argmin(axis=1)
-
-    exact_dup = {i for group in duplicate_groups(list(summaries)) for i in group}
+    groups = duplicate_groups(list(summaries))
+    exact_dup = {i for group in groups for i in group}
+    later_copies = {c: group[i + 1 :] for group in groups for i, c in enumerate(group)}
+    not_representative = [c for group in groups for c in group[1:]]
+    d2_rep = d2.copy()
+    d2_rep[:, not_representative] = np.inf
+    nearest = d2_rep.argmin(axis=1)
     label_sim = (Sn @ _unit(label_emb).T) if label_emb is not None else None
-    docs = list(nlp.pipe([s or "" for s in summaries], disable=["parser"]))
+    lines = [summary_lines(s) for s in summaries]
+    flat = list(nlp.pipe([line for ls in lines for line in ls], disable=["parser"]))
+    offsets = np.cumsum([0] + [len(ls) for ls in lines])
+    docs = [flat[offsets[c] : offsets[c + 1]] for c in range(k)]
 
     rows: list[dict] = []
     for c, idx in enumerate(members):
@@ -383,8 +406,9 @@ def score_step(
         covered = {}
         for g in intents:
             mean_d = dist[idx[gold[idx] == g]].mean(axis=0)
-            others = np.delete(mean_d, c)
-            covered[int(g)] = bool(len(others) == 0 or mean_d[c] < others.min())
+            compared = np.ones(k, dtype=bool)
+            compared[[c, *later_copies.get(c, [])]] = False
+            covered[int(g)] = bool(not compared.any() or mean_d[c] < mean_d[compared].min())
         major = [int(g) for g, n in zip(intents, counts) if n >= MAJOR_INTENT_SHARE * len(idx)]
         row.update(
             coverage_nearest=share,
@@ -424,7 +448,10 @@ def score_step(
             kept = int(np.sum(after[idx] == c))
             uncovered = np.array([not covered[int(g)] for g in gold[idx]])
             lost_mask = after[idx] != c
+            after_idx = np.flatnonzero(after == c)
             row.update(
+                n_after=len(after_idx),
+                purity_after=(np.bincount(gold[after_idx]).max() / len(after_idx)) if len(after_idx) else _NAN,
                 n_kept=kept,
                 n_lost=len(idx) - kept,
                 n_gained=int(np.sum((after == c) & (labels != c))),

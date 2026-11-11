@@ -3,8 +3,10 @@
 For each run directory: re-embed the logged summaries with the run's encoder (on CPU), take the cluster members from
 the partition each summary was written from, and write
 
-- `summary_quality_per_cluster.csv`: one row per (dataset, method, seed, step, cluster) with the four score families,
-  their flags and, where the run logged per-step assignments, the members kept, lost and gained at the step;
+- `summary_quality_per_cluster.csv`: one row per (dataset, method, run, seed, step, cluster) with the four score families,
+  their flags and, where the run logged per-step assignments, the members kept, lost and gained at the step and the
+  cluster's purity after it. `method` is the label (`k-NLPmeans`, `k-SLMmeans (Qwen3-4B)`): the Qwen runs share one
+  method name, so join on `run` as well (or on the label);
 - `summary_quality_per_step.csv`: one row per (dataset, method, seed, step) with the method-level genericity (#7),
   label alignment (#8) and a replay check of the logged `summary_inertia`;
 - `summary_quality_table.csv` / `.md`: means, medians and flag shares per dataset, method and scope.
@@ -105,14 +107,19 @@ def _scoped(df: pd.DataFrame) -> pd.DataFrame:
 
 def build_table(clusters: pd.DataFrame, steps: pd.DataFrame) -> pd.DataFrame:
     by = ["dataset", "method", "scope"]
-    table = aggregate_scores(_scoped(clusters), by)
+    scoped = _scoped(clusters)
+    table = aggregate_scores(scoped, by)
+    # The tie rule gives a group of exact duplicates one representative; show the scores without those rows too.
+    distinct = scoped[~scoped["flag_duplicate"].astype(bool)].groupby(by, sort=False)
+    table["coverage_nearest_mean_distinct"] = distinct["coverage_nearest"].mean()
+    table["flag_low_coverage_share_distinct"] = distinct["flag_low_coverage"].apply(lambda s: s.astype(float).mean())
     step_agg = _scoped(steps).groupby(by, sort=False)[["genericity", "genericity_centroids", "label_align_sim",
                                                        "label_align_acc"]].mean()
     table = table.join(step_agg)
-    link = clusters[clusters["n_kept"].notna()] if "n_kept" in clusters else clusters.iloc[:0]
+    link = scoped[scoped["n_kept"].notna()] if "n_kept" in scoped else scoped.iloc[:0]
     if len(link):
         # Ratios of sums (members pooled), so that tiny clusters do not dominate the shares.
-        sums = _scoped(link).groupby(by, sort=False)[
+        sums = link.groupby(by, sort=False)[
             ["n_members", "n_kept", "n_lost", "n_gained", "n_members_uncovered", "n_lost_uncovered"]
         ].sum()
         table = table.join(
@@ -122,7 +129,13 @@ def build_table(clusters: pd.DataFrame, steps: pd.DataFrame) -> pd.DataFrame:
                     "lost": sums["n_lost"] / sums["n_members"],
                     "gained": sums["n_gained"] / sums["n_members"],
                     "member_uncovered": sums["n_members_uncovered"] / sums["n_members"],
-                    "lost_uncovered": sums["n_lost_uncovered"] / sums["n_lost"].where(sums["n_lost"] > 0),
+                    "lost_if_uncovered": sums["n_lost_uncovered"] / sums["n_members_uncovered"].where(
+                        sums["n_members_uncovered"] > 0
+                    ),
+                    "lost_if_covered": (sums["n_lost"] - sums["n_lost_uncovered"])
+                    / (sums["n_members"] - sums["n_members_uncovered"]).where(
+                        sums["n_members"] > sums["n_members_uncovered"]
+                    ),
                 }
             )
         )
@@ -153,19 +166,22 @@ def format_markdown(table: pd.DataFrame) -> str:
         out.append("**Scores** (mean / median over clusters; `n` = summaries)\n")
         out.append(_md(
             ["method (scope)", "n", "nearest-summary share", "intent coverage", "specificity margin",
-             "max cos to another summary", "unsupported lemma share", "genericity (#7)", "label align sim / acc (#8)"],
+             "max cos to another summary", "unsupported lemma share", "genericity (#7)", "label align sim / acc (#8)",
+             "nearest-summary share without exact duplicates"],
             [[lb, f"{r.n:,}", f"{_f(r.coverage_nearest_mean)} / {_f(r.coverage_nearest_median)}",
               _f(r.coverage_intents_mean),
               f"{_f(r.specificity_margin_mean)} / {_f(r.specificity_margin_median)}",
               _f(r.max_summary_cos_mean),
               f"{_f(r.unsupported_lemma_share_mean)} / {_f(r.unsupported_lemma_share_median)}",
-              _f(r.genericity), f"{_f(r.label_align_sim)} / {_f(r.label_align_acc)}"]
+              _f(r.genericity), f"{_f(r.label_align_sim)} / {_f(r.label_align_acc)}",
+              _f(r.coverage_nearest_mean_distinct)]
              for lb, r in zip(label, sub.itertuples())]))
         out.append("\n**Flags** (share of summaries)\n")
         out.append(_md(
-            ["method (scope)", "not fluent", "low coverage", "generic", "duplicate", "near-duplicate", "mentions",
-             "margin <= 0", "unsupported"],
-            [[lb, _pct(r.flag_not_fluent_share), _pct(r.flag_low_coverage_share), _pct(r.flag_generic_share),
+            ["method (scope)", "not fluent", "low coverage", "low coverage without exact duplicates", "generic",
+             "duplicate", "near-duplicate", "mentions", "margin <= 0", "unsupported"],
+            [[lb, _pct(r.flag_not_fluent_share), _pct(r.flag_low_coverage_share),
+              _pct(r.flag_low_coverage_share_distinct), _pct(r.flag_generic_share),
               _pct(r.flag_duplicate_share), _pct(r.flag_near_duplicate_share), _pct(r.flag_mentions_share),
               _pct(r.flag_low_margin_share), _pct(r.flag_unsupported_share)]
              for lb, r in zip(label, sub.itertuples())]))
@@ -176,13 +192,15 @@ def format_markdown(table: pd.DataFrame) -> str:
               _pct(r.flu_markup_share), _pct(r.flu_script_share), _pct(r.flu_empty_share)]
              for lb, r in zip(label, sub.itertuples())]))
         if "kept" in sub and sub["kept"].notna().any():
-            out.append("\n**Members at the step** (pooled over clusters, as a share of the members the summaries were written "
-                       "from; `lost in uncovered intents` is the share of lost members whose gold intent the summary "
-                       "does not cover, to compare with `members in uncovered intents`)\n")
+            out.append("\n**Members at the step** (pooled over clusters, as a share of the members the summaries were "
+                       "written from, counted on the partition after the step's Lloyd block. A member is *uncovered* "
+                       "when its gold intent is one the summary does not cover; `lost if uncovered` / `lost if covered` "
+                       "are the shares of uncovered / covered members that left their cluster)\n")
             out.append(_md(
-                ["method (scope)", "kept", "lost", "gained", "lost in uncovered intents",
-                 "members in uncovered intents"],
-                [[lb, _pct(r.kept), _pct(r.lost), _pct(r.gained), _pct(r.lost_uncovered), _pct(r.member_uncovered)]
+                ["method (scope)", "kept", "lost", "gained", "members uncovered", "lost if uncovered",
+                 "lost if covered"],
+                [[lb, _pct(r.kept), _pct(r.lost), _pct(r.gained), _pct(r.member_uncovered), _pct(r.lost_if_uncovered),
+                  _pct(r.lost_if_covered)]
                  for lb, r in zip(label, sub.itertuples())]))
         out.append("")
     return "\n".join(out)

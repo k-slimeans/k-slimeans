@@ -73,8 +73,9 @@ def test_duplicate_summary_is_flagged_and_loses_its_members():
     by = {r["cluster"]: r for r in rows}
     assert by[0]["flag_duplicate"] and by[1]["flag_duplicate"] and not by[2]["flag_duplicate"]
     assert by[0]["flag_near_duplicate"] and by[0]["flag_generic"] and not by[2]["flag_generic"]
-    # Ties go to the lowest index, so the second copy is nearest for none of its members.
+    # The first copy is the representative of the tied group for both coverage scores; the later copy gets neither.
     assert by[0]["coverage_nearest"] == 1.0 and by[1]["coverage_nearest"] == 0.0
+    assert by[0]["coverage_intents"] == 1.0 and by[1]["coverage_intents"] == 0.0
     assert by[1]["flag_low_coverage"]
     assert step["genericity"] == pytest.approx(1 / 3)  # one identical pair among three summaries
 
@@ -91,16 +92,16 @@ def test_invented_number_and_entity_are_unsupported():
     doc = NLP("Where is my card in Paris for 500 dollars?")
     supported = analyze_corpus(["where is my card", "card delivery to Paris"], NLP)
     blob_texts = " | " + " | ".join(supported.norm) + " | "
-    out = unsupported_content(doc, set().union(*supported.lemmas), blob_texts)
+    out = unsupported_content([doc], set().union(*supported.lemmas), blob_texts)
     assert out["n_unsupported_numbers"] == 1  # 500 is in no member
     assert "paris" not in out["unsupported_items"].split()  # Paris is in a member
     assert "dollar" in out["unsupported_lemmas"] and out["flag_unsupported"]
 
-    bare = unsupported_content(NLP("Where is my card in Paris?"), set().union(*supported.lemmas), blob_texts)
+    bare = unsupported_content([NLP("Where is my card in Paris?")], set().union(*supported.lemmas), blob_texts)
     assert bare["n_unsupported_numbers"] == 0 and bare["n_unsupported_entities"] == 0
     assert not bare["flag_unsupported"]
 
-    invented = unsupported_content(NLP("Where is my card in Berlin?"), set().union(*supported.lemmas), blob_texts)
+    invented = unsupported_content([NLP("Where is my card in Berlin?")], set().union(*supported.lemmas), blob_texts)
     assert invented["n_unsupported_entities"] == 1 and invented["flag_unsupported"]
 
 
@@ -258,3 +259,29 @@ def test_aggregate_scores_means_medians_and_shares():
     assert out.loc["a", "coverage_nearest_median"] == 0.5
     assert out.loc["a", "flag_generic_share"] == pytest.approx(1 / 3)
     assert out.loc["b", "flag_generic_share"] == 1.0
+
+
+def test_step_without_a_partition_after_has_no_link_columns():
+    # A final summary step that stopped on tol has no partition after it (`after=None`).
+    rows, _ = run(GOOD, after=None)
+    assert all("n_kept" not in r and "purity_after" not in r for r in rows)
+
+
+def test_purity_after_is_the_majority_share_of_the_cluster_after_the_step():
+    after = LABELS.copy()
+    after[3] = 1  # one cluster-0 member (gold 0) joins cluster 1, which then holds 4 gold-1 and 1 gold-0 members
+    rows, _ = run(GOOD, after=after)
+    by = {r["cluster"]: r for r in rows}
+    assert (by[0]["n_after"], by[0]["purity_after"]) == (3, 1.0)
+    assert (by[1]["n_after"], by[1]["purity_after"]) == (5, pytest.approx(4 / 5))
+    assert by[1]["n_gained"] == 1 and by[0]["n_lost"] == 1
+
+
+def test_multi_line_summary_is_lemmatized_line_by_line():
+    # Lines taken from members are analysed like the members themselves, so nothing is unsupported.
+    texts = ["hello ai", "change the ai name"]
+    corpus = analyze_corpus(texts, NLP)
+    X = np.eye(2, dtype=np.float32)[[0, 0]]
+    rows, _ = score_step(["hello ai\nchange the ai name"], np.eye(2, dtype=np.float32)[:1], X, np.array([0, 0]),
+                         np.array([0, 0]), corpus, NLP, prompt=PROMPT, asks_question=False)  # fmt: skip
+    assert rows[0]["unsupported_lemma_share"] == 0.0

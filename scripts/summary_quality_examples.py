@@ -56,8 +56,8 @@ def main() -> None:
     print(f"members {len(members)}; nearest-summary share {row['coverage_nearest']:.2f}; intent coverage "
           f"{row['coverage_intents']:.2f}; margin {row['specificity_margin']:.3f}; flags: generic={row['flag_generic']} "
           f"unsupported={row['flag_unsupported']}")
-    print(f"kept {int(row['n_kept'])}, lost {int(row['n_lost'])}, gained {int(row['n_gained'])}; lost in uncovered "
-          f"intents {int(row['n_lost_uncovered'])}")
+    print(f"after the full Lloyd block (partition_after): kept {int(row['n_kept'])}, lost {int(row['n_lost'])}, "
+          f"gained {int(row['n_gained'])}; lost in uncovered intents {int(row['n_lost_uncovered'])}")
     print("gold intents of the members:", names(members))
     lost = members[after[members] != c]
     print("lost members go to clusters:", Counter(after[lost].tolist()).most_common(4))
