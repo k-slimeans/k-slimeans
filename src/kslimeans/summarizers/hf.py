@@ -161,6 +161,39 @@ def fit_texts_to_budget(
     return fitted, n - kept, truncated
 
 
+def fit_and_render(
+    tokenizer,
+    texts: list[str],
+    *,
+    system_prompt: str,
+    prompt: str,
+    text_type: str,
+    chat_template_kwargs: dict,
+    fold_system: bool,
+    max_input_tokens: int,
+    max_words_per_text: int | None = None,
+) -> tuple[str, int, bool]:
+    """The prompt `HFSummarizer` sends for one cluster: each text cut to `max_words_per_text` words (if set),
+    the texts trimmed to `max_input_tokens`, then rendered.
+
+    Returns `(rendered, n_dropped, truncated)` as `fit_texts_to_budget` reports them. The token count
+    `HFSummarizer` logs as `input_tokens` is `len(tokenizer(rendered, add_special_tokens=False)["input_ids"])`.
+    """
+
+    if max_words_per_text is not None:
+        texts = [truncate_words(text, max_words_per_text) for text in texts]
+
+    def render(candidate_texts: list[str]) -> str:
+        messages = build_messages(system_prompt, prompt, text_type, candidate_texts, fold_system)
+        return render_conversation(tokenizer, messages, text_type, chat_template_kwargs)
+
+    def count_tokens(rendered: str) -> int:
+        return len(tokenizer(rendered, add_special_tokens=False)["input_ids"])
+
+    fitted, n_dropped, truncated = fit_texts_to_budget(texts, render, count_tokens, max_input_tokens)
+    return render(fitted), n_dropped, truncated
+
+
 class HFSummarizer(Summarizer):
     """Summarizes clusters with a local Hugging Face instruct/chat model.
 
@@ -245,19 +278,17 @@ class HFSummarizer(Summarizer):
         With `max_words_per_text`, every member is first cut to its leading words, so a long-document
         cluster keeps (almost) all its members instead of a few whole ones.
         """
-        if self.max_words_per_text is not None:
-            texts = [truncate_words(text, self.max_words_per_text) for text in texts]
-
-        def render(candidate_texts: list[str]) -> str:
-            messages = build_messages(
-                self.system_prompt, self.prompt, self.text_type, candidate_texts, self._fold_system
-            )
-            return render_conversation(self.tokenizer, messages, self.text_type, self.chat_template_kwargs)
-
-        def count_tokens(rendered: str) -> int:
-            return len(self.tokenizer(rendered, add_special_tokens=False)["input_ids"])
-
-        fitted, n_dropped, truncated = fit_texts_to_budget(texts, render, count_tokens, self.max_input_tokens)
+        rendered, n_dropped, truncated = fit_and_render(
+            self.tokenizer,
+            texts,
+            system_prompt=self.system_prompt,
+            prompt=self.prompt,
+            text_type=self.text_type,
+            chat_template_kwargs=self.chat_template_kwargs,
+            fold_system=self._fold_system,
+            max_input_tokens=self.max_input_tokens,
+            max_words_per_text=self.max_words_per_text,
+        )
         self._stats["n_truncated_clusters"] += int(bool(n_dropped or truncated))
         self._stats["n_dropped_texts"] += n_dropped
         if (n_dropped or truncated) and not self._warned_trim:
@@ -271,7 +302,7 @@ class HFSummarizer(Summarizer):
                 "(only warned once for this summarizer instance)",
                 stacklevel=2,
             )
-        return render(fitted)
+        return rendered
 
     def summarize_batch(self, clusters: list[Cluster]) -> list[str]:
         outputs: list[str] = [""] * len(clusters)
