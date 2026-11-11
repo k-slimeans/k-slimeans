@@ -290,6 +290,7 @@ def replay_run(
     replayer: LloydReplayer | None = None,
     counterfactual: bool = True,
     swap: Callable[[int, State, np.ndarray], np.ndarray] | None = None,
+    initial: tuple[State, int] | None = None,
 ) -> RunReplay:
     """Replay every Lloyd block of `record` (a fixed-schedule run that logged its assignments and trace).
 
@@ -297,6 +298,8 @@ def replay_run(
     returns the start centers to use instead (`pre` is the state the replacement starts from; the step-0
     partition is shared by all methods of a seed, so rows correspond across methods at step 1). Each block
     continues from the replayed previous block, so a swap at step `j` carries into later steps.
+    `initial` is a precomputed `fit_initial` result (state, `n_iter_`) to reuse: step 0 is a real k-means++ fit,
+    the slowest part of a replay, and all methods of a seed share it. It is still verified against the log.
     A final summary step that stopped on `tol` (no fit after it) has no block and ends the replay.
     """
     if record.summary_source_steps is None or not record.trace:
@@ -304,7 +307,7 @@ def replay_run(
     replayer = replayer or LloydReplayer(X)
     k = len(record.summaries_evolution[0])
     by_step = {row["step"]: row for row in record.trace}
-    initial, n_iter0 = fit_initial(X, k, by_step[0]["last_max_iter"], record.seed)
+    initial, n_iter0 = initial or fit_initial(X, k, by_step[0]["last_max_iter"], record.seed)
     out = RunReplay(initial=initial, initial_n_iter=n_iter0)
     pre = initial
     for j, source in enumerate(record.summary_source_steps):

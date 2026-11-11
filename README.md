@@ -145,6 +145,8 @@ src/kslimeans/
   runlog.py        load a run directory back: per-(method, seed) summaries, partitions, and the summarizer inputs of a step
   costcheck.py     rebuild a logged run's cost counters (calls, tokens, seconds) and compare (scripts/verify_cost.py)
   surface.py       surface checks on logged summaries (length, "?", mentions of the cluster, duplicates; scripts/surface_counts.py)
+  replay.py        exact offline replay of a logged run's Lloyd blocks, one iteration at a time, from the logged summaries' embeddings; the hook for counterfactual replacements
+  diagnostic.py    the replacement-diagnostic measures (objective, centroid movement, movers, collapsed centroids, stale summaries) on a replayed step; scripts/replacement_diagnostic.py
   workload.py      re-summarize one logged step's inputs with any summarizer setup, timed per batch (scripts/fixed_workload.py)
   summary_quality.py  per-summary coverage, genericity, unsupported-content and fluency scores (scripts/summary_quality.py)
   summary_audit.py    rule-based audit sample, blinded sheet and hand-vs-automatic agreement (scripts/make_audit_sheet.py, scripts/audit_agreement.py)
@@ -155,7 +157,9 @@ scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_st
                    verify_cost.py (check a run's logged cost counters),
                    summary_quality.py (per-cluster summary-quality CSV and tables), summary_quality_examples.py (worked examples),
                    make_audit_sheet.py (blinded hand-check sheet and key), audit_agreement.py (hand vs automatic flags),
-                   estimate_stream_cost.py (calls and GPU-hours of a streaming summary run, before running it)
+                   estimate_stream_cost.py (calls and GPU-hours of a streaming summary run, before running it),
+                   embed_logged_summaries.py (embed a run's logged summaries once), replacement_diagnostic.py (replay + replacement-diagnostic
+                   tables and figures), replacement_sensitivity.py (noise floor of a replacement block)
 data/              datasets, checked in except the generated data/arxiv/ (see data/README.md)
 tests/             pytest suite, incl. exact-equivalence fixtures generated from the original code
 ```
