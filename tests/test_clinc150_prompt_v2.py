@@ -1,4 +1,4 @@
-"""configs/clinc150_prompt_v2.yaml (#46) differs from the #31 config in the prompt and its names, nothing else."""
+"""configs/clinc150_prompt_v2.yaml (#46) differs from the #31 config in the prompt, its names and the (result-neutral) gpu_check policy."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from pathlib import Path
 from kslimeans.aggregate import method_label
 from kslimeans.config import load_config
 from kslimeans.experiment import _check_keys
+from kslimeans.gpu_monitor import parse_gpu_check
 from kslimeans.schedules import build_schedule
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -38,14 +39,16 @@ def _diff(a: dict, b: dict) -> dict[str, tuple]:
 def test_v2_config_loads_and_validates():
     cfg = load_config(V2)
     _check_keys(cfg)
+    parse_gpu_check(cfg["gpu_check"])
     build_schedule(cfg["schedule"])
     assert cfg["summarizer"]["prompt"] == PROMPT
 
 
-def test_v2_differs_from_31_only_in_the_prompt_and_names():
+def test_v2_differs_from_31_only_in_the_prompt_names_and_gpu_policy():
     diff = _diff(load_config(V1), load_config(V2))
-    assert set(diff) == {"name", "method_name", "baselines.kmeans", "summarizer.prompt"}
+    assert set(diff) == {"name", "method_name", "baselines.kmeans", "summarizer.prompt", "gpu_check.require_idle"}
     assert diff["summarizer.prompt"] == (None, PROMPT)
+    assert diff["gpu_check.require_idle"] == (None, "warn")  # a policy, not a result: #31 predates the monitor
     assert diff["baselines.kmeans"] == ({}, None)  # k-means is not rerun: it does not depend on the prompt
 
 

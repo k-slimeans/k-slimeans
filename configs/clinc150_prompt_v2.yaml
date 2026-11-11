@@ -3,6 +3,7 @@
 # the system prompt (hf.py default, "You are a helpful assistant summarizing text clusters."), the `Question:`
 # prefill, greedy decoding, thinking off, max_new_tokens 64, max_input_tokens 4096, the #28 member selection,
 # the encoder, seeds 0-4, the schedule, and the per-model batch sizes set by scripts/run_clinc150_prompt_v2.sh.
+# (`gpu_check` is the one other addition: #31 predates the GPU monitor, and it changes no result.)
 #
 # The old prompt ("The following is cluster of questions. Write a question that summarizes the following cluster:")
 # read as "ask about the cluster": 34% of the 4B's summaries talked about the cluster (#31, section 2.4). The new one
@@ -36,6 +37,10 @@ summarizer:
   max_new_tokens: 64
   max_input_tokens: 4096
   batch_size: 8
+
+# Stated, not new: the default policy of PR #53 (3-4 s idle check before the model loads, GPU monitor during the run).
+gpu_check:
+  require_idle: warn
 
 cache_dir: cache
 results_dir: results

@@ -6,7 +6,8 @@ seed). It is rebuilt from the run's logged partition and cached embeddings (noth
 `--repeat` times with the logged run's summarizer settings, changed by `--summarizer-config` (a YAML with a
 `summarizer:` block, or just the block) and `--set key=value` (summarizer keys: `model_id`, `prompt`,
 `batch_size`, `max_new_tokens`, `max_input_tokens`, ...). Without either, the logged settings are reused, so the
-dataset's own prompt applies. Real models run: this needs the GPU.
+dataset's own prompt applies. Real models run: this needs the GPU, checked and monitored as in `run_offline` (`gpu_check`, from the
+`--summarizer-config` file or the logged config; `gpu.json` and `gpu_samples.csv` land in the output directory).
 
 Writes `<results-dir>/<name>/<stamp>/` (see `kslimeans.workload`): `config.yaml`, `environment.json`,
 `outputs.jsonl`, `cost.jsonl` (seconds per repeat and per batch, tokens, truncation, peak GPU memory) and
@@ -17,7 +18,7 @@ Usage:
     python scripts/fixed_workload.py results/clinc150_qwen3-4b/<stamp> --name old_4b
     python scripts/fixed_workload.py results/clinc150_qwen3-4b/<stamp> --name v2_4b \\
         --summarizer-config configs/clinc150_prompt_v2.yaml --set model_id=Qwen/Qwen3-4B --set batch_size=1
-    python scripts/fixed_workload.py RUN_DIR --name time_bs4 --set batch_size=4 --repeat 3 --warmup
+    python scripts/fixed_workload.py RUN_DIR --name time_bs4 --set batch_size=4 --repeat 3   # 1 warm-up pass by default
 
 Compare the output directories with `scripts/compare_workloads.py`.
 """
@@ -26,27 +27,17 @@ from __future__ import annotations
 
 import argparse
 import copy
-from contextlib import nullcontext
 from pathlib import Path
 
 import yaml
 
 from kslimeans.config import apply_overrides
 from kslimeans.environment import collect_environment
+from kslimeans.gpu_monitor import GpuSession
 from kslimeans.results import RunDir
 from kslimeans.runlog import load_run, load_run_dataset
 from kslimeans.summarizers import build_summarizer
 from kslimeans.workload import build_workload, pick_record, summarize_workload, write_workload
-
-
-class _NoGpuSession(nullcontext):
-    """Stands in for `kslimeans.gpu_monitor.GpuSession` until feat/35-gpu-monitor lands (same interface)."""
-
-    def __init__(self, spec: dict | None = None):
-        super().__init__(self)
-
-    def attach(self, run_dir: Path) -> None:
-        """Start monitoring into `run_dir` (a no-op here)."""
 
 
 def resolve_summarizer(logged_config: dict, config_path: str | None, overrides: list[str]) -> tuple[dict, dict | None]:
@@ -74,10 +65,13 @@ def main() -> None:
     parser.add_argument("--set", dest="overrides", action="append", default=[], metavar="key=value",
                         help="override a summarizer key, e.g. --set batch_size=1 (repeatable)")
     parser.add_argument("--repeat", type=int, default=1, help="summarize the workload this many times (default 1)")
-    parser.add_argument("--warmup", action="store_true", help="run the first batch once, unrecorded, before timing")
+    parser.add_argument("--warmup", type=int, metavar="N",
+                        help="untimed passes over the first batch before the repeats (default: 1 if --repeat > 1, "
+                             "else 0, so a single-repeat pilot pays for no warm-up)")
     parser.add_argument("--cache-dir", help="embedding cache (default: the logged run's cache_dir)")
     parser.add_argument("--results-dir", default="results/fixed_workload")
     args = parser.parse_args()
+    warmup = args.warmup if args.warmup is not None else int(args.repeat > 1)
 
     runlog = load_run(args.run_dir)
     record = pick_record(runlog, args.method, args.seed)
@@ -106,22 +100,25 @@ def main() -> None:
         "prompt": summarizer_cfg.get("prompt") or ds.prompt,
         "text_type": summarizer_cfg.get("text_type") or ds.text_type,
         "repeat": args.repeat,
-        "warmup": args.warmup,
+        "warmup": warmup,
     }
+    if warmup == 0:
+        config["note"] = "no warm-up pass: repeat 0 includes one-off CUDA start-up (kernel loading, allocator growth)"
 
-    # feat/35-gpu-monitor: replace `_NoGpuSession(gpu_spec)` with `GpuSession(gpu_spec)` and import it from
-    # kslimeans.gpu_monitor; the `attach` call below already matches its interface.
-    with _NoGpuSession(gpu_spec) as gpu:
+    # Like run_offline: the `gpu_check` policy (idle check on entry, before the model loads; monitor from attach).
+    with GpuSession(gpu_spec) as gpu:
         summarizer = build_summarizer(summarizer_cfg, prompt=ds.prompt, text_type=ds.text_type)
         if summarizer.needs_sentences:
             parser.error("summarizers that need sentences are not supported (the workload carries none)")
         run = RunDir(args.results_dir, args.name, config)
         run.log_environment(collect_environment(summarizer, cfg["embedder"], ds))
         gpu.attach(run.path)
-        result = summarize_workload(summarizer, clusters, repeat=args.repeat, warmup=args.warmup)
+        result = summarize_workload(summarizer, clusters, repeat=args.repeat, warmup=warmup)
     surface = write_workload(run.path, result, record.summaries_evolution[args.step])
 
     print(f"Run directory: {run.path}")
+    if warmup == 0:
+        print(f"Note: {config['note']}")
     print(f"{len(clusters)} clusters x {args.repeat} repeat(s); "
           f"{surface['mentions']}/{surface['n']} mention the cluster, "
           f"{surface['duplicate_groups']} duplicate group(s), mean {surface['mean_words']:.1f} words")

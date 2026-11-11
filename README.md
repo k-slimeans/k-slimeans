@@ -375,18 +375,25 @@ builds a table next to the #31 runs. The rows are labelled `k-SLMmeans-v2 (Qwen3
 
 `scripts/fixed_workload.py` re-summarizes the inputs of one summary step of a logged run (default: seed 0, the first
 step, which every method shares for a seed) with a chosen summarizer setup, so prompts, models and batch sizes can be
-compared on identical work. It needs the GPU. Embeddings come from the cache; nothing is encoded.
+compared on identical work. It needs the GPU. Embeddings come from the cache; nothing is encoded. It runs under the
+same `gpu_check` policy as `run_offline` (`configs/clinc150_prompt_v2.yaml` states `require_idle: warn`), so each output
+directory also gets `gpu.json` and `gpu_samples.csv`.
+
+Warm-up: the first batch on a cold GPU pays one-off CUDA start-up. With `--repeat 1` (the pilot) there is no warm-up pass,
+so the cost record is not inflated by work the pilot does not need; `config.yaml` then carries a `note` that repeat 0
+includes the start-up. With `--repeat N > 1` (timing, #35) one untimed warm-up pass over the first batch runs by default;
+`--warmup N` sets the number of passes explicitly (0 to switch it off).
 
 ```bash
 python scripts/fixed_workload.py results/clinc150_qwen3-4b/<stamp> --name old_4b            # the logged settings
 python scripts/fixed_workload.py results/clinc150_qwen3-4b/<stamp> --name v2_4b \
     --summarizer-config configs/clinc150_prompt_v2.yaml --set model_id=Qwen/Qwen3-4B --set batch_size=1
-python scripts/fixed_workload.py RUN_DIR --name time_bs4 --set batch_size=4 --repeat 3 --warmup   # timing
+python scripts/fixed_workload.py RUN_DIR --name time_bs4 --set batch_size=4 --repeat 3   # timing: 1 warm-up pass by default
 python scripts/compare_workloads.py results/fixed_workload/old_4b/<stamp> results/fixed_workload/v2_4b/<stamp>
 ```
 
 Each output directory holds `config.yaml`, `environment.json`, `outputs.jsonl`, `cost.jsonl` (seconds per repeat and
-per batch, tokens, truncation, peak GPU memory) and `surface.json` (share mentioning the cluster, duplicate groups,
+per batch, tokens, truncation, peak GPU memory), `gpu.json` and `surface.json` (share mentioning the cluster, duplicate groups,
 mean words, share ending in "?"), and `compare_workloads.py` puts several side by side.
 
 ---

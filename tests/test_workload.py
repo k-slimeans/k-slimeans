@@ -126,8 +126,8 @@ def test_summarize_workload_batch_size_override_default_and_warmup():
     assert fake.batches == [[0, 1, 2, 3]]
 
     fake = FakeSummarizer(batch_size=2)
-    run = summarize_workload(fake, _clusters(4), warmup=True)
-    assert fake.batches == [[0, 1], [0, 1], [2, 3]]  # the warm-up batch is extra and unrecorded
+    run = summarize_workload(fake, _clusters(4), warmup=2)
+    assert fake.batches == [[0, 1], [0, 1], [0, 1], [2, 3]]  # the warm-up passes are extra and unrecorded
     assert run.repeats[0].cost == {"input_tokens": 40, "output_tokens": 4}
 
 
@@ -198,6 +198,7 @@ def cli(noisy, tmp_path, monkeypatch):
         module.main()
         return next((tmp_path / "out" / args[args.index("--name") + 1]).iterdir())
 
+    main.module = module
     return main, built, spy
 
 
@@ -207,7 +208,7 @@ def test_cli_reuses_the_logged_summarizer_and_writes_everything(cli):
 
     assert built[0]["cfg"]["model_id"] == "Org/Tiny-1B" and built[0]["prompt"] == "DATASET PROMPT"
     assert {p.name for p in out.iterdir()} == {
-        "config.yaml", "environment.json", "outputs.jsonl", "cost.jsonl", "surface.json"
+        "config.yaml", "environment.json", "outputs.jsonl", "cost.jsonl", "surface.json", "gpu.json"
     }
     config = yaml.safe_load((out / "config.yaml").read_text())
     assert config["source"]["method"] == "k-test" and config["source"]["step"] == 1
@@ -258,3 +259,61 @@ def test_compare_workloads_table(cli, tmp_path, monkeypatch, capsys):
     assert load_workload_dir(new)["surface"]["n"] == workload_surface(
         [json.loads(line)["summary"] for line in (new / "outputs.jsonl").read_text().splitlines()]
     )["n"]
+
+
+def test_cli_single_repeat_has_no_warmup_and_says_so(cli, capsys):
+    main, _, spy = cli
+    out = main("--name", "pilot", "--step", "0")
+    config = yaml.safe_load((out / "config.yaml").read_text())
+    assert config["warmup"] == 0 and "repeat 0 includes one-off CUDA start-up" in config["note"]
+    assert "Note: no warm-up pass" in capsys.readouterr().out
+    assert len((out / "cost.jsonl").read_text().splitlines()) == 1
+
+
+def test_cli_repeats_default_to_one_warmup_pass_and_it_can_be_set(cli, capsys):
+    main, built, _ = cli
+    out = main("--name", "timing", "--repeat", "3")
+    config = yaml.safe_load((out / "config.yaml").read_text())
+    assert config["warmup"] == 1 and "note" not in config
+    assert "Note:" not in capsys.readouterr().out
+    assert yaml.safe_load((main("--name", "t0", "--repeat", "3", "--warmup", "0") / "config.yaml").read_text())["warmup"] == 0
+    assert yaml.safe_load((main("--name", "t2", "--warmup", "2") / "config.yaml").read_text())["warmup"] == 2
+
+
+def test_cli_wraps_the_run_in_the_gpu_session(cli, tmp_path, monkeypatch):
+    main, _, _ = cli
+    events = []
+
+    class SpySession:
+        def __init__(self, spec=None):
+            events.append(("init", spec))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            events.append(("exit", None))
+
+        def attach(self, run_dir):
+            events.append(("attach", Path(run_dir)))
+
+    monkeypatch.setattr(main.module, "GpuSession", SpySession)
+    cfg = tmp_path / "v2.yaml"
+    cfg.write_text(yaml.safe_dump({"summarizer": {"type": "hf", "model_id": "M", "batch_size": 2}, "gpu_check": {"require_idle": "fail"}}))
+    out = main("--name", "gpu", "--summarizer-config", str(cfg))
+    assert events == [("init", {"require_idle": "fail"}), ("attach", out), ("exit", None)]
+
+
+def test_cli_validates_gpu_check_before_loading_the_model(cli, tmp_path):
+    main, built, _ = cli
+    cfg = tmp_path / "bad.yaml"
+    cfg.write_text(yaml.safe_dump({"summarizer": {"type": "hf", "batch_size": 2}, "gpu_check": {"require_idle": "sometimes"}}))
+    with pytest.raises(ValueError, match="require_idle"):
+        main("--name", "bad", "--summarizer-config", str(cfg))
+    assert built == []
+
+
+def test_cli_writes_gpu_json_under_the_default_policy(cli):
+    main, _, _ = cli
+    out = main("--name", "default_gpu")  # no nvidia-smi under tests/conftest.py: recorded, never an error
+    assert json.loads((out / "gpu.json").read_text())["gpu_check"]["require_idle"] == "warn"
