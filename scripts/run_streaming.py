@@ -10,6 +10,11 @@ typo-guard `kslimeans.experiment.run_offline` uses for offline configs: an unkno
 top-level key (e.g. a typo'd `--set`) raises immediately instead of being silently
 ignored.
 
+A config without a `summarizer` block (or with `summarizer: null`) is baseline-only: just the sklearn
+baselines run, and the schedule, embedder object, summarizer and abstract texts are never loaded. Add
+`load_texts: false` to the `dataset` block to skip reading the texts too (arXiv loaders only; the memory
+that saves at full scale is the point of `configs/arxiv_full_baselines.yaml`).
+
 Usage:
 
     python scripts/run_streaming.py configs/stackexchange_stream.yaml \\
@@ -19,6 +24,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import resource
 import time
 from pathlib import Path
 
@@ -51,12 +57,27 @@ _ALLOWED_KEYS = frozenset(
         "tol",
         "schedule",
         "summarizer",
+        "summary_every",
         "cache_dir",
         "results_dir",
         "gpu_check",
     }
 )
-_REQUIRED_KEYS = _ALLOWED_KEYS - {"method_name", "years", "gpu_check"}
+# Keys only the summary method reads: required when the config has a `summarizer`, ignored without one.
+_SUMMARY_KEYS = frozenset({"summarizer", "summary_every", "schedule", "force_context_length", "tol", "eval_assign"})
+_REQUIRED_KEYS = _ALLOWED_KEYS - {"method_name", "years", "gpu_check", "summary_every"} - _SUMMARY_KEYS
+
+
+def _required_keys(cfg: dict) -> frozenset[str]:
+    """The required keys for `cfg`: the summary method's keys too, unless it is baseline-only."""
+    if cfg.get("summarizer") is None:
+        return _REQUIRED_KEYS
+    return _REQUIRED_KEYS | (_SUMMARY_KEYS - {"summary_every"})
+
+
+def _peak_rss_mb() -> float:
+    """The process's peak resident set size so far (a high-water mark, so it never goes down), in MB."""
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024  # Linux reports KB
 
 
 def _run_baseline(name: str, kw: dict, X, n_clusters: int, seed: int, max_batch_size: int):
@@ -105,7 +126,7 @@ def run_streaming(cfg: dict) -> Path:
 
     Wraps the run in the config's `gpu_check` policy (pre-run idle check, `gpu_samples.csv` / `gpu.json`).
     """
-    check_keys(cfg, _ALLOWED_KEYS, _REQUIRED_KEYS)
+    check_keys(cfg, _ALLOWED_KEYS, _required_keys(cfg))
     with GpuSession(cfg.get("gpu_check")) as gpu:
         return _run_streaming(cfg, gpu)
 
@@ -114,21 +135,26 @@ def _run_streaming(cfg: dict, gpu: GpuSession) -> Path:
     run = RunDir(cfg["results_dir"], cfg["name"], cfg)
     gpu.attach(run.path)
 
-    schedule = build_schedule(cfg["schedule"])
     max_batch_size = cfg["max_batch_size"]
     dataset_name = cfg["dataset"]["name"]
     limit = cfg["dataset"].get("limit")
-    method_name = cfg.get("method_name") or default_method_name(cfg["summarizer"])
+    with_summary = cfg.get("summarizer") is not None
+    load_texts = cfg["dataset"].get("load_texts", True)
+    if not load_texts and with_summary:
+        raise ValueError("dataset.load_texts: false is for baseline-only configs; the summary method reads the texts")
+    dataset_kwargs = {} if load_texts else {"load_texts": False}
+    schedule = build_schedule(cfg["schedule"]) if with_summary else None
+    method_name = (cfg.get("method_name") or default_method_name(cfg["summarizer"])) if with_summary else None
 
     summarizer = None  # built once we have a Dataset's prompt/text_type -- see below
 
     # `years` is optional: a dataset with no year (e.g. arxiv) streams once, unfiltered (year=None).
     for year in cfg["years"] if "years" in cfg else [None]:
-        ds = kslimeans.load_dataset(dataset_name, year=year, limit=limit)
+        ds = kslimeans.load_dataset(dataset_name, year=year, limit=limit, **dataset_kwargs)
         tag = "all" if year is None else year  # logged/grouped label (a None key would be dropped by groupby)
         print(f"=== year {tag}: {len(ds.texts)} posts, {ds.n_clusters} clusters ===")
 
-        if summarizer is None:
+        if with_summary and summarizer is None:
             # Built once (not per year): SLM summarizers are expensive to load.
             summarizer = build_summarizer(cfg["summarizer"], prompt=ds.prompt, text_type=ds.text_type)
 
@@ -139,7 +165,7 @@ def _run_streaming(cfg: dict, gpu: GpuSession) -> Path:
 
         sentences = None
         sentence_time = 0.0
-        if summarizer.needs_sentences:
+        if with_summary and summarizer.needs_sentences:
             t0 = time.perf_counter()
             sentences = cached_sentences(ds.name, ds.texts, cfg["embedder"], cache_dir=cfg["cache_dir"])
             sentence_time = time.perf_counter() - t0
@@ -154,8 +180,21 @@ def _run_streaming(cfg: dict, gpu: GpuSession) -> Path:
                 runtime = time.perf_counter() - t0
 
                 metrics = _streaming_metrics(ds.labels, assignments, oracle, centroids, None)
-                run.log_metrics({"year": tag, "seed": seed, "method": name, "runtime": runtime, **metrics})
-                print(f"  [{tag} seed={seed}] {name}: {metrics} ({runtime:.1f}s)")
+                peak_rss_mb = _peak_rss_mb()
+                run.log_metrics(
+                    {
+                        "year": tag,
+                        "seed": seed,
+                        "method": name,
+                        "runtime": runtime,
+                        "peak_rss_mb": peak_rss_mb,
+                        **metrics,
+                    }
+                )
+                print(f"  [{tag} seed={seed}] {name}: {metrics} ({runtime:.1f}s, peak RSS {peak_rss_mb:.0f} MB)")
+
+            if not with_summary:
+                continue
 
             embedder = get_embedder(cfg["embedder"])
             t0 = time.perf_counter()
@@ -172,6 +211,7 @@ def _run_streaming(cfg: dict, gpu: GpuSession) -> Path:
                 tol=cfg["tol"],
                 random_state=seed,
                 verbose=False,
+                summary_every=cfg.get("summary_every", 1),
             )
             assignments = assign_to_centroids(X, result.centroids, cfg["eval_assign"])
             runtime = time.perf_counter() - t0
@@ -179,7 +219,9 @@ def _run_streaming(cfg: dict, gpu: GpuSession) -> Path:
             # Deliberately differs from upstream, whose notebook passed the predicted centroids as both
             # the "true" and the predicted summaries (so cen_sum_dist was 0): the reference is the oracle
             # and summary_pred is the final batch's summaries, embedded -- see README "Streaming".
-            summary_pred = _final_batch_summary_embeddings(result.summaries[-1], embedder)
+            # A batch that `summary_every` skipped has no summaries; the last summarized batch stands in.
+            last_summaries = next((s for s in reversed(result.summaries) if s is not None), None)
+            summary_pred = _final_batch_summary_embeddings(last_summaries, embedder)
             metrics = _streaming_metrics(ds.labels, assignments, oracle, result.centroids, summary_pred)
             run.log_metrics(
                 {
@@ -189,6 +231,7 @@ def _run_streaming(cfg: dict, gpu: GpuSession) -> Path:
                     "runtime": runtime,
                     "embed_time": embed_time,
                     "sentence_time": sentence_time,
+                    "peak_rss_mb": _peak_rss_mb(),
                     **metrics,
                 }
             )

@@ -211,3 +211,99 @@ def test_bad_gpu_check_block_raises_before_touching_any_dataset(run_streaming_mo
     cfg = _minimal_config(gpu_check={"require_idle": "sometimes"})
     with pytest.raises(ValueError, match="require_idle"):
         run_streaming_module.run_streaming(cfg)
+
+
+# --- baseline-only configs and summary_every (issue #48) ----------------------------
+
+_SUMMARY_ONLY = ("summarizer", "schedule", "force_context_length", "tol", "eval_assign", "method_name")
+
+
+def _baseline_only(cfg: dict, **overrides) -> dict:
+    cfg = {k: v for k, v in cfg.items() if k not in _SUMMARY_ONLY}
+    cfg.update(overrides)
+    return cfg
+
+
+def test_baseline_only_config_needs_no_summary_keys(run_streaming_module):
+    from kslimeans.config import check_keys
+
+    cfg = _baseline_only(_minimal_config())
+    check_keys(cfg, run_streaming_module._ALLOWED_KEYS, run_streaming_module._required_keys(cfg))
+    cfg_null = _minimal_config(summarizer=None)
+    assert run_streaming_module._required_keys(cfg_null) == run_streaming_module._REQUIRED_KEYS
+
+
+def test_summary_config_still_requires_its_keys(run_streaming_module):
+    cfg = _minimal_config()
+    del cfg["schedule"]
+    with pytest.raises(ValueError, match="schedule"):
+        run_streaming_module.run_streaming(cfg)
+
+
+def test_baseline_only_run_logs_just_the_baselines_and_never_builds_the_summary_method(
+    run_streaming_module, fake_stream, monkeypatch
+):
+    def fail(*args, **kwargs):
+        raise AssertionError("a baseline-only run must not touch the summary method")
+
+    monkeypatch.setattr(run_streaming_module, "build_summarizer", fail)
+    monkeypatch.setattr(run_streaming_module, "get_embedder", fail)
+    monkeypatch.setattr(run_streaming_module, "mini_batch_summary_kmeans", fail)
+    cfg = _baseline_only(
+        fake_stream, seeds=[0, 1], baselines={"kmeans": {"n_init": 1}, "seqminibatchkmeans": {}}
+    )
+    run_path = run_streaming_module.run_streaming(cfg)
+
+    rows = [json.loads(line) for line in (run_path / "metrics.jsonl").read_text().splitlines()]
+    assert [(r["seed"], r["method"]) for r in rows] == [
+        (0, "kmeans"), (0, "seqminibatchkmeans"), (1, "kmeans"), (1, "seqminibatchkmeans"),
+    ]
+    assert all(r["peak_rss_mb"] > 0 and r["sum_cen_dist"] is None for r in rows)
+    assert (run_path / "summary.csv").exists()
+
+
+def test_load_texts_false_is_forwarded_to_the_loader(run_streaming_module, fake_stream, monkeypatch):
+    seen = {}
+    real = run_streaming_module.kslimeans.load_dataset
+
+    def spy(*args, **kwargs):
+        seen.update(kwargs)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(run_streaming_module.kslimeans, "load_dataset", spy)
+    cfg = _baseline_only(fake_stream, dataset={"name": "arxiv", "limit": None, "load_texts": False})
+    run_streaming_module.run_streaming(cfg)
+    assert seen["load_texts"] is False
+
+    seen.clear()
+    run_streaming_module.run_streaming(_baseline_only(fake_stream))
+    assert "load_texts" not in seen  # the default call is unchanged
+
+
+def test_load_texts_false_with_a_summary_method_raises(run_streaming_module, fake_stream):
+    cfg = {**fake_stream, "dataset": {"name": "arxiv", "limit": None, "load_texts": False}}
+    with pytest.raises(ValueError, match="load_texts"):
+        run_streaming_module.run_streaming(cfg)
+
+
+def test_summary_every_reaches_the_minibatch_run_and_the_last_summarized_batch_is_scored(
+    run_streaming_module, fake_stream
+):
+    # 3 batches: summary_every=3 summarizes only batch 0, so the final batch has no summaries.
+    rows = _rows(run_streaming_module.run_streaming({**fake_stream, "summary_every": 3}))
+    method = rows[next(m for m in rows if m != "kmeans")]
+    assert method["sum_cen_dist"] is not None and method["sum_cen_dist"] > 0
+
+
+def test_summary_every_is_optional_and_defaults_to_every_batch(run_streaming_module, fake_stream, monkeypatch):
+    seen = []
+    real = run_streaming_module.mini_batch_summary_kmeans
+
+    def spy(*args, **kwargs):
+        seen.append(kwargs["summary_every"])
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(run_streaming_module, "mini_batch_summary_kmeans", spy)
+    run_streaming_module.run_streaming(fake_stream)
+    run_streaming_module.run_streaming({**fake_stream, "summary_every": 2})
+    assert seen == [1, 2]

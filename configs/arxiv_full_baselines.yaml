@@ -1,0 +1,31 @@
+# arXiv abstracts at full scale (#48): all 3,035,644 abstracts, 171 primary-category labels, MiniLM
+# embeddings precomputed by scripts/prepare_arxiv.py. Baselines only: no summarizer is loaded and no
+# GPU is used (hence `gpu_check` off), so this is a CPU job.
+#
+#   python -u scripts/run_streaming.py configs/arxiv_full_baselines.yaml
+#
+# Memory (15 GB box; estimates, see docs/results/arxiv_status.md):
+#   - `load_texts: false` skips the abstracts (~3 GB of Python strings); only labels and vectors are read.
+#   - The vectors are a float16 memmap on disk; the runner materializes them once as float32 (4.7 GB),
+#     which sklearn needs (it would upcast float16 to float64, 9.3 GB).
+#   - `kmeans: {copy_x: false}`: sklearn otherwise centers a second 4.7 GB copy of X. With it, KMeans
+#     centers X in place and restores it afterwards, which is exact up to float32 rounding (~1e-7).
+# Peak RSS is logged per baseline as `peak_rss_mb` in metrics.jsonl (a process-wide high-water mark).
+#
+# `max_batch_size` is the batch size of `seqminibatchkmeans` (one pass of partial_fit over batches) and the
+# batch size of `minibatchkmeans`. The summary-method runs (#49) use their own batch size.
+# Quick check on a slice:
+#   python scripts/run_streaming.py configs/arxiv_full_baselines.yaml --set dataset.limit=20000 --set seeds=[0]
+
+name: arxiv_full_baselines
+dataset: {name: arxiv, limit: null, load_texts: false}
+embedder: minilm
+seeds: [0, 1, 2]
+max_batch_size: 10000
+baselines:                 # name -> sklearn kwargs
+  minibatchkmeans: {}
+  seqminibatchkmeans: {}
+  kmeans: {copy_x: false}
+gpu_check: {require_idle: "off"}
+cache_dir: cache
+results_dir: results
