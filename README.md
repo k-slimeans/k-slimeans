@@ -147,6 +147,7 @@ src/kslimeans/
   surface.py       surface checks on logged summaries (length, "?", mentions of the cluster, duplicates; scripts/surface_counts.py)
   replay.py        exact offline replay of a logged run's Lloyd blocks, one iteration at a time, from the logged summaries' embeddings; the hook for counterfactual replacements
   diagnostic.py    the replacement-diagnostic measures (objective, centroid movement, movers, collapsed centroids, stale summaries) on a replayed step; scripts/replacement_diagnostic.py
+  counterfactual.py  step-1 counterfactual replacements (flagged summaries keep their k-means center or take another model's summary, random controls, paired intervals; scripts/counterfactual_swaps.py)
   workload.py      re-summarize one logged step's inputs with any summarizer setup, timed per batch (scripts/fixed_workload.py)
   summary_quality.py  per-summary coverage, genericity, unsupported-content and fluency scores (scripts/summary_quality.py)
   synthesis.py     per-cluster join of summary quality (#34), centroid replacement (#33), outcome and cost, with seed-unit statistics (scripts/synthesis.py)
@@ -161,7 +162,8 @@ scripts/           smoke_bank77.py, run_offline.py, run_streaming.py, prepare_st
                    make_audit_sheet.py (blinded hand-check sheet and key), audit_agreement.py (hand vs automatic flags),
                    estimate_stream_cost.py (calls and GPU-hours of a streaming summary run, before running it),
                    embed_logged_summaries.py (embed a run's logged summaries once), replacement_diagnostic.py (replay + replacement-diagnostic
-                   tables and figures), replacement_sensitivity.py (noise floor of a replacement block)
+                   tables and figures), replacement_sensitivity.py (noise floor of a replacement block),
+                   counterfactual_swaps.py (step-1 counterfactual summary replacements and their paired differences)
 data/              datasets, checked in except the generated data/arxiv/ (see data/README.md)
 tests/             pytest suite, incl. exact-equivalence fixtures generated from the original code
 ```
