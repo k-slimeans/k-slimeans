@@ -16,6 +16,7 @@ from kslimeans.counterfactual import (
     evaluate_seed,
     flag_sets,
     gap_closed,
+    gap_share,
     outcome_row,
     paired_differences,
     random_controls,
@@ -278,3 +279,76 @@ def test_collapse_draws_averages_the_controls_and_reports_their_spread():
     sd = spreads.set_index("variant")
     assert sd.loc["d", "end_acc_sd"] == pytest.approx(0.2)
     assert np.isnan(sd.loc["a", "end_acc_sd"])
+
+
+def test_gap_share_is_the_control_adjusted_share_of_the_gap():
+    per_seed = _per_seed(
+        {
+            ("a", ""): [0.50, 0.50],
+            ("m", ""): [0.60, 0.60],
+            ("c", "f"): [0.58, 0.60],  # mean gain over a: 0.09
+            ("cd", "f"): [0.51, 0.51],  # the control's mean gain: 0.01
+            ("r", "f"): [0.54, 0.56],  # mean loss against m: 0.05
+            ("rd", "f"): [0.59, 0.59],  # the reverse control's loss: 0.01
+        }
+    )
+    args = ("c", "f", "cd", "f", "a", "m", "end_acc", "fixed")
+    assert gap_share(per_seed, *args) == pytest.approx((0.59 - 0.51) / 0.10)  # 0.8: ratio of the paired means
+    # reverse: the loss opened beyond the control (0.05 - 0.01) as a share of the 0.10 lead of m over a
+    loss = gap_share(per_seed, "r", "f", "rd", "f", "a", "m", "end_acc", "fixed", loss=True)
+    assert loss == pytest.approx(-((0.55 - 0.59)) / 0.10)
+    # no gap to close: NaN
+    assert np.isnan(gap_share(per_seed, "c", "f", "cd", "f", "m", "a", "end_acc", "fixed"))
+
+
+def test_controls_to_paired_differences_average_draws_within_a_seed_then_pair(monkeypatch):
+    """d, cd and rd of a draw edit the same clusters; draws are averaged per seed before the seeds are paired."""
+    pre = state_of(np.zeros((8, 2), dtype=np.float32), np.arange(8), np.arange(16, dtype=np.float32).reshape(8, 2))
+    own, other = pre.centers + 100, pre.centers + 200
+    flagged = np.array([True, False, True, False, False, False, True, False])
+
+    def fake(replayer, pre, gold, start, *, fixed_iter, cap):
+        score = float(start[:, 0].sum()) / 1000  # depends only on which rows were edited, and to what
+        return [{"setting": "fixed", "end_acc": score, "end_nmi": score, "end_ari": score, "end_j": 1.0 + score}]
+
+    monkeypatch.setattr(cf, "evaluate_start", fake)
+    monkeypatch.setattr(cf, "evaluate_reference", lambda *a, **k: [])
+    frames, expected = [], []
+    for seed in (0, 1):
+        rows = pd.DataFrame(
+            evaluate_seed(None, pre, np.arange(8), own, other, {"f": flagged}, fixed_iter=5, n_draws=5, control_seed=seed)
+        )
+        rows.insert(0, "seed", seed)
+        frames.append(rows)
+        masks = random_controls(flagged, 5, seed)  # the same draws the function must have used
+        expected.append(np.mean([(other[m, 0] - own[m, 0]).sum() for m in masks]) / 1000)
+    rows = pd.concat(frames, ignore_index=True)
+    # d, cd and rd share one mask per draw: the rows they edit give the same score change
+    for variant, delta in (("d", lambda m: pre.centers[m, 0] - own[m, 0]), ("cd", lambda m: other[m, 0] - own[m, 0])):
+        for seed in (0, 1):
+            masks = random_controls(flagged, 5, seed)
+            got = rows[(rows.seed == seed) & (rows.variant == variant)].sort_values("draw").end_acc.to_numpy()
+            base = rows[(rows.seed == seed) & (rows.variant == "a")].end_acc.iloc[0]
+            np.testing.assert_allclose(got - base, [delta(m).sum() / 1000 for m in masks])
+    means, _ = collapse_draws(rows)
+    assert (means[means.variant == "cd"].n_draws == 5).all()
+    out = paired_differences(means, [("cd vs a", "cd", "f", "a", "")], metrics=("end_acc",), settings=("fixed",)).iloc[0]
+    assert out["n_seeds"] == 2  # one paired value per seed, not one per draw
+    assert out["mean"] == pytest.approx(np.mean(expected))
+    assert out["sd"] == pytest.approx(np.std(expected, ddof=1))
+
+
+def test_truncate_just_before_a_strict_stop():
+    _, Xs = make_synthetic_data()
+    rng = np.random.default_rng(1)
+    start = Xs[rng.choice(len(Xs), 12, replace=False)] + rng.normal(scale=2.0, size=(12, Xs.shape[1])).astype(np.float32)
+    replayer = LloydReplayer(Xs, tol=1e-12)
+    long = replayer.run_block(start, 300, track_objective=False)
+    assert long.stop == "strict"
+    m = long.n_iter - 1  # the strict stop falls at t = m + 1: the shorter block ends at max_iter instead
+    cut, direct = truncate(long, m, replayer), replayer.run_block(start, m)
+    assert cut.n_iter == direct.n_iter == m and cut.stop == direct.stop == "max_iter"
+    assert np.array_equal(cut.final_labels, direct.final_labels)
+    assert cut.end.objective == pytest.approx(direct.end.objective, rel=1e-9)
+    same = truncate(long, long.n_iter, replayer)  # a stop exactly at max_iter is unchanged
+    assert same.stop == "strict" and np.array_equal(same.final_labels, long.final_labels)

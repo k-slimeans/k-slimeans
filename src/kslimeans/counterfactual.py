@@ -293,3 +293,32 @@ def gap_closed(
     v, b, t = mean_of(variant, flag), mean_of(base), mean_of(target)
     gap = float((t - b).mean())
     return float((v - b).mean() / gap) if gap > 0 else float("nan")
+
+
+def gap_share(
+    per_seed: pd.DataFrame,
+    variant: str,
+    flag: str,
+    control: str,
+    control_flag: str,
+    base: str,
+    target: str,
+    metric: str,
+    setting: str,
+    *,
+    loss: bool = False,
+) -> float:
+    """Share of the gap from `base` to `target` that `variant` achieves over its `control`.
+
+    `mean(variant - control) / mean(target - base)` over seeds, the seeds paired (a ratio of means, so it can exceed
+    1). With `loss=True` the numerator is negated, for a variant that lowers the metric (the reverse swap) against
+    the gap it opens. NaN when the target is not above the baseline on average.
+    """
+    sub = per_seed[per_seed.setting == setting]
+
+    def series(name, fl=""):
+        return sub[(sub.variant == name) & (sub.flag == fl)].set_index("seed")[metric]
+
+    gap = float((series(target) - series(base)).mean())
+    diff = float((series(variant, flag) - series(control, control_flag)).mean())
+    return (-diff if loss else diff) / gap if gap > 0 else float("nan")

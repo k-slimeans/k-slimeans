@@ -2,7 +2,7 @@
 
 Replays the first summary step of the logged runs offline (`kslimeans.replay`, no language model, no encoding: the
 summary embeddings come from `scripts/embed_logged_summaries.py`) with rows of the start centers edited
-(`kslimeans.counterfactual` defines the flags and the variants a, b, c, d, m, r, rd and ref). Every variant is
+(`kslimeans.counterfactual` defines the flags and the variants a, b, c, d, cd, m, r, rd and ref). Every variant is
 measured after the replacement and after the Lloyd block, for the logged block length and run to convergence.
 
 Writes under `--out-dir` (small, committed), prefix `counterfactual_swaps_`:
@@ -12,11 +12,14 @@ Writes under `--out-dir` (small, committed), prefix `counterfactual_swaps_`:
     per_seed.csv     per seed, variant, flag set and setting (control draws averaged), the measures of both stages
     draws.csv        spread over the control draws (sd of end ACC/NMI/ARI/J)
     paired.csv       paired differences against (a) or (m) with 95% t-intervals over seeds
-    gap_closed.csv   share of the gap to k-means (ref) and to the 1.7B (m) that (b), (c), (d) close
+    gap_closed.csv   share of the gap to k-means (ref) and to the 1.7B (m) that (b), (c), (d), (cd) close
     stability.csv    the same differences under tie-preserving perturbations of the CPU embeddings
+                     (gap_closed.csv also holds c-cd and r-rd: what (c) and (r) do beyond their random controls)
     tables.md        the tables above as markdown
 
-and, under `--work-dir` (default `results/counterfactual_swaps`, gitignored), every row including each control draw.
+`--rebuild` recomputes these from the rows file without replaying anything.
+Under `--work-dir` (default `results/counterfactual_swaps`, gitignored) the script keeps every row, including each
+control draw.
 
 Usage:
 
@@ -44,6 +47,7 @@ from kslimeans.counterfactual import (
     evaluate_seed,
     flag_sets,
     gap_closed,
+    gap_share,
     paired_differences,
 )
 from kslimeans.diagnostic import partition_scores, perturb
@@ -195,6 +199,32 @@ def build(rows: pd.DataFrame, flag_rows, fidelity):
                         }
                     )
     sd_cols = [c for c in spreads.columns if c.endswith("_sd")]
+    # What the matched controls leave: (c) over its control as a share of the gap to the 1.7B and to k-means, and
+    # the loss (r) opens over its control as a share of the 1.7B's lead (variant "r-rd": column 1.7b only).
+    for flag in FLAG_SETS:
+        for setting in ("fixed", "converged"):
+            for metric in ("end_acc", "end_nmi"):
+                share = lambda *a, **k: gap_share(per_seed, *a, metric, setting, **k)  # noqa: E731
+                gap.append(
+                    {
+                        "flag": flag,
+                        "variant": "c-cd",
+                        "setting": setting,
+                        "metric": metric,
+                        "closes_of_gap_to_kmeans": share("c", flag, "cd", flag, "a", "ref"),
+                        "closes_of_gap_to_1.7b": share("c", flag, "cd", flag, "a", "m"),
+                    }
+                )
+                gap.append(
+                    {
+                        "flag": flag,
+                        "variant": "r-rd",
+                        "setting": setting,
+                        "metric": metric,
+                        "closes_of_gap_to_kmeans": float("nan"),
+                        "closes_of_gap_to_1.7b": share("r", flag, "rd", flag, "a", "m", loss=True),
+                    }
+                )
     controls = spreads[spreads.variant.isin(["d", "cd", "rd"])]
     draws = controls.groupby(["variant", "flag", "setting"])[sd_cols].mean().reset_index()
     return {
@@ -220,8 +250,13 @@ def tables_markdown(frames: dict[str, pd.DataFrame]) -> str:
         )
         sub = paired[(paired.setting == setting) & paired.metric.isin(["end_acc", "end_nmi", "end_ari", "end_j_rel"])]
 
+        def num(x):
+            """Four decimals, or scientific notation when a nonzero value would print as zero."""
+            text = f"{x:+.4f}"
+            return f"{x:+.1e}" if x != 0 and text[1:] == "0.0000" else text
+
         def cell(r):
-            return f"{r['mean']:+.4f} [{r.ci_lo:+.4f}, {r.ci_hi:+.4f}] {int(r.n_positive)}/{int(r.n_seeds)}"
+            return f"{num(r['mean'])} [{num(r.ci_lo)}, {num(r.ci_hi)}] {int(r.n_positive)}/{int(r.n_seeds)}"
 
         wide = sub.assign(cell=sub.apply(cell, axis=1)).pivot(index="comparison", columns="metric", values="cell")
         order = list(dict.fromkeys(sub.comparison))
@@ -232,19 +267,40 @@ def tables_markdown(frames: dict[str, pd.DataFrame]) -> str:
     return "\n".join(parts)
 
 
+def write(frames: dict[str, pd.DataFrame], out_dir: Path) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name, frame in frames.items():
+        frame.to_csv(out_dir / f"{PREFIX}_{name}.csv", index=False)
+    (out_dir / f"{PREFIX}_tables.md").write_text(tables_markdown(frames))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--own", required=True, help="run directory of the summarizer under test (the 4B)")
-    parser.add_argument("--other", required=True, help="run directory of the other summarizer (the 1.7B)")
-    parser.add_argument("--cache-dir", required=True)
-    parser.add_argument("--summary-embeddings", required=True)
+    parser.add_argument("--own", help="run directory of the summarizer under test (the 4B)")
+    parser.add_argument("--other", help="run directory of the other summarizer (the 1.7B)")
+    parser.add_argument("--cache-dir")
+    parser.add_argument("--summary-embeddings")
     parser.add_argument("--out-dir", default="docs/results")
     parser.add_argument("--work-dir", default="results/counterfactual_swaps")
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4])
     parser.add_argument("--draws", type=int, default=N_DRAWS, help="random control draws per seed and flag set")
     parser.add_argument("--perturbations", type=int, default=3, help="tie-preserving perturbed reruns of b, c, r")
     parser.add_argument("--workers", type=int, default=5, help="seeds replayed in parallel")
+    parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="no replay: rebuild the summary tables from the rows file in --work-dir and the flags and fidelity CSVs",
+    )
     args = parser.parse_args()
+    work_dir, out_dir = Path(args.work_dir), Path(args.out_dir)
+    if args.rebuild:
+        rows = pd.read_csv(work_dir / f"{PREFIX}_rows.csv.gz", keep_default_na=False)
+        flags = pd.read_csv(out_dir / f"{PREFIX}_flags.csv").to_dict("records")
+        fidelity = pd.read_csv(out_dir / f"{PREFIX}_fidelity.csv").to_dict("records")
+        write(build(rows, flags, fidelity), out_dir)
+        return
+    if not (args.own and args.other and args.cache_dir and args.summary_embeddings):
+        parser.error("--own, --other, --cache-dir and --summary-embeddings are required unless --rebuild")
 
     # Fix the thread count of every worker before sklearn is imported there, so the run is repeatable.
     os.environ["OMP_NUM_THREADS"] = str(max(1, (os.cpu_count() or 1) // args.workers))
@@ -262,13 +318,9 @@ def main() -> None:
     rows = pd.concat([r["rows"] for r in results], ignore_index=True)
     frames = build(rows, [f for r in results for f in r["flags"]], [f for r in results for f in r["fidelity"]])
 
-    work_dir, out_dir = Path(args.work_dir), Path(args.out_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
-    out_dir.mkdir(parents=True, exist_ok=True)
     rows.to_csv(work_dir / f"{PREFIX}_rows.csv.gz", index=False)
-    for name, frame in frames.items():
-        frame.to_csv(out_dir / f"{PREFIX}_{name}.csv", index=False)
-    (out_dir / f"{PREFIX}_tables.md").write_text(tables_markdown(frames))
+    write(frames, out_dir)
 
 
 if __name__ == "__main__":
