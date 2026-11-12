@@ -92,9 +92,9 @@ k-SLMmeans (Qwen3-0.6B),cosine,lost_share,none,750,-0.634625,-0.685027,-0.584223
 k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,none,750,0.0459089,-0.0839743,0.175792,5,step 1
 k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,none,750,-0.0454599,-0.168943,0.0780235,5,step 1
 k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,none,750,-0.505571,-0.572856,-0.438285,5,step 1
-k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,none,750,,,,2,step 1
-k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,none,750,,,,2,step 1
-k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,none,750,,,,2,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,none,750,-0.0666971,-0.227531,0.0941364,3,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,none,750,0.0526795,-0.250536,0.355895,3,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,none,750,0.175484,0.0615604,0.289408,3,step 1
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_member_purity,none,750,-0.220652,-0.3649,-0.0764053,5,step 1
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_purity,none,750,-0.223968,-0.342807,-0.105129,5,step 1
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,lost_share,none,750,-0.720061,-0.769873,-0.67025,5,step 1
@@ -188,9 +188,9 @@ k-SLMmeans (Qwen3-4B),cosine,lost_share,none,750,-0.753129,-0.811426,-0.694832,5
 k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,none,750,-0.0894762,-0.18726,0.00830779,5,step 1
 k-SLMmeans (Qwen3-4B),own_nearest,d_purity,none,750,-0.16814,-0.26173,-0.0745507,5,step 1
 k-SLMmeans (Qwen3-4B),own_nearest,lost_share,none,750,-0.701584,-0.781763,-0.621405,5,step 1
-k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,none,750,0.0967166,0.00442984,0.189003,5,step 1
-k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,none,750,0.257077,0.165186,0.348968,5,step 1
-k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,none,750,0.356564,0.289585,0.423543,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,none,750,0.0956243,0.00148096,0.189768,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,none,750,0.246196,0.161779,0.330612,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,none,750,0.349623,0.290825,0.408422,5,step 1
 k-NLPmeans,coverage_nearest,d_member_purity,"purity,log_n_members",750,-0.0105655,-0.129287,0.108156,5,step 1
 k-NLPmeans,coverage_nearest,d_purity,"purity,log_n_members",750,-0.131231,-0.211035,-0.0514277,5,step 1
 k-NLPmeans,coverage_nearest,lost_share,"purity,log_n_members",750,-0.593314,-0.666693,-0.519935,5,step 1
@@ -284,9 +284,9 @@ k-SLMmeans (Qwen3-0.6B),cosine,lost_share,"purity,log_n_members",750,-0.564074,-
 k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,"purity,log_n_members",750,0.151729,0.0351503,0.268307,5,step 1
 k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,"purity,log_n_members",750,0.0304647,-0.0660721,0.127001,5,step 1
 k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,"purity,log_n_members",750,-0.458874,-0.504818,-0.41293,5,step 1
-k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,"purity,log_n_members",750,,,,2,step 1
-k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,"purity,log_n_members",750,,,,2,step 1
-k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,"purity,log_n_members",750,,,,2,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,"purity,log_n_members",750,-0.105407,-0.241318,0.0305043,3,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,"purity,log_n_members",750,0.0282729,-0.213996,0.270542,3,step 1
+k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,"purity,log_n_members",750,0.161014,-0.0758513,0.397879,3,step 1
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_member_purity,"purity,log_n_members",750,-0.023388,-0.167155,0.120379,5,step 1
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_purity,"purity,log_n_members",750,-0.0765552,-0.219046,0.0659351,5,step 1
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,lost_share,"purity,log_n_members",750,-0.636743,-0.696666,-0.576819,5,step 1
@@ -380,9 +380,9 @@ k-SLMmeans (Qwen3-4B),cosine,lost_share,"purity,log_n_members",750,-0.711141,-0.
 k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,"purity,log_n_members",750,-0.00309459,-0.103883,0.0976942,5,step 1
 k-SLMmeans (Qwen3-4B),own_nearest,d_purity,"purity,log_n_members",750,-0.0560721,-0.138169,0.0260249,5,step 1
 k-SLMmeans (Qwen3-4B),own_nearest,lost_share,"purity,log_n_members",750,-0.6666,-0.742424,-0.590776,5,step 1
-k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,"purity,log_n_members",750,0.0465269,-0.0598661,0.15292,5,step 1
-k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,"purity,log_n_members",750,0.179375,0.0896322,0.269118,5,step 1
-k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,"purity,log_n_members",750,0.292156,0.218792,0.365519,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,"purity,log_n_members",750,0.0465712,-0.0597663,0.152909,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,"purity,log_n_members",750,0.170987,0.0820444,0.259931,5,step 1
+k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,"purity,log_n_members",750,0.287716,0.216758,0.358674,5,step 1
 k-NLPmeans,coverage_nearest,d_member_purity,none,3750,-0.0496192,-0.105454,0.00621515,5,all steps
 k-NLPmeans,coverage_nearest,d_purity,none,3750,-0.113127,-0.145251,-0.0810025,5,all steps
 k-NLPmeans,coverage_nearest,lost_share,none,3750,-0.531052,-0.585,-0.477103,5,all steps
@@ -419,12 +419,12 @@ k-NLPmeans,n_flu_flags,lost_share,none,3750,0.0566254,0.0183139,0.094937,5,all s
 k-NLPmeans,flag_not_fluent,d_member_purity,none,3750,0.0401832,0.00823494,0.0721315,5,all steps
 k-NLPmeans,flag_not_fluent,d_purity,none,3750,0.00190956,-0.0398966,0.0437158,5,all steps
 k-NLPmeans,flag_not_fluent,lost_share,none,3750,0.0566254,0.0183139,0.094937,5,all steps
-k-NLPmeans,drift,d_member_purity,none,3750,-0.0447245,-0.0698167,-0.0196323,5,all steps
-k-NLPmeans,drift,d_purity,none,3750,0.00193116,-0.0319339,0.0357962,5,all steps
-k-NLPmeans,drift,lost_share,none,3750,-0.20408,-0.274949,-0.133211,5,all steps
-k-NLPmeans,cosine,d_member_purity,none,3750,-0.0121039,-0.0693387,0.0451309,5,all steps
-k-NLPmeans,cosine,d_purity,none,3750,-0.0736758,-0.103179,-0.0441727,5,all steps
-k-NLPmeans,cosine,lost_share,none,3750,-0.232036,-0.289194,-0.174879,5,all steps
+k-NLPmeans,drift,d_member_purity,none,3750,-0.0446644,-0.0697204,-0.0196084,5,all steps
+k-NLPmeans,drift,d_purity,none,3750,0.00184354,-0.0319908,0.0356779,5,all steps
+k-NLPmeans,drift,lost_share,none,3750,-0.204086,-0.274953,-0.13322,5,all steps
+k-NLPmeans,cosine,d_member_purity,none,3750,-0.01213,-0.0692977,0.0450377,5,all steps
+k-NLPmeans,cosine,d_purity,none,3750,-0.0736297,-0.103118,-0.0441413,5,all steps
+k-NLPmeans,cosine,lost_share,none,3750,-0.232054,-0.289212,-0.174896,5,all steps
 k-NLPmeans,own_nearest,d_member_purity,none,3750,-0.0614276,-0.091735,-0.0311201,3,all steps
 k-NLPmeans,own_nearest,d_purity,none,3750,-0.0674866,-0.155621,0.0206476,3,all steps
 k-NLPmeans,own_nearest,lost_share,none,3750,-0.087981,-0.142616,-0.0333459,3,all steps
@@ -467,18 +467,18 @@ k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,none,3750,0.169453,0.101107,0.237
 k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_member_purity,none,3750,0.00653893,-0.0361968,0.0492747,5,all steps
 k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_purity,none,3750,0.0102804,-0.0302743,0.0508351,5,all steps
 k-SLMmeans (Qwen3-0.6B),flag_not_fluent,lost_share,none,3750,0.166619,0.0965928,0.236644,5,all steps
-k-SLMmeans (Qwen3-0.6B),drift,d_member_purity,none,3750,0.0643106,0.042444,0.0861773,5,all steps
-k-SLMmeans (Qwen3-0.6B),drift,d_purity,none,3750,0.0452054,0.0276898,0.0627209,5,all steps
-k-SLMmeans (Qwen3-0.6B),drift,lost_share,none,3750,0.337798,0.300844,0.374752,5,all steps
-k-SLMmeans (Qwen3-0.6B),cosine,d_member_purity,none,3750,-0.0930112,-0.128184,-0.0578387,5,all steps
-k-SLMmeans (Qwen3-0.6B),cosine,d_purity,none,3750,-0.0920126,-0.127529,-0.0564961,5,all steps
-k-SLMmeans (Qwen3-0.6B),cosine,lost_share,none,3750,-0.57167,-0.588352,-0.554988,5,all steps
-k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,none,3750,-0.0111368,-0.0443242,0.0220505,5,all steps
-k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,none,3750,-0.079763,-0.093256,-0.0662701,5,all steps
-k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,none,3750,-0.451389,-0.488904,-0.413875,5,all steps
-k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,none,3750,-0.0400543,-0.0893556,0.00924699,5,all steps
-k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,none,3750,0.0658681,0.0209278,0.110809,5,all steps
-k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,none,3750,0.101951,0.059872,0.144031,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,d_member_purity,none,3750,0.0643479,0.0418545,0.0868413,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,d_purity,none,3750,0.0474833,0.0303521,0.0646146,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,lost_share,none,3750,0.334792,0.299372,0.370211,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,d_member_purity,none,3750,-0.093606,-0.126199,-0.0610127,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,d_purity,none,3750,-0.0947256,-0.125244,-0.0642072,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,lost_share,none,3750,-0.569995,-0.587336,-0.552654,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,none,3750,-0.0102313,-0.0448206,0.0243581,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,none,3750,-0.0791959,-0.0989628,-0.059429,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,none,3750,-0.452029,-0.493304,-0.410754,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,none,3750,-0.036786,-0.081922,0.00834994,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,none,3750,0.0718388,0.0210491,0.122628,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,none,3750,0.111386,0.0634129,0.159359,5,all steps
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_member_purity,none,3750,-0.120451,-0.17523,-0.0656724,5,all steps
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_purity,none,3750,-0.148313,-0.177558,-0.119069,5,all steps
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,lost_share,none,3750,-0.676246,-0.703552,-0.64894,5,all steps
@@ -515,15 +515,15 @@ k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,none,3750,0.192895,0.159951,0.225
 k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_member_purity,none,3750,0.024558,0.000826718,0.0482892,5,all steps
 k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_purity,none,3750,0.0217018,-0.000332392,0.0437361,5,all steps
 k-SLMmeans (Qwen3-1.7B),flag_not_fluent,lost_share,none,3750,0.19155,0.158579,0.224521,5,all steps
-k-SLMmeans (Qwen3-1.7B),drift,d_member_purity,none,3750,0.033558,0.014595,0.0525209,5,all steps
-k-SLMmeans (Qwen3-1.7B),drift,d_purity,none,3750,0.0439646,-0.0135326,0.101462,5,all steps
-k-SLMmeans (Qwen3-1.7B),drift,lost_share,none,3750,0.0709828,-0.0144621,0.156428,5,all steps
-k-SLMmeans (Qwen3-1.7B),cosine,d_member_purity,none,3750,-0.0813418,-0.105462,-0.057222,5,all steps
-k-SLMmeans (Qwen3-1.7B),cosine,d_purity,none,3750,-0.104694,-0.15625,-0.0531391,5,all steps
-k-SLMmeans (Qwen3-1.7B),cosine,lost_share,none,3750,-0.488207,-0.559509,-0.416905,5,all steps
-k-SLMmeans (Qwen3-1.7B),own_nearest,d_member_purity,none,3750,-0.0999354,-0.133512,-0.0663586,5,all steps
-k-SLMmeans (Qwen3-1.7B),own_nearest,d_purity,none,3750,-0.0536485,-0.080324,-0.0269731,5,all steps
-k-SLMmeans (Qwen3-1.7B),own_nearest,lost_share,none,3750,-0.410864,-0.456569,-0.365158,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,d_member_purity,none,3750,0.0331577,0.0141955,0.0521198,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,d_purity,none,3750,0.0437345,-0.0142483,0.101717,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,lost_share,none,3750,0.0710627,-0.014344,0.156469,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,d_member_purity,none,3750,-0.0809932,-0.105002,-0.0569846,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,d_purity,none,3750,-0.104735,-0.156269,-0.0532008,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,lost_share,none,3750,-0.488934,-0.560566,-0.417302,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_member_purity,none,3750,-0.0996449,-0.133385,-0.0659044,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_purity,none,3750,-0.054677,-0.0801037,-0.0292503,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,lost_share,none,3750,-0.411958,-0.456778,-0.367139,5,all steps
 k-SLMmeans (Qwen3-1.7B),empty_replacement,d_member_purity,none,3750,0.0440348,-0.0338295,0.121899,4,all steps
 k-SLMmeans (Qwen3-1.7B),empty_replacement,d_purity,none,3750,0.0659799,-0.0662458,0.198206,4,all steps
 k-SLMmeans (Qwen3-1.7B),empty_replacement,lost_share,none,3750,0.100217,0.0566331,0.143801,4,all steps
@@ -563,18 +563,18 @@ k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,none,3750,0.418018,0.386327,0.44971
 k-SLMmeans (Qwen3-4B),flag_not_fluent,d_member_purity,none,3750,0.089306,0.0268434,0.151768,5,all steps
 k-SLMmeans (Qwen3-4B),flag_not_fluent,d_purity,none,3750,0.194666,0.154463,0.234869,5,all steps
 k-SLMmeans (Qwen3-4B),flag_not_fluent,lost_share,none,3750,0.471792,0.445914,0.49767,5,all steps
-k-SLMmeans (Qwen3-4B),drift,d_member_purity,none,3750,0.0456043,0.00423168,0.0869769,5,all steps
-k-SLMmeans (Qwen3-4B),drift,d_purity,none,3750,0.0554645,0.0354374,0.0754915,5,all steps
-k-SLMmeans (Qwen3-4B),drift,lost_share,none,3750,0.574735,0.549089,0.600381,5,all steps
-k-SLMmeans (Qwen3-4B),cosine,d_member_purity,none,3750,-0.117749,-0.149534,-0.0859637,5,all steps
-k-SLMmeans (Qwen3-4B),cosine,d_purity,none,3750,-0.184585,-0.208434,-0.160735,5,all steps
-k-SLMmeans (Qwen3-4B),cosine,lost_share,none,3750,-0.732451,-0.745802,-0.719099,5,all steps
-k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,none,3750,-0.0741104,-0.124303,-0.0239177,5,all steps
-k-SLMmeans (Qwen3-4B),own_nearest,d_purity,none,3750,-0.115064,-0.149579,-0.0805487,5,all steps
-k-SLMmeans (Qwen3-4B),own_nearest,lost_share,none,3750,-0.683917,-0.710243,-0.657591,5,all steps
-k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,none,3750,0.0358353,0.0120716,0.0595989,5,all steps
-k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,none,3750,0.22372,0.191185,0.256254,5,all steps
-k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,none,3750,0.339775,0.309928,0.369623,5,all steps
+k-SLMmeans (Qwen3-4B),drift,d_member_purity,none,3750,0.0438451,0.00409379,0.0835963,5,all steps
+k-SLMmeans (Qwen3-4B),drift,d_purity,none,3750,0.0549453,0.0460108,0.0638798,5,all steps
+k-SLMmeans (Qwen3-4B),drift,lost_share,none,3750,0.569729,0.54474,0.594719,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,d_member_purity,none,3750,-0.123384,-0.166733,-0.0800355,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,d_purity,none,3750,-0.194317,-0.217444,-0.171189,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,lost_share,none,3750,-0.730879,-0.742535,-0.719224,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,none,3750,-0.0756231,-0.127644,-0.0236024,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,d_purity,none,3750,-0.117305,-0.156313,-0.0782978,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,lost_share,none,3750,-0.681917,-0.71456,-0.649274,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,none,3750,0.0362707,0.0100223,0.0625191,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,none,3750,0.222164,0.196979,0.24735,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,none,3750,0.340703,0.315907,0.365499,5,all steps
 k-NLPmeans,coverage_nearest,d_member_purity,"purity,log_n_members",3750,0.0286596,-0.0277866,0.0851059,5,all steps
 k-NLPmeans,coverage_nearest,d_purity,"purity,log_n_members",3750,-0.0814638,-0.102507,-0.0604209,5,all steps
 k-NLPmeans,coverage_nearest,lost_share,"purity,log_n_members",3750,-0.446951,-0.498397,-0.395506,5,all steps
@@ -611,12 +611,12 @@ k-NLPmeans,n_flu_flags,lost_share,"purity,log_n_members",3750,0.057195,0.0009649
 k-NLPmeans,flag_not_fluent,d_member_purity,"purity,log_n_members",3750,0.0414649,0.0110135,0.0719163,5,all steps
 k-NLPmeans,flag_not_fluent,d_purity,"purity,log_n_members",3750,0.000425634,-0.0382233,0.0390746,5,all steps
 k-NLPmeans,flag_not_fluent,lost_share,"purity,log_n_members",3750,0.057195,0.000964973,0.113425,5,all steps
-k-NLPmeans,drift,d_member_purity,"purity,log_n_members",3750,0.0127463,-0.0182442,0.0437368,5,all steps
-k-NLPmeans,drift,d_purity,"purity,log_n_members",3750,0.0267385,-0.0164019,0.0698789,5,all steps
-k-NLPmeans,drift,lost_share,"purity,log_n_members",3750,-0.10531,-0.191644,-0.0189751,5,all steps
-k-NLPmeans,cosine,d_member_purity,"purity,log_n_members",3750,0.010007,-0.0408493,0.0608634,5,all steps
-k-NLPmeans,cosine,d_purity,"purity,log_n_members",3750,-0.0614634,-0.092321,-0.0306059,5,all steps
-k-NLPmeans,cosine,lost_share,"purity,log_n_members",3750,-0.205378,-0.266584,-0.144171,5,all steps
+k-NLPmeans,drift,d_member_purity,"purity,log_n_members",3750,0.012808,-0.0181632,0.0437793,5,all steps
+k-NLPmeans,drift,d_purity,"purity,log_n_members",3750,0.0266447,-0.0164959,0.0697854,5,all steps
+k-NLPmeans,drift,lost_share,"purity,log_n_members",3750,-0.105323,-0.191662,-0.0189835,5,all steps
+k-NLPmeans,cosine,d_member_purity,"purity,log_n_members",3750,0.00998396,-0.0408069,0.0607748,5,all steps
+k-NLPmeans,cosine,d_purity,"purity,log_n_members",3750,-0.0614152,-0.0922386,-0.0305917,5,all steps
+k-NLPmeans,cosine,lost_share,"purity,log_n_members",3750,-0.20539,-0.266617,-0.144163,5,all steps
 k-NLPmeans,own_nearest,d_member_purity,"purity,log_n_members",3750,-0.0521901,-0.0910441,-0.0133361,3,all steps
 k-NLPmeans,own_nearest,d_purity,"purity,log_n_members",3750,-0.0627621,-0.150695,0.0251705,3,all steps
 k-NLPmeans,own_nearest,lost_share,"purity,log_n_members",3750,-0.0720115,-0.121736,-0.0222875,3,all steps
@@ -659,18 +659,18 @@ k-SLMmeans (Qwen3-0.6B),n_flu_flags,lost_share,"purity,log_n_members",3750,0.135
 k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_member_purity,"purity,log_n_members",3750,-0.0358408,-0.100598,0.0289168,5,all steps
 k-SLMmeans (Qwen3-0.6B),flag_not_fluent,d_purity,"purity,log_n_members",3750,-0.0214,-0.0724681,0.0296681,5,all steps
 k-SLMmeans (Qwen3-0.6B),flag_not_fluent,lost_share,"purity,log_n_members",3750,0.134028,0.0619791,0.206077,5,all steps
-k-SLMmeans (Qwen3-0.6B),drift,d_member_purity,"purity,log_n_members",3750,0.0263443,-0.003792,0.0564806,5,all steps
-k-SLMmeans (Qwen3-0.6B),drift,d_purity,"purity,log_n_members",3750,0.0122416,-0.00381216,0.0282953,5,all steps
-k-SLMmeans (Qwen3-0.6B),drift,lost_share,"purity,log_n_members",3750,0.322206,0.287975,0.356437,5,all steps
-k-SLMmeans (Qwen3-0.6B),cosine,d_member_purity,"purity,log_n_members",3750,0.0174625,-0.0271405,0.0620656,5,all steps
-k-SLMmeans (Qwen3-0.6B),cosine,d_purity,"purity,log_n_members",3750,-0.00447274,-0.0394171,0.0304716,5,all steps
-k-SLMmeans (Qwen3-0.6B),cosine,lost_share,"purity,log_n_members",3750,-0.515684,-0.534963,-0.496404,5,all steps
-k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,"purity,log_n_members",3750,0.0618165,0.00734267,0.11629,5,all steps
-k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,"purity,log_n_members",3750,-0.0272181,-0.0542592,-0.00017706,5,all steps
-k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,"purity,log_n_members",3750,-0.414351,-0.44984,-0.378862,5,all steps
-k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,"purity,log_n_members",3750,-0.0549582,-0.103662,-0.00625469,5,all steps
-k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,"purity,log_n_members",3750,0.0593823,0.0200001,0.0987645,5,all steps
-k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,"purity,log_n_members",3750,0.096207,0.0595762,0.132838,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,d_member_purity,"purity,log_n_members",3750,0.0259125,-0.00373606,0.055561,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,d_purity,"purity,log_n_members",3750,0.0143466,0.000125348,0.0285679,5,all steps
+k-SLMmeans (Qwen3-0.6B),drift,lost_share,"purity,log_n_members",3750,0.318379,0.287292,0.349467,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,d_member_purity,"purity,log_n_members",3750,0.0176034,-0.0259571,0.0611639,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,d_purity,"purity,log_n_members",3750,-0.00685945,-0.0373718,0.0236529,5,all steps
+k-SLMmeans (Qwen3-0.6B),cosine,lost_share,"purity,log_n_members",3750,-0.513183,-0.530956,-0.49541,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_member_purity,"purity,log_n_members",3750,0.0627963,0.00731264,0.11828,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,d_purity,"purity,log_n_members",3750,-0.0267193,-0.0582918,0.00485312,5,all steps
+k-SLMmeans (Qwen3-0.6B),own_nearest,lost_share,"purity,log_n_members",3750,-0.415125,-0.452615,-0.377636,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_member_purity,"purity,log_n_members",3750,-0.0548483,-0.0939202,-0.0157764,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,d_purity,"purity,log_n_members",3750,0.0630372,0.0174357,0.108639,5,all steps
+k-SLMmeans (Qwen3-0.6B),empty_replacement,lost_share,"purity,log_n_members",3750,0.102284,0.0656786,0.138889,5,all steps
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_member_purity,"purity,log_n_members",3750,0.0360312,-0.0252018,0.0972642,5,all steps
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,d_purity,"purity,log_n_members",3750,-0.0282952,-0.0664294,0.00983898,5,all steps
 k-SLMmeans (Qwen3-1.7B),coverage_nearest,lost_share,"purity,log_n_members",3750,-0.597526,-0.634988,-0.560063,5,all steps
@@ -707,15 +707,15 @@ k-SLMmeans (Qwen3-1.7B),n_flu_flags,lost_share,"purity,log_n_members",3750,0.186
 k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_member_purity,"purity,log_n_members",3750,0.00775455,-0.0240795,0.0395886,5,all steps
 k-SLMmeans (Qwen3-1.7B),flag_not_fluent,d_purity,"purity,log_n_members",3750,0.00670361,-0.0177543,0.0311615,5,all steps
 k-SLMmeans (Qwen3-1.7B),flag_not_fluent,lost_share,"purity,log_n_members",3750,0.186412,0.151338,0.221485,5,all steps
-k-SLMmeans (Qwen3-1.7B),drift,d_member_purity,"purity,log_n_members",3750,0.0640061,0.0517295,0.0762826,5,all steps
-k-SLMmeans (Qwen3-1.7B),drift,d_purity,"purity,log_n_members",3750,0.0649649,0.0128709,0.117059,5,all steps
-k-SLMmeans (Qwen3-1.7B),drift,lost_share,"purity,log_n_members",3750,0.11937,0.0355131,0.203227,5,all steps
-k-SLMmeans (Qwen3-1.7B),cosine,d_member_purity,"purity,log_n_members",3750,0.00301482,-0.0254922,0.0315218,5,all steps
-k-SLMmeans (Qwen3-1.7B),cosine,d_purity,"purity,log_n_members",3750,-0.0379589,-0.0908578,0.0149399,5,all steps
-k-SLMmeans (Qwen3-1.7B),cosine,lost_share,"purity,log_n_members",3750,-0.428866,-0.502396,-0.355336,5,all steps
-k-SLMmeans (Qwen3-1.7B),own_nearest,d_member_purity,"purity,log_n_members",3750,-0.0377693,-0.0703421,-0.00519649,5,all steps
-k-SLMmeans (Qwen3-1.7B),own_nearest,d_purity,"purity,log_n_members",3750,-0.0021629,-0.0324391,0.0281133,5,all steps
-k-SLMmeans (Qwen3-1.7B),own_nearest,lost_share,"purity,log_n_members",3750,-0.364643,-0.420149,-0.309138,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,d_member_purity,"purity,log_n_members",3750,0.0635184,0.0522956,0.0747412,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,d_purity,"purity,log_n_members",3750,0.0645937,0.0116827,0.117505,5,all steps
+k-SLMmeans (Qwen3-1.7B),drift,lost_share,"purity,log_n_members",3750,0.119297,0.0354057,0.203189,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,d_member_purity,"purity,log_n_members",3750,0.003802,-0.024778,0.032382,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,d_purity,"purity,log_n_members",3750,-0.0376127,-0.0907587,0.0155333,5,all steps
+k-SLMmeans (Qwen3-1.7B),cosine,lost_share,"purity,log_n_members",3750,-0.429309,-0.503075,-0.355543,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_member_purity,"purity,log_n_members",3750,-0.036828,-0.0699438,-0.0037122,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,d_purity,"purity,log_n_members",3750,-0.00263412,-0.0324595,0.0271913,5,all steps
+k-SLMmeans (Qwen3-1.7B),own_nearest,lost_share,"purity,log_n_members",3750,-0.36508,-0.42041,-0.309749,5,all steps
 k-SLMmeans (Qwen3-1.7B),empty_replacement,d_member_purity,"purity,log_n_members",3750,0.0282646,-0.0399912,0.0965205,4,all steps
 k-SLMmeans (Qwen3-1.7B),empty_replacement,d_purity,"purity,log_n_members",3750,0.0555503,-0.0675052,0.178606,4,all steps
 k-SLMmeans (Qwen3-1.7B),empty_replacement,lost_share,"purity,log_n_members",3750,0.0838556,0.0613865,0.106325,4,all steps
@@ -755,15 +755,15 @@ k-SLMmeans (Qwen3-4B),n_flu_flags,lost_share,"purity,log_n_members",3750,0.37186
 k-SLMmeans (Qwen3-4B),flag_not_fluent,d_member_purity,"purity,log_n_members",3750,-0.00398509,-0.0481363,0.0401661,5,all steps
 k-SLMmeans (Qwen3-4B),flag_not_fluent,d_purity,"purity,log_n_members",3750,0.0965691,0.0697818,0.123356,5,all steps
 k-SLMmeans (Qwen3-4B),flag_not_fluent,lost_share,"purity,log_n_members",3750,0.427698,0.401383,0.454012,5,all steps
-k-SLMmeans (Qwen3-4B),drift,d_member_purity,"purity,log_n_members",3750,0.042062,-0.000634587,0.0847587,5,all steps
-k-SLMmeans (Qwen3-4B),drift,d_purity,"purity,log_n_members",3750,0.0352904,0.00875896,0.0618219,5,all steps
-k-SLMmeans (Qwen3-4B),drift,lost_share,"purity,log_n_members",3750,0.572246,0.548036,0.596455,5,all steps
-k-SLMmeans (Qwen3-4B),cosine,d_member_purity,"purity,log_n_members",3750,-0.0295475,-0.0555705,-0.00352442,5,all steps
-k-SLMmeans (Qwen3-4B),cosine,d_purity,"purity,log_n_members",3750,-0.077969,-0.107388,-0.0485501,5,all steps
-k-SLMmeans (Qwen3-4B),cosine,lost_share,"purity,log_n_members",3750,-0.69864,-0.714622,-0.682658,5,all steps
-k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,"purity,log_n_members",3750,-0.00362615,-0.043954,0.0367017,5,all steps
-k-SLMmeans (Qwen3-4B),own_nearest,d_purity,"purity,log_n_members",3750,-0.0255926,-0.0618716,0.0106864,5,all steps
-k-SLMmeans (Qwen3-4B),own_nearest,lost_share,"purity,log_n_members",3750,-0.654844,-0.684297,-0.625392,5,all steps
-k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,"purity,log_n_members",3750,-0.0231114,-0.0331795,-0.0130434,5,all steps
-k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,"purity,log_n_members",3750,0.170228,0.158464,0.181991,5,all steps
-k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,"purity,log_n_members",3750,0.298816,0.273412,0.32422,5,all steps
+k-SLMmeans (Qwen3-4B),drift,d_member_purity,"purity,log_n_members",3750,0.0420001,-0.000746619,0.0847468,5,all steps
+k-SLMmeans (Qwen3-4B),drift,d_purity,"purity,log_n_members",3750,0.0373026,0.0226376,0.0519676,5,all steps
+k-SLMmeans (Qwen3-4B),drift,lost_share,"purity,log_n_members",3750,0.568564,0.544048,0.59308,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,d_member_purity,"purity,log_n_members",3750,-0.0328028,-0.0640374,-0.00156814,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,d_purity,"purity,log_n_members",3750,-0.0864303,-0.108211,-0.0646498,5,all steps
+k-SLMmeans (Qwen3-4B),cosine,lost_share,"purity,log_n_members",3750,-0.696732,-0.711495,-0.681968,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,d_member_purity,"purity,log_n_members",3750,-0.00535145,-0.0464927,0.0357898,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,d_purity,"purity,log_n_members",3750,-0.0286306,-0.0649774,0.00771626,5,all steps
+k-SLMmeans (Qwen3-4B),own_nearest,lost_share,"purity,log_n_members",3750,-0.653251,-0.688377,-0.618125,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,d_member_purity,"purity,log_n_members",3750,-0.021155,-0.0357285,-0.00658146,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,d_purity,"purity,log_n_members",3750,0.170394,0.157861,0.182928,5,all steps
+k-SLMmeans (Qwen3-4B),empty_replacement,lost_share,"purity,log_n_members",3750,0.300662,0.274917,0.326407,5,all steps

@@ -16,8 +16,10 @@ calls `run`; #34's `run` is `<config name>/<timestamp>`), never on the method, w
 
 What is exact. At step 1 the pre-replacement state is replayed exactly (#33 section 2), so the replacement-time
 columns (`drift`, `cosine`, `own_nearest`, `empty_replacement`, `size_replacement`, `n_out_replacement`,
-`n_in_replacement`) are exact up to CPU encoder noise. From step 2 on they rest on replayed previous blocks and the CPU
-summary embeddings, which for the 4B often do not reproduce the logged partition: `step1` marks the exact rows,
+`n_in_replacement`) are exact with the GPU encode and exact up to encoder noise with the CPU fallback. From step 2 on
+they rest on replayed previous blocks, which reproduce the logged partitions when the summary embeddings are the GPU
+encode (`summary_embeddings_cuda.npz`) but, for the 4B, often not with the CPU fallback
+(`summary_embeddings_cpu.npz`): `step1` marks the step-1 rows,
 `pre_matches_source` says whether the replayed pre-replacement cluster has the members the summary was written from
 (`size_pre == n_members`), and `end_matches_logged` whether the replayed end-of-block size equals the logged one
 (`size_end == n_after`). The end-of-block columns of #33 (`size_end`, `n_out_end`, `n_in_end`, `jaccard_end_vs_pre`,
