@@ -41,6 +41,12 @@ from .aggregate import METRICS, to_markdown
 from .config import apply_overrides, load_config
 
 PHASES = ("A", "B", "C", "D")
+# The headline-only re-run on the #31 protocol (#37 step 1, docs/results/rq2_truncation_check.md): not part of the
+# A-D sweep or its report, so it is not in PHASES. Its runs are named `rq2r_*` so they never mix with the #15 dirs.
+RERUN_PHASE = "R"
+RERUN_PREFIX = "rq2r"
+RERUN_FIXED_NS = (5, 1, 2)  # run order: the default schedule first
+RERUN_ADAPTIVE = (0.6, 0.7, None)  # the config #15 picked on seeds 0-2; no grid, no re-selection
 FIXED_NS = (1, 2, 3, 4, 5)
 FIXED_ORDER = (5, 1, 2, 3, 4)  # run order: the default schedule first, so the key run finishes first
 # (tau_drift, tau_churn, s_max). Units: drift in RMS radii, churn = Jaccard distance. Chosen from a pilot
@@ -108,9 +114,9 @@ def random_method(adaptive_method_name: str) -> str:
 
 
 def random_name(adaptive_run_name: str, seed: int) -> str:
-    """`rq2_random_d0.3_r0.4_seed0` from `rq2_adaptive_d0.3_r0.4` (or its `_ext` run)."""
-    tag = adaptive_run_name.removeprefix("rq2_adaptive_").removesuffix("_ext")
-    return f"rq2_random_{tag}_seed{seed}"
+    """`rq2_random_d0.3_r0.4_seed0` from `rq2_adaptive_d0.3_r0.4` (or its `_ext` run); `rq2r_` runs keep their prefix."""
+    prefix, _, tag = adaptive_run_name.partition("_adaptive_")
+    return f"{prefix}_random_{tag.removesuffix('_ext')}_seed{seed}"
 
 
 def _block_params(schedule: dict) -> dict:
@@ -336,6 +342,35 @@ def choose_headline(
     return next(s for s in adaptive if s.cfg["method_name"] == method), rule, stats[method][0]
 
 
+def plan_phase_r(
+    base: dict, results_dir: str | Path, overrides: list[str] | None = None
+) -> tuple[list[RunSpec], str | None]:
+    """The headline re-run: fixed-n5 (with the k-means baseline), fixed-n1, fixed-n2, the headline adaptive config
+    and its call-matched random control, all on the base config's seeds. `base` is `configs/rq2_rerun.yaml`, whose
+    `name` is `rq2r_fixed_n5` and whose protocol is #31's. The controls need the adaptive run's trace, so they are
+    blocked until it is done (the driver plans this phase twice, as it does phase D)."""
+    specs = []
+    for n in RERUN_FIXED_NS:
+        cfg = copy.deepcopy(base)
+        cfg["name"] = f"{RERUN_PREFIX}_fixed_n{n}"
+        cfg["method_name"] = f"fixed-n{n}"
+        cfg["schedule"]["n_summaries"] = n
+        if n != 5:
+            cfg["baselines"] = {}
+        specs.append(RunSpec(cfg["name"], RERUN_PHASE, apply_overrides(cfg, overrides)))
+
+    td, tr, s_max = RERUN_ADAPTIVE
+    cfg = copy.deepcopy(base)
+    cfg["name"] = f"{RERUN_PREFIX}_adaptive_{config_tag(*RERUN_ADAPTIVE)}"
+    cfg["method_name"] = adaptive_method(RERUN_ADAPTIVE)
+    cfg["baselines"] = {}
+    cfg["schedule"] = {"type": "adaptive", **_block_params(base["schedule"]), "tau_drift": td, "tau_churn": tr, "s_max": s_max}
+    adaptive = RunSpec(cfg["name"], RERUN_PHASE, apply_overrides(cfg, overrides))
+    specs.append(adaptive)
+    specs += plan_random_controls(adaptive.cfg, find_done_run(results_dir, adaptive.cfg), RERUN_PHASE)
+    return specs, None
+
+
 def plan_phase(
     phase: str, base: dict, results_dir: str | Path, overrides: list[str] | None = None
 ) -> tuple[list[RunSpec], str | None]:
@@ -348,7 +383,9 @@ def plan_phase(
         return plan_phase_c(plan_phase_b(base, overrides), results_dir), None
     if phase == "D":
         return plan_phase_d(base, results_dir, overrides)
-    raise ValueError(f"Unknown phase '{phase}', expected one of {PHASES}")
+    if phase == RERUN_PHASE:
+        return plan_phase_r(base, results_dir, overrides)
+    raise ValueError(f"Unknown phase '{phase}', expected one of {(*PHASES, RERUN_PHASE)}")
 
 
 def load_base(path: str | Path, results_dir: str | Path | None = None) -> dict:

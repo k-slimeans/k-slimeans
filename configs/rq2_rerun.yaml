@@ -1,0 +1,52 @@
+# RQ2 / H2 headline re-run on the #31 protocol (#37 step 1; docs/results/rq2_truncation_check.md).
+#
+# Why: the #15 runs (configs/rq2_clinc150.yaml) trimmed an overflowing cluster prompt to a leading prefix of its
+# members in dataset order, and CLINC150 is stored grouped by intent (#28). The code now keeps a seeded random subset
+# instead, as in the #31 summarizer comparison. This file is the #31 setup (configs/clinc150_summarizers.yaml, the
+# 0.6B run) with seeds 0-9 and the fixed-n5 schedule; it differs from the #15 base config in the code the run uses and
+# in spelling out max_input_tokens (4096, the default #15 ran with).
+#
+# What: only the headline comparison, no threshold grid. scripts/run_rq2.py --phases R derives the rest of the runs
+# from this file by in-memory overrides, as it does for the sweep:
+#
+#   rq2r_fixed_n5            this file: 5 summaries (the k-means baseline too), seeds 0-9
+#   rq2r_fixed_n1, _n2       1 and 2 summaries, seeds 0-9
+#   rq2r_adaptive_d0.6_r0.7  the config #15 picked on seeds 0-2 (tau_drift 0.6, tau_churn 0.7), seeds 0-9
+#   rq2r_random_d0.6_r0.7_seed<s>
+#                            per seed, a RandomSubsetSchedule spending the same calls per step as that seed's adaptive
+#                            run (planned once the adaptive run is done)
+#
+# Seeds 0-2 chose the adaptive config in #15 and are no longer held out; seeds 3-9 were held-out there and stay a
+# fresh evaluation of an already-chosen config. Report them separately.
+#
+#   python scripts/run_rq2.py --phases R --base-config configs/rq2_rerun.yaml --dry-run
+#   scripts/run_rq2_rerun.sh                      # the run, resumable
+
+name: rq2r_fixed_n5
+dataset: clinc150_intent
+embedder: distilbert
+seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+baselines:
+  kmeans: {}
+
+method_name: fixed-n5
+force_context_length: 0
+tol: 1.0e-4
+
+schedule:
+  type: fixed
+  n_summaries: 5
+  max_iter: 120
+  initial_iter: true
+  final_iter: true
+
+summarizer:
+  type: hf
+  model_id: Qwen/Qwen3-0.6B
+  max_new_tokens: 64
+  max_input_tokens: 4096
+  batch_size: 8
+
+cache_dir: cache
+results_dir: results

@@ -2,7 +2,8 @@
 
 Phases (see `kslimeans.rq2` and `configs/rq2_clinc150.yaml`): A fixed family (seeds 0-4), B adaptive grid
 (seeds 0-2), C random controls matched to B's per-step calls, D held-out evaluation: the headline config
-(chosen on seeds 0-2) and its controls on seeds 3-9, plus fixed-n5 on seeds 5-9. Runs are executed in-process,
+(chosen on seeds 0-2) and its controls on seeds 3-9, plus fixed-n5 on seeds 5-9. Phase R is the headline-only re-run on the #31 protocol (fixed-n1/n2/n5, the headline
+adaptive config and its control, seeds 0-9; `configs/rq2_rerun.yaml`). Runs are executed in-process,
 one after another. A run is skipped when `<results-dir>/<name>/<stamp>/` already holds a `summary.csv` whose
 config defines the same experiment ([done]); a matching dir without `summary.csv` that was written to within
 --stale-minutes is assumed to be running elsewhere ([running], skipped); older ones count as crashed and are redone.
@@ -27,7 +28,9 @@ from kslimeans.experiment import run_offline
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--phases", nargs="+", choices=rq2.PHASES, default=list(rq2.PHASES))
+    parser.add_argument("--phases", nargs="+", choices=[*rq2.PHASES, rq2.RERUN_PHASE], default=list(rq2.PHASES),
+                        help="A-D are the sweep; R is the headline-only re-run on the #31 protocol "
+                             "(--base-config configs/rq2_rerun.yaml, see scripts/run_rq2_rerun.sh)")
     parser.add_argument("--base-config", default="configs/rq2_clinc150.yaml")
     parser.add_argument("--results-dir", default=None, help="override the config's results_dir")
     parser.add_argument("--dry-run", action="store_true", help="print the plan and which runs are done; no compute")
@@ -43,8 +46,8 @@ def main() -> None:
     results_dir = base["results_dir"]
     ran = 0
     for phase in sorted(args.phases):
-        # Phase D's random controls need the extension run's trace, so plan it a second time once that run is done.
-        for _ in range(2 if phase == "D" and not args.dry_run else 1):
+        # Phases D and R: the random controls need the adaptive run's trace, so plan again once that run is done.
+        for _ in range(2 if phase in ("D", rq2.RERUN_PHASE) and not args.dry_run else 1):
             ran_before = ran
             specs, rule = rq2.plan_phase(phase, base, results_dir, args.overrides)
             counts = {"done": 0, "running": 0, "todo": 0, "blocked": 0}
