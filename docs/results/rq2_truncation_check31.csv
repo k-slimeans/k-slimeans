@@ -1,0 +1,6 @@
+seed,calls_logged,calls_exact,truncated_logged,truncated_exact,truncated_approx,dropped_logged,dropped_exact,dropped_approx,step1_inertia_rel_err
+0,696,696,3,3,0,112,112,0,9.12746e-08
+1,706,706,8,8,5,138,138,104,9.12862e-08
+2,712,712,3,3,3,74,74,12,1.18247e-06
+3,706,706,11,11,5,433,433,541,7.26182e-07
+4,714,714,8,8,8,108,108,329,2.73485e-07
