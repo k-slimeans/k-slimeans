@@ -22,6 +22,7 @@ iterations, sklearn's stops applied) and, separately, a run to convergence:
 - `b`: flagged clusters keep their k-means center (`pre.centers[c]`), the others take `own`;
 - `c`: flagged clusters take `other`'s summary embedding of the same cluster;
 - `d`: control. The same number of *unflagged* clusters, drawn at random, keep their k-means center;
+- `cd`: control for `c`: `other`'s summaries put into the same number of random unflagged clusters of `own`;
 - `m`: `other` as logged; `r`: `other` with `own`'s flagged summaries put into the same clusters (reverse direction);
   `rd`: control, `own`'s summaries in the same number of random unflagged clusters of `other`;
 - `ref`: no replacement, plain Lloyd from `pre.centers` (what #33 calls the counterfactual).
@@ -205,9 +206,10 @@ def evaluate_seed(
         add("b", name, -1, n, run(swap_rows(own, pre.centers, flagged)))
         add("c", name, -1, n, run(swap_rows(own, other, flagged)))
         add("r", name, -1, n, run(swap_rows(other, own, flagged)))
-        # One control per draw serves both directions: the same unflagged clusters are edited in `own` and `other`.
+        # One control per draw serves all of d, cd and rd: the same unflagged clusters are edited in `own` and `other`.
         for draw, mask in enumerate(random_controls(flagged, n_draws, control_seed) if n_draws else []):
             add("d", name, draw, n, run(swap_rows(own, pre.centers, mask)))
+            add("cd", name, draw, n, run(swap_rows(own, other, mask)))
             add("rd", name, draw, n, run(swap_rows(other, own, mask)))
     return rows
 

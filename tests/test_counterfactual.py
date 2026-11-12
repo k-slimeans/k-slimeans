@@ -156,11 +156,14 @@ def test_variants_start_from_the_rows_the_definition_names(replayer, monkeypatch
     np.testing.assert_array_equal(r[~flagged], other[~flagged])
     assert by["b"][0]["n_replaced"] == by["c"][0]["n_replaced"] == by["r"][0]["n_replaced"] == 3
     # (d) and the reverse control: as many clusters as flagged, none of them flagged, same clusters in both.
-    assert len(by["d"]) == len(by["rd"]) == 6
-    for d, rd in zip(by["d"], by["rd"]):
+    assert len(by["d"]) == len(by["cd"]) == len(by["rd"]) == 6
+    for d, cd, rd in zip(by["d"], by["cd"], by["rd"]):
         edited = np.any(d["start"] != own, axis=1)
         assert edited.sum() == 3 and not (edited & flagged).any()
         np.testing.assert_array_equal(d["start"][edited], pre.centers[edited])
+        cedited = np.any(cd["start"] != own, axis=1)  # (c)'s control: the other model's rows, same clusters
+        np.testing.assert_array_equal(cedited, edited)
+        np.testing.assert_array_equal(cd["start"][cedited], other[cedited])
         redited = np.any(rd["start"] != other, axis=1)
         np.testing.assert_array_equal(redited, edited)
         np.testing.assert_array_equal(rd["start"][redited], own[redited])

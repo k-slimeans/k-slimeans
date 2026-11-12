@@ -138,6 +138,8 @@ def comparisons():
             (f"d/{flag}: control, random unflagged keep k-means center", "d", flag, "a", ""),
             (f"b-d/{flag}: (b) minus its control", "b", flag, "d", flag),
             (f"c-d/{flag}: (c) minus the control", "c", flag, "d", flag),
+            (f"cd/{flag}: control, 1.7B summaries in random unflagged 4B clusters", "cd", flag, "a", ""),
+            (f"c-cd/{flag}: (c) minus its control", "c", flag, "cd", flag),
             (f"r/{flag}: 1.7B with the 4B's flagged summaries vs 1.7B as logged", "r", flag, "m", ""),
             (f"rd/{flag}: control, 4B summaries in random unflagged clusters of the 1.7B", "rd", flag, "m", ""),
             (f"r-rd/{flag}: (r) minus its control", "r", flag, "rd", flag),
@@ -179,7 +181,7 @@ def build(rows: pd.DataFrame, flag_rows, fidelity):
     paired = paired_differences(per_seed, comparisons())
     gap = []
     for flag in FLAG_SETS:
-        for variant in ("b", "c", "d"):
+        for variant in ("b", "c", "d", "cd"):
             for setting in ("fixed", "converged"):
                 for metric in ("end_acc", "end_nmi"):
                     gap.append(
@@ -193,7 +195,7 @@ def build(rows: pd.DataFrame, flag_rows, fidelity):
                         }
                     )
     sd_cols = [c for c in spreads.columns if c.endswith("_sd")]
-    controls = spreads[spreads.variant.isin(["d", "rd"])]
+    controls = spreads[spreads.variant.isin(["d", "cd", "rd"])]
     draws = controls.groupby(["variant", "flag", "setting"])[sd_cols].mean().reset_index()
     return {
         "flags": pd.DataFrame(flag_rows),
@@ -214,7 +216,7 @@ def tables_markdown(frames: dict[str, pd.DataFrame]) -> str:
     for setting in ("fixed", "converged"):
         parts.append(
             f"### Paired differences, {setting} block (mean over seeds [95% t-interval] and seeds above 0; "
-            "positive = better than the baseline)\n"
+            "ACC, NMI, ARI: positive = higher; end_j_rel: relative difference of the objective, lower is better)\n"
         )
         sub = paired[(paired.setting == setting) & paired.metric.isin(["end_acc", "end_nmi", "end_ari", "end_j_rel"])]
 
