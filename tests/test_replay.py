@@ -326,3 +326,14 @@ def test_untested_sklearn_version_warns(data, monkeypatch):
     monkeypatch.setattr(sklearn, "__version__", "0.0.0")
     with pytest.warns(UserWarning, match="private scikit-learn"):
         LloydReplayer(X)
+
+
+def test_untracked_objective_changes_only_the_intermediate_objectives(data):
+    _, X, _ = data
+    start = _start(X)
+    full = LloydReplayer(X).run_block(start, 300)
+    lean = LloydReplayer(X).run_block(start, 300, track_objective=False)
+    assert lean.n_iter == full.n_iter and lean.stop == full.stop
+    assert np.array_equal(lean.final_labels, full.final_labels)
+    assert lean.start.objective == full.start.objective and lean.end.objective == full.end.objective
+    assert np.isnan([it.objective for it in lean.iterations[1:-1]]).all()

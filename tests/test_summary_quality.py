@@ -12,6 +12,7 @@ from kslimeans.summary_quality import (
     cluster_overlap,
     content_lemmas,
     fluency_checks,
+    generic_flags,
     label_alignment,
     load_nlp,
     mean_off_diagonal,
@@ -285,3 +286,26 @@ def test_multi_line_summary_is_lemmatized_line_by_line():
     rows, _ = score_step(["hello ai\nchange the ai name"], np.eye(2, dtype=np.float32)[:1], X, np.array([0, 0]),
                          np.array([0, 0]), corpus, NLP, prompt=PROMPT, asks_question=False)  # fmt: skip
     assert rows[0]["unsupported_lemma_share"] == 0.0
+
+
+@pytest.mark.parametrize(
+    "summaries, S",
+    [
+        (GOOD, np.eye(3)),
+        ([GOOD[0], GOOD[0], GOOD[2]], np.eye(3)),  # exact duplicates
+        (GOOD, np.array([[0, 1, 0], [1, 0, 0], [0, 0, 1]])),  # summaries of clusters 0 and 1 swapped: negative margin
+        (["This summary describes the cluster", GOOD[1], GOOD[2]], np.eye(3)),  # mentions the cluster
+        (GOOD, np.array([[1, 0, 0], [0.99, 0.01, 0], [0, 0, 1]])),  # near duplicates
+        ([GOOD[0], None, GOOD[2]], np.eye(3)),  # no summary for a cluster
+    ],
+)
+def test_generic_flags_equal_score_step_flags(summaries, S):
+    S = np.asarray(S, dtype=np.float32)
+    rows, _ = run(summaries, S)
+    X, _ = embeddings()
+    flags = generic_flags(summaries, S, X, LABELS)
+    scored = {r["cluster"]: r for r in rows}
+    for c in range(3):
+        for name in ("duplicate", "near_duplicate", "mentions", "low_margin", "generic"):
+            expected = scored[c][f"flag_{name}"] if c in scored else False
+            assert bool(flags[name][c]) == expected, (c, name)

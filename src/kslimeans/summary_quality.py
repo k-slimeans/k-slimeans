@@ -327,6 +327,45 @@ def label_alignment(S: np.ndarray, L: np.ndarray, majority: Sequence[int | None]
     }
 
 
+def generic_flags(summaries: Sequence[str | None], S: np.ndarray, X: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
+    """Per-cluster boolean arrays `duplicate`, `near_duplicate`, `mentions`, `low_margin` and `generic` of one step.
+
+    The genericity flags of `score_step` (the module docstring defines them) without its spaCy and coverage work, for
+    callers that need only the flags (#47). `S[c]` is cluster `c`'s summary embedding, `labels` the partition the
+    summaries were written from. Empty clusters and clusters without a summary get no row in `score_step`, so
+    every flag is False for them here.
+    """
+    k = len(summaries)
+    members = members_by_cluster(np.asarray(labels), k)
+    nonempty = np.array([len(m) > 0 for m in members])
+    has_summary = np.array([s is not None for s in summaries])
+    means = np.vstack([X[m].mean(axis=0) if len(m) else np.zeros(X.shape[1]) for m in members])
+    Sn, Mn = _unit(S), _unit(means)
+    own_sim = np.einsum("ij,ij->i", Sn, Mn)
+    to_means = Sn @ Mn.T
+    np.fill_diagonal(to_means, -np.inf)
+    to_means[:, ~nonempty] = -np.inf
+    best_other_mean = to_means.max(axis=1)
+    other_sum = Sn @ Sn.T
+    np.fill_diagonal(other_sum, -np.inf)
+    other_sum[:, ~has_summary] = -np.inf
+    max_other_summary = other_sum.max(axis=1)
+    margin = np.where(np.isfinite(best_other_mean), own_sim - best_other_mean, np.nan)
+    scored = nonempty & has_summary
+    duplicate = np.zeros(k, dtype=bool)
+    for group in duplicate_groups(list(summaries)):
+        duplicate[group] = True
+    flags = {
+        "duplicate": duplicate,
+        "near_duplicate": max_other_summary >= NEAR_DUPLICATE_COS,
+        "mentions": np.array([mentions_cluster(s) for s in summaries], dtype=bool),
+        "low_margin": margin <= 0,
+    }
+    flags = {name: flag & scored for name, flag in flags.items()}
+    flags["generic"] = np.logical_or.reduce(list(flags.values()))
+    return flags
+
+
 def score_step(
     summaries: Sequence[str | None],
     S: np.ndarray,

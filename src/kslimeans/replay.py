@@ -172,11 +172,14 @@ class LloydReplayer:
         shift = np.linalg.norm(new_c - centers_c, axis=1)
         return new_c, labels, float((shift**2).sum())
 
-    def run_block(self, start_centers: np.ndarray, max_iter: int, *, stop: bool = True) -> Block:
+    def run_block(
+        self, start_centers: np.ndarray, max_iter: int, *, stop: bool = True, track_objective: bool = True
+    ) -> Block:
         """Replay `KMeans(init=start_centers, max_iter=max_iter)` one iteration at a time.
 
         With `stop=False` the tol and strict-convergence stops are ignored and exactly `max_iter` iterations
-        run (the counterfactual's fixed-length continuation).
+        run (the counterfactual's fixed-length continuation). With `track_objective=False` only the first and
+        last iteration get an objective (the others hold NaN), which halves the cost of a long block.
         """
         start = check_array(start_centers, dtype=self.dtype, copy=True, order="C")
         centers_c = start - self._x_mean
@@ -194,7 +197,7 @@ class LloydReplayer:
                     t,
                     labels,
                     centers,
-                    assigned_objective(self.X, centers, labels),
+                    assigned_objective(self.X, centers, labels) if track_objective else float("nan"),
                     int(np.count_nonzero(labels != prev.labels)),
                     float(np.sqrt(shift_sq)),
                 )
@@ -208,6 +211,8 @@ class LloydReplayer:
             if shift_sq <= self._tol:
                 reason = "tol"
                 break
+        if not track_objective and len(its) > 1:
+            its[-1].objective = assigned_objective(self.X, its[-1].centers, its[-1].labels)
         return Block(iterations=its, stop=reason, final_labels=final_labels)
 
 
