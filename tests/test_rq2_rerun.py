@@ -57,6 +57,7 @@ def test_rerun_config_differs_from_15_only_in_seeds_and_the_explicit_token_cap(r
 
 def test_random_name_keeps_the_run_prefix():
     assert rq2.random_name("rq2_adaptive_d0.3_r0.4", 2) == "rq2_random_d0.3_r0.4_seed2"
+    assert rq2.random_name("rq2_adaptive_d0.3_r0.4_ext", 2) == "rq2_random_d0.3_r0.4_seed2"
     assert rq2.random_name("rq2_adaptive_d0.6_r0.7_ext", 5) == "rq2_random_d0.6_r0.7_seed5"
     assert rq2.random_name("rq2r_adaptive_d0.6_r0.7", 9) == "rq2r_random_d0.6_r0.7_seed9"
 
@@ -95,6 +96,23 @@ def test_phase_r_controls_follow_the_adaptive_runs_calls_per_seed(rerun_cfg, tmp
         assert c.cfg["schedule"]["type"] == "random_subset" and c.cfg["schedule"]["seed"] == s
         assert c.cfg["schedule"]["counts"] == [150, 0, 3 + s, 2, 0]
         assert c.cfg["summarizer"] == rerun_cfg["summarizer"]
+
+
+def test_phase_r_dry_run_reports_only_rq2r_runs(rerun_cfg, tmp_path, capsys, monkeypatch):
+    old = tmp_path / "rq2_fixed_n5" / "20260101-000000"  # a #15-style directory in the same results dir
+    old.mkdir(parents=True)
+    (old / "config.yaml").write_text("name: rq2_fixed_n5\n")
+    (old / "summary.csv").write_text("method\n")
+    spec = importlib.util.spec_from_file_location("run_rq2_script", ROOT / "scripts" / "run_rq2.py")
+    driver = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(driver)
+    monkeypatch.setattr(sys, "argv", ["run_rq2.py", "--phases", "R", "--dry-run", "--results-dir", str(tmp_path),
+                                      "--base-config", str(ROOT / "configs" / "rq2_rerun.yaml")])
+    driver.main()
+    text = capsys.readouterr().out
+    runs = [ln.split()[1].rstrip(":") for ln in text.splitlines() if ln.startswith("  [")]
+    assert len(runs) == 14 and all(r.startswith("rq2r_") for r in runs)
+    assert "[todo]    rq2r_fixed_n5" in text and "[done]" not in text
 
 
 def test_sweep_phases_and_default_driver_phases_are_unchanged():
@@ -174,3 +192,31 @@ def test_lost_intents_prefix_versus_random(check):
     assert (n, lost_prefix) == (10, 5)  # the first 50 are intents 0-4
     _, lost_random = check._lost_intents(gold, doc_ids, 50, random=True)
     assert lost_random == 0  # a seeded random half of every intent's members survives
+
+
+def _old_fit_kept(n_texts: int, fits, n: int) -> int:
+    """The #15 routine (`fit_texts_to_budget` at fb6eb01), reduced to the kept count: `fits(k)` says whether the first k
+    members render within the budget."""
+    if n <= 1 or fits(n):
+        return n
+    kept, lo, hi = 1, 1, n - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if fits(mid):
+            kept, lo = mid, mid + 1
+        else:
+            hi = mid - 1
+    return kept
+
+
+@pytest.mark.parametrize("limit,n", [(5, 8), (8, 8), (1, 6), (0, 6), (3, 1), (40, 100)])
+def test_kept_prefix_matches_the_old_budget_fitting(check, limit, n):
+    budget = object.__new__(check.PromptBudget)
+    budget.texts = [str(i) for i in range(200)]
+    budget.max_tokens = limit
+    budget.count = lambda texts: len(texts)  # one token per member
+    doc_ids = np.arange(n)
+    expected = _old_fit_kept(n, lambda k: k <= limit, n)
+    assert budget.kept_prefix(doc_ids) == expected
+    if n > limit >= 1:
+        assert expected == limit  # the longest leading prefix that fits
