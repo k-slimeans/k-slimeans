@@ -1,0 +1,7 @@
+size,prompt,batch_size,n,mentions,duplicate_groups,clusters_in_duplicate_groups,largest_duplicate_group,mean_words,ends_with_question,no_question_mark,no_question_mark_question_form,input_tokens,output_tokens,equal_to_logged,gpu_idle_at_start,run_dir
+4b,old,1,150,49,4,18,7,17.21,130,20,14,234011,3160,1.0,True,pilot_old_4b/20261112-154657
+4b,v2,1,150,0,1,2,2,11.09,98,52,46,239561,1975,0.02,True,pilot_v2_4b/20261112-155229
+1.7b,old,4,150,14,1,2,2,20.43,146,4,0,234011,3786,1.0,True,pilot_old_1.7b/20261112-155653
+1.7b,v2,4,150,0,0,0,0,13.43,148,2,2,239561,2410,0.0,True,pilot_v2_1.7b/20261112-160011
+0.6b,old,8,150,13,2,4,2,11.29,133,17,4,234011,2157,1.0,True,pilot_old_0.6b/20261112-160249
+0.6b,v2,8,150,0,0,0,0,8.84,135,15,3,239561,1725,0.0467,True,pilot_v2_0.6b/20261112-160456
