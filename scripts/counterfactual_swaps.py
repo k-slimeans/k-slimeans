@@ -13,7 +13,7 @@ Writes under `--out-dir` (small, committed), prefix `counterfactual_swaps_`:
     draws.csv        spread over the control draws (sd of end ACC/NMI/ARI/J)
     paired.csv       paired differences against (a) or (m) with 95% t-intervals over seeds
     gap_closed.csv   share of the gap to k-means (ref) and to the 1.7B (m) that (b), (c), (d), (cd) close
-    stability.csv    the same differences under tie-preserving perturbations of the CPU embeddings
+    stability.csv    the same differences under tie-preserving perturbations of the summary embeddings
                      (gap_closed.csv also holds c-cd and r-rd: what (c) and (r) do beyond their random controls)
     tables.md        the tables above as markdown
 
@@ -25,7 +25,9 @@ Usage:
 
     CUDA_VISIBLE_DEVICES="" python scripts/counterfactual_swaps.py \
         --own results/clinc150_qwen3-4b/<stamp> --other results/clinc150_qwen3-1.7b/<stamp> --cache-dir cache \
-        --summary-embeddings results/replacement_diagnostic/summary_embeddings_cpu.npz --out-dir docs/results
+        --summary-embeddings results/replacement_diagnostic/summary_embeddings_cuda.npz --out-dir docs/results
+
+(`summary_embeddings_cpu.npz` is the fallback without a GPU; the (a) replay then no longer equals the logged 4B.)
 """
 
 from __future__ import annotations

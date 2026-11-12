@@ -1,6 +1,6 @@
 # Do the 4B's flagged summaries cause its lower scores? Counterfactual replacements at step 1 (CLINC150)
 
-Issue #47, stage 1. Preliminary: five seeds, one dataset, one encoder, **one summary step**. Everything was computed offline from the logged runs (#31) with the replay of #33 (`kslimeans.replay`), from summary embeddings re-computed on a CPU (#33 section 2), so the noise floor of #33 applies (Section 3). No language model was called. Stage 2 (the guarded 4B runs that test whether this carries through to final scores) has not been run.
+Issue #47, stage 1. Preliminary: five seeds, one dataset, one encoder, **one summary step**. Everything was computed offline from the logged runs (#31) with the replay of #33 (`kslimeans.replay`), from the logged summaries re-embedded on the GPU (#33 section 2), which makes the replay exact: the replayed step-1 partition of the 4B equals the logged one in every seed (Section 3). The noise floor of #33 is therefore not a replay error; it says how much a result moves under re-encoding noise of 1e-6 (Section 3). An earlier version of this note used CPU-encoded summaries; every paired ACC difference moved by at most 0.0013 and no conclusion changed (Section 4 says which intervals now include zero). No language model was called. Stage 2 (the guarded 4B runs that test whether this carries through to final scores) has not been run.
 
 ## 1. What was done
 
@@ -41,101 +41,101 @@ Each variant is measured after the replacement (iteration 0: nearest-center assi
 
 ## 2. Results
 
-Absolute levels, means over seeds (fixed block): ACC / NMI of (a) 0.5350 / 0.7490, of the 1.7B (m) 0.5621 / 0.7557, of no replacement (ref) 0.5515 / 0.7482. So at step 1 the 4B is below the 1.7B by 0.027 ACC and 0.007 NMI, and below k-means by 0.0165 ACC but **not below k-means in NMI** (ref minus a: -0.0009 [-0.0047, +0.0030]).
+Absolute levels, means over seeds (fixed block): ACC / NMI of (a) 0.5356 / 0.7493, of the 1.7B (m) 0.5621 / 0.7557, of no replacement (ref) 0.5515 / 0.7482. So at step 1 the 4B is below the 1.7B by 0.026 ACC and 0.006 NMI, and below k-means by 0.0159 ACC but **not below k-means in NMI** (ref minus a: -0.0011 [-0.0050, +0.0028]).
 
 Paired differences, end of block, mean over 5 seeds [95% interval], fixed 20-iteration block. ACC and NMI: positive = higher. "Closes" is the mean difference over the mean gap (ACC): b over the gap to ref, c, cd and c - cd over the gap to m. The relative objective (`end_j_rel`, in the other tables) is a raw relative difference where **lower is better**.
 
 | variant (flag) | flagged | ΔACC | ΔNMI | closes |
 | --- | ---: | --- | --- | ---: |
-| ref - a (k-means, no replacement) | | +0.0165 [+0.0069, +0.0261] | -0.0009 [-0.0047, +0.0030] | |
-| m - a (the 1.7B) | | +0.0271 [+0.0132, +0.0410] | +0.0067 [+0.0024, +0.0109] | |
-| b (dup) | 12-24 | -0.0075 [-0.0311, +0.0161] | -0.0090 [-0.0177, -0.0003] | -0.46 |
-| b (meta = union) | 43-56 | +0.0070 [-0.0065, +0.0205] | -0.0051 [-0.0097, -0.0004] | 0.42 |
-| b (generic) | 62-75 | +0.0114 [-0.0064, +0.0292] | -0.0025 [-0.0089, +0.0039] | 0.69 |
-| c (dup) | 12-24 | +0.0154 [+0.0004, +0.0303] | +0.0031 [-0.0017, +0.0079] | 0.57 |
-| c (meta = union) | 43-56 | +0.0268 [+0.0213, +0.0322] | +0.0071 [+0.0034, +0.0109] | 0.99 |
-| c (generic) | 62-75 | +0.0255 [+0.0179, +0.0331] | +0.0080 [+0.0036, +0.0123] | 0.94 |
-| d (dup) | = dup | -0.0179 [-0.0322, -0.0036] | -0.0103 [-0.0157, -0.0049] | |
-| d (meta = union) | = union | -0.0274 [-0.0394, -0.0155] | -0.0164 [-0.0228, -0.0100] | |
-| d (generic) | = generic | -0.0308 [-0.0402, -0.0215] | -0.0159 [-0.0212, -0.0107] | |
-| r - m (dup) | | -0.0110 [-0.0212, -0.0008] | -0.0032 [-0.0090, +0.0025] | |
-| r - m (meta = union) | | -0.0258 [-0.0443, -0.0074] | -0.0095 [-0.0144, -0.0046] | |
-| r - m (generic) | | -0.0210 [-0.0379, -0.0041] | -0.0051 [-0.0109, +0.0007] | |
-| rd - m (dup) | | -0.0028 [-0.0102, +0.0045] | -0.0003 [-0.0023, +0.0017] | |
+| ref - a (k-means, no replacement) | | +0.0159 [+0.0065, +0.0253] | -0.0011 [-0.0050, +0.0028] | |
+| m - a (the 1.7B) | | +0.0265 [+0.0133, +0.0397] | +0.0065 [+0.0025, +0.0104] | |
+| b (dup) | 12-24 | -0.0081 [-0.0313, +0.0151] | -0.0092 [-0.0177, -0.0007] | -0.51 |
+| b (meta = union) | 43-56 | +0.0064 [-0.0058, +0.0185] | -0.0053 [-0.0092, -0.0013] | 0.40 |
+| b (generic) | 62-75 | +0.0108 [-0.0052, +0.0267] | -0.0027 [-0.0083, +0.0029] | 0.68 |
+| c (dup) | 12-24 | +0.0147 [-0.0006, +0.0301] | +0.0029 [-0.0018, +0.0075] | 0.56 |
+| c (meta = union) | 43-56 | +0.0261 [+0.0185, +0.0337] | +0.0069 [+0.0029, +0.0109] | 0.99 |
+| c (generic) | 62-75 | +0.0249 [+0.0162, +0.0336] | +0.0077 [+0.0037, +0.0118] | 0.94 |
+| d (dup) | = dup | -0.0187 [-0.0313, -0.0060] | -0.0104 [-0.0153, -0.0056] | |
+| d (meta = union) | = union | -0.0279 [-0.0384, -0.0174] | -0.0165 [-0.0226, -0.0103] | |
+| d (generic) | = generic | -0.0315 [-0.0391, -0.0240] | -0.0160 [-0.0206, -0.0113] | |
+| r - m (dup) | | -0.0114 [-0.0229, +0.0001] | -0.0033 [-0.0086, +0.0021] | |
+| r - m (meta = union) | | -0.0270 [-0.0458, -0.0083] | -0.0096 [-0.0159, -0.0034] | |
+| r - m (generic) | | -0.0213 [-0.0389, -0.0036] | -0.0050 [-0.0106, +0.0006] | |
+| rd - m (dup) | | -0.0028 [-0.0102, +0.0046] | -0.0003 [-0.0023, +0.0017] | |
 | rd - m (meta = union) | | -0.0023 [-0.0098, +0.0052] | -0.0001 [-0.0024, +0.0021] | |
 | rd - m (generic) | | -0.0030 [-0.0149, +0.0088] | +0.0006 [-0.0031, +0.0043] | |
-| cd (dup) | | -0.0031 [-0.0098, +0.0037] | -0.0027 [-0.0064, +0.0011] | -0.11 |
-| cd (meta = union) | | -0.0017 [-0.0119, +0.0085] | -0.0029 [-0.0064, +0.0005] | -0.06 |
-| cd (generic) | | +0.0005 [-0.0105, +0.0115] | -0.0012 [-0.0032, +0.0008] | 0.02 |
-| c - cd (dup) | | +0.0184 [-0.0002, +0.0371] | +0.0058 [-0.0004, +0.0119] | 0.68 |
-| c - cd (meta = union) | | +0.0284 [+0.0154, +0.0414] | +0.0101 [+0.0059, +0.0143] | 1.05 |
-| c - cd (generic) | | +0.0250 [+0.0070, +0.0431] | +0.0092 [+0.0055, +0.0128] | 0.92 |
-| r - rd (dup) | | -0.0082 [-0.0154, -0.0010] | -0.0029 [-0.0079, +0.0020] | |
-| r - rd (meta = union) | | -0.0236 [-0.0396, -0.0075] | -0.0093 [-0.0152, -0.0035] | |
-| r - rd (generic) | | -0.0180 [-0.0383, +0.0023] | -0.0057 [-0.0114, -0.0001] | |
+| cd (dup) | | -0.0040 [-0.0089, +0.0008] | -0.0029 [-0.0058, +0.0001] | -0.15 |
+| cd (meta = union) | | -0.0023 [-0.0120, +0.0074] | -0.0030 [-0.0065, +0.0005] | -0.09 |
+| cd (generic) | | +0.0005 [-0.0108, +0.0118] | -0.0009 [-0.0028, +0.0010] | 0.02 |
+| c - cd (dup) | | +0.0188 [+0.0002, +0.0374] | +0.0057 [-0.0002, +0.0116] | 0.71 |
+| c - cd (meta = union) | | +0.0285 [+0.0149, +0.0420] | +0.0099 [+0.0055, +0.0144] | 1.08 |
+| c - cd (generic) | | +0.0244 [+0.0053, +0.0435] | +0.0086 [+0.0052, +0.0121] | 0.92 |
+| r - rd (dup) | | -0.0086 [-0.0174, +0.0002] | -0.0030 [-0.0075, +0.0016] | |
+| r - rd (meta = union) | | -0.0248 [-0.0410, -0.0086] | -0.0095 [-0.0162, -0.0028] | |
+| r - rd (generic) | | -0.0183 [-0.0388, +0.0023] | -0.0056 [-0.0108, -0.0004] | |
 
-Same, **run to convergence** (the 4B's (a) runs 54 iterations on average, ref 15):
+Same, **run to convergence** (the 4B's (a) runs 53 iterations on average, ref 15):
 
 | variant (flag) | ΔACC | ΔNMI | closes |
 | --- | --- | --- | ---: |
-| ref - a | +0.0131 [+0.0048, +0.0214] | -0.0033 [-0.0070, +0.0005] | |
-| m - a | +0.0252 [+0.0135, +0.0369] | +0.0055 [+0.0008, +0.0102] | |
-| b (dup) | -0.0059 [-0.0274, +0.0155] | -0.0081 [-0.0160, -0.0002] | -0.45 |
-| b (meta = union) | +0.0053 [-0.0132, +0.0238] | -0.0068 [-0.0131, -0.0005] | 0.40 |
-| b (generic) | +0.0085 [-0.0101, +0.0271] | -0.0046 [-0.0116, +0.0023] | 0.65 |
-| c (dup) | +0.0146 [+0.0007, +0.0286] | +0.0022 [-0.0042, +0.0087] | 0.58 |
-| c (meta = union) | +0.0266 [+0.0195, +0.0337] | +0.0066 [+0.0023, +0.0110] | 1.06 |
-| c (generic) | +0.0251 [+0.0207, +0.0294] | +0.0073 [+0.0034, +0.0113] | 1.00 |
-| d (dup) | -0.0159 [-0.0304, -0.0014] | -0.0096 [-0.0151, -0.0040] | |
-| d (meta = union) | -0.0244 [-0.0353, -0.0134] | -0.0150 [-0.0211, -0.0089] | |
-| d (generic) | -0.0277 [-0.0408, -0.0146] | -0.0135 [-0.0211, -0.0059] | |
-| r - m (dup) | -0.0126 [-0.0232, -0.0020] | -0.0046 [-0.0096, +0.0005] | |
-| r - m (meta = union) | -0.0241 [-0.0402, -0.0079] | -0.0086 [-0.0140, -0.0032] | |
-| r - m (generic) | -0.0202 [-0.0324, -0.0081] | -0.0045 [-0.0074, -0.0016] | |
+| ref - a | +0.0138 [+0.0055, +0.0221] | -0.0026 [-0.0077, +0.0026] | |
+| m - a | +0.0258 [+0.0137, +0.0380] | +0.0063 [+0.0005, +0.0121] | |
+| b (dup) | -0.0052 [-0.0234, +0.0129] | -0.0074 [-0.0140, -0.0008] | -0.38 |
+| b (meta = union) | +0.0060 [-0.0096, +0.0215] | -0.0060 [-0.0125, +0.0004] | 0.43 |
+| b (generic) | +0.0092 [-0.0081, +0.0265] | -0.0039 [-0.0120, +0.0041] | 0.67 |
+| c (dup) | +0.0153 [-0.0010, +0.0316] | +0.0030 [-0.0048, +0.0107] | 0.59 |
+| c (meta = union) | +0.0273 [+0.0187, +0.0359] | +0.0074 [+0.0025, +0.0122] | 1.06 |
+| c (generic) | +0.0258 [+0.0188, +0.0327] | +0.0080 [+0.0032, +0.0129] | 1.00 |
+| d (dup) | -0.0152 [-0.0277, -0.0027] | -0.0087 [-0.0144, -0.0030] | |
+| d (meta = union) | -0.0239 [-0.0337, -0.0140] | -0.0142 [-0.0212, -0.0073] | |
+| d (generic) | -0.0266 [-0.0356, -0.0175] | -0.0123 [-0.0201, -0.0046] | |
+| r - m (dup) | -0.0126 [-0.0255, +0.0003] | -0.0042 [-0.0086, +0.0002] | |
+| r - m (meta = union) | -0.0240 [-0.0447, -0.0033] | -0.0088 [-0.0160, -0.0016] | |
+| r - m (generic) | -0.0210 [-0.0377, -0.0042] | -0.0049 [-0.0098, -0.00004] | |
 | rd - m (dup) | -0.0024 [-0.0107, +0.0058] | -0.0004 [-0.0023, +0.0016] | |
 | rd - m (meta = union) | -0.0022 [-0.0088, +0.0044] | -0.0003 [-0.0014, +0.0008] | |
 | rd - m (generic) | -0.0031 [-0.0142, +0.0081] | +0.0004 [-0.0020, +0.0028] | |
-| cd (dup) | -0.0029 [-0.0120, +0.0062] | -0.0029 [-0.0076, +0.0018] | -0.12 |
-| cd (meta = union) | -0.0015 [-0.0115, +0.0084] | -0.0029 [-0.0075, +0.0017] | -0.06 |
-| cd (generic) | +0.0007 [-0.0095, +0.0108] | -0.0011 [-0.0056, +0.0034] | 0.03 |
-| c - cd (dup) | +0.0175 [-0.0023, +0.0373] | +0.0051 [-0.0013, +0.0115] | 0.70 |
-| c - cd (meta = union) | +0.0281 [+0.0183, +0.0379] | +0.0095 [+0.0049, +0.0141] | 1.12 |
-| c - cd (generic) | +0.0244 [+0.0134, +0.0355] | +0.0084 [+0.0069, +0.0099] | 0.97 |
-| r - rd (dup) | -0.0101 [-0.0169, -0.0034] | -0.0042 [-0.0091, +0.0007] | |
-| r - rd (meta = union) | -0.0219 [-0.0360, -0.0077] | -0.0083 [-0.0140, -0.0026] | |
-| r - rd (generic) | -0.0172 [-0.0343, -0.00005] | -0.0049 [-0.0092, -0.0007] | |
+| cd (dup) | -0.0024 [-0.0104, +0.0055] | -0.0020 [-0.0074, +0.0034] | -0.09 |
+| cd (meta = union) | -0.0013 [-0.0107, +0.0080] | -0.0022 [-0.0080, +0.0036] | -0.05 |
+| cd (generic) | +0.0020 [-0.0075, +0.0114] | -0.0001 [-0.0055, +0.0054] | 0.08 |
+| c - cd (dup) | +0.0177 [-0.0025, +0.0380] | +0.0050 [-0.0015, +0.0114] | 0.69 |
+| c - cd (meta = union) | +0.0286 [+0.0170, +0.0403] | +0.0096 [+0.0045, +0.0147] | 1.11 |
+| c - cd (generic) | +0.0238 [+0.0107, +0.0370] | +0.0081 [+0.0067, +0.0096] | 0.92 |
+| r - rd (dup) | -0.0102 [-0.0184, -0.0020] | -0.0039 [-0.0078, +0.0001] | |
+| r - rd (meta = union) | -0.0218 [-0.0402, -0.0033] | -0.0085 [-0.0159, -0.0011] | |
+| r - rd (generic) | -0.0179 [-0.0383, +0.0025] | -0.0054 [-0.0105, -0.0002] | |
 
 Fixed and converged agree in sign and size everywhere (the convergence confound of #33 section 6 does not change any conclusion here). The full set, including ARI, the relative objective, (b) minus (d), (c) minus (d), (r) minus (rd) and the seeds above zero, is in `counterfactual_swaps_tables.md` / `counterfactual_swaps_paired.csv`.
 
 Observations (measured):
 
-- **(c) is the clear effect.** Giving the flagged clusters the 1.7B's summaries lifts the 4B by +0.027 ACC (union) in 5/5 seeds, which is the whole 4B-to-1.7B gap (99% fixed, 106% converged), and +0.007 NMI (the gap is +0.007). For the 18 duplicate clusters alone, +0.015 (57% of the gap). The objective after the block falls by 1.2% (union).
-- **Reverse:** putting the 4B's union-flagged summaries into the 1.7B costs -0.026 ACC (0/5 seeds above zero), against -0.002 [-0.010, +0.005] for the same number of random unflagged clusters. The 4B's summaries elsewhere cost the 1.7B nothing measurable.
-- **(b) is not shown.** Keeping the k-means center in the flagged clusters changes ACC by +0.007 (union; +0.011 generic; -0.008 dup), every interval includes zero, and NMI goes down (-0.005 union, interval excludes zero). It closes 42% (union) to 69% (generic) of an ACC gap to k-means that is itself only 0.0165.
-- **The control (d) is not neutral, it hurts.** Reverting the k-means center of random unflagged clusters lowers ACC by 0.018 to 0.031 (0/5 seeds above zero) and NMI by 0.010 to 0.016. After the replacement it leaves 29 to 39 empty clusters, against 8 (b, union) and 14 (a): near-data k-means centers sitting beside far-away summary embeddings take points from them. The spread over the 20 draws within a seed is sd 0.007 to 0.011 ACC. So (b) minus (d) is large (+0.034 union [+0.025, +0.044]) mainly because (d) damages the partition, not because (b) repairs it; **(b) against (a) is the cleaner comparison and it is inconclusive.** Why the mixture hurts has not been tested.
+- **(c) is the clear effect.** Giving the flagged clusters the 1.7B's summaries lifts the 4B by +0.026 ACC (union) in 5/5 seeds, which is the whole 4B-to-1.7B gap (99% fixed, 106% converged), and +0.007 NMI (the gap is +0.0065). For the duplicate clusters alone (12 to 24 per seed), +0.015 (56% of the gap); that interval now includes zero (fixed [-0.0006, +0.0301], and converged), where it just excluded it with the CPU embeddings. The objective after the block falls by 1.3% (union).
+- **Reverse:** putting the 4B's union-flagged summaries into the 1.7B costs -0.027 ACC (0/5 seeds above zero), against -0.002 [-0.010, +0.005] for the same number of random unflagged clusters. The 4B's summaries elsewhere cost the 1.7B nothing measurable.
+- **(b) is not shown.** Keeping the k-means center in the flagged clusters changes ACC by +0.006 (union; +0.011 generic; -0.008 dup), every interval includes zero, and NMI goes down (-0.005 union, interval excludes zero when fixed; converged -0.006 [-0.0125, +0.0004]). It closes 40% (union) to 68% (generic) of an ACC gap to k-means that is itself only 0.0159.
+- **The control (d) is not neutral, it hurts.** Reverting the k-means center of random unflagged clusters lowers ACC by 0.019 to 0.032 (0/5 seeds above zero) and NMI by 0.010 to 0.017. After the replacement it leaves 28 to 39 empty clusters, against 8 (b, union) and 14 (a): near-data k-means centers sitting beside far-away summary embeddings take points from them. The spread over the 20 draws within a seed is sd 0.006 to 0.011 ACC. So (b) minus (d) is large (+0.034 union [+0.025, +0.044]) mainly because (d) damages the partition, not because (b) repairs it; **(b) against (a) is the cleaner comparison and it is inconclusive.** Why the mixture hurts has not been tested.
 
 ## 3. Noise floor and what is not interpretable
 
-- **(a) replayed against the logged step-1 partition** (`counterfactual_swaps_fidelity.csv`; the replay is from CPU embeddings, the logged run used GPU ones). 4B: 421, 293, 759, 1,937 and 0 of 22,500 points differ (seeds 0-4; mean 682), ACC differs by 0.0009, 0.0008, 0.0040, 0.0008 and 0 (mean 0.0013, at most 0.0040 in seed 2, which is above the mean floor of the next bullet). 1.7B: 0 points in every seed. So the table's (a) is a replay, not the logged 4B; the logged 4B ACC (mean 0.5356) and the replay's (0.5350) are within 0.001.
-- **Noise floor** from #33 section 2 for the 4B under tie-preserving noise of the size of the CPU/GPU encoder difference: mean absolute change 0.0026 ACC (at most 0.0072), 0.0017 NMI. Differences below that are **uninterpretable**. Against the mean floor, (c) union (+0.027 ACC, about 10 times), (r) union (-0.026) and (d) (-0.018 to -0.031) are far larger, and c-dup (+0.015) is about 6 times; against the maximum floor, c-dup is about 2 times and the others 2.5 to 4 times. The NMI effects (+0.007 for (c) union, against a mean floor of 0.0017) are about 4 times. (b) union (+0.007 ACC) is at the maximum of the floor, and its interval includes zero anyway; (rd) and (r) dup (-0.011) are in the range where the interval is the guide.
-- **Stability under perturbation** (`counterfactual_swaps_stability.csv`): the paired ACC and NMI differences of b, c and r were recomputed from three tie-preserving perturbations of both models' embeddings (`start * (1 + 1e-6 N(0, 1))`, identical texts get the same noise; the k-means centers are not perturbed, being exact). The mean ACC difference moved by at most 0.002 (for example c union fixed +0.0268 against +0.0259 to +0.0278; b union +0.0070 against +0.0062 to +0.0080) and kept its sign in all 3 reruns for all 12 comparisons. This probes the encoder noise only; it does not reproduce the GPU embeddings, which were not re-encoded here.
+- **(a) replayed against the logged step-1 partition** (`counterfactual_swaps_fidelity.csv`; the replay starts from the GPU-encoded summaries, as the logged run did). 0 of 22,500 points differ in every seed for both the 4B and the 1.7B, the number of iterations is the logged one (20), and the replayed ACC and NMI equal the logged ones. So the table's (a) is the logged 4B (mean ACC 0.5356). With the CPU-encoded summaries the 4B replay differed from the logged partition in 421, 293, 759, 1,937 and 0 points (seeds 0-4) and in ACC by up to 0.0040; that was the encoder noise measured in #33 section 2.
+- **Noise floor** from #33 section 2 for the 4B under tie-preserving noise of the size of the CPU/GPU encoder difference (a re-encode, not a replay error): mean absolute change 0.0030 ACC (at most 0.0084), 0.0019 NMI. Differences below that are **uninterpretable**. Against the mean floor, (c) union (+0.026 ACC, about 9 times), (r) union (-0.027, about 9 times) and (d) (-0.019 to -0.032) are far larger, and c-dup (+0.015) is about 5 times; against the maximum floor, c-dup is about 1.8 times and the others 2.2 to 3.8 times. The NMI effects (+0.0069 for (c) union, against a mean floor of 0.0019) are about 4 times. (b) union (+0.006 ACC) is below the maximum of the floor, and its interval includes zero anyway; (rd) (-0.002 to -0.003) is inside the floor, and (r) dup (-0.011) is 1.4 times its maximum with an interval that includes zero (fixed and converged), so for those the interval is the guide.
+- **Stability under perturbation** (`counterfactual_swaps_stability.csv`): the paired ACC and NMI differences of b, c and r were recomputed from three tie-preserving perturbations of both models' embeddings (`start * (1 + 1e-6 N(0, 1))`, identical texts get the same noise; the k-means centers are not perturbed, being exact). The mean ACC difference moved by at most 0.0025 (for example c union fixed +0.0261 against +0.0261 to +0.0287; b union +0.0064 against +0.0064 to +0.0089) and kept its sign in all 3 reruns for all 12 comparisons (and for NMI). The unperturbed reference is now the exact replay, so this measures the effect of a further 1e-6 re-encoding on top of the logged state.
 - The `iid` noise rows of #33 (which break ties) were not used.
 
 ## 4. Reading against #47's criteria
 
 Criterion: flagged summaries cause the drop if (b) and (c) close most of the gap to k-means or the 1.7B, (d) does not, and (for the reverse) they hurt the 1.7B; stage 2 must recover the final scores.
 
-- **(c) holds, and it is specific to the flagged clusters.** The 1.7B's summaries in the flagged clusters close about all of the gap to the 1.7B (meta = union 99% fixed, 106% converged; generic 94%, 100%; dup 57%, 58%), 5/5 seeds, about 10 times the mean noise floor (0.0026 ACC) and 3.7 times its maximum (0.0072). The matched control `cd` (the same number of random unflagged 4B clusters taking the 1.7B's summaries) closes **-6%** of the gap (meta; ACC -0.0017 [-0.0119, +0.0085] fixed, -0.0015 converged; dup -11%, generic +2%): nothing. So the gain is not "1.7B summaries are better everywhere". **c - cd** (meta = union) is +0.0284 [+0.0154, +0.0414] ACC fixed and +0.0281 [+0.0183, +0.0379] converged, 5/5 seeds, +0.010 NMI [+0.006, +0.014] fixed; generic +0.0250 [+0.0070, +0.0431] fixed and +0.0244 [+0.0134, +0.0355] converged; dup +0.0184 [-0.0002, +0.0371] fixed and +0.0175 [-0.0023, +0.0373] converged (the 18 duplicate clusters alone: the interval includes zero in both). Shares of the gap closed by c - cd: meta 1.05 fixed, 1.12 converged; generic 0.92, 0.97; dup 0.68, 0.70 (`counterfactual_swaps_gap_closed.csv`, variant `c-cd`). These are ratios of means, and the gap they divide by (m - a, +0.027 [+0.013, +0.041]) is itself uncertain, so a share above 1 means "about all of it", not more than all.
-- **The reverse holds the same way.** The 4B's flagged summaries lower the 1.7B by 0.026 ACC (meta = union), the same number of random 4B summaries by 0.002; **r - rd** is -0.0236 [-0.0396, -0.0075] fixed and -0.0219 [-0.0360, -0.0077] converged (NMI -0.009 [-0.015, -0.004]); generic -0.0180 [-0.0383, +0.0023] fixed, -0.0172 [-0.0343, -0.00005] converged (the interval excludes zero, just); dup -0.0082 [-0.0154, -0.0010] and -0.0101 [-0.0169, -0.0034]. The loss that r - rd opens is 87% (meta = union, fixed and converged), 66% and 68% (generic), 30% and 40% (dup) of the 1.7B's lead over the 4B (variant `r-rd`, same file). The two directions agree: the effect travels with the summary text of the flagged clusters, and is not something else in the 4B run or a property of every 1.7B (or 4B) summary. **(d) closes nothing**, but because it harms the partition, so it does not play its intended role of showing that (b) works only through replacing fewer centroids. meta and union are the same set (dup is a subset of meta in every seed), so their rows are one result, not two.
-- **(b) does not hold at step 1.** Falling back to the k-means center in the flagged clusters does not recover a measurable amount of ACC and lowers NMI. In ACC the 4B at step 1 is below no replacement (ref - a = +0.0165 [+0.0069, +0.0261], 5/5 seeds, fixed; +0.0131 [+0.0048, +0.0214] converged) and below the 1.7B; in NMI it is **not** below no replacement (ref - a = -0.0009 [-0.0047, +0.0030]). (b) does not show that the flagged set explains the 4B's ACC deficit to the unreplaced k-means state: neither the flagged summaries as a set nor any flag recovers it. What the data do show is that the flagged 4B summaries are worse than the 1.7B's summaries of the same clusters.
-- **So: partly.** This is a step-1 counterfactual on logged state, and it supports a step-1 effect of the flagged summaries: replacing them with the 1.7B's removes the 4B's deficit to the 1.7B (against a matched control that does nothing), and the reverse transplant creates a comparable deficit (against a control that does nothing), so at step 1 the flagged summaries (as a set, by meta/union or generic) carry the difference between the two models. It does not show that they explain the 4B's whole gap in whole runs, and, through (b), it does not show that the flagged set accounts for the 4B's ACC deficit to the unreplaced k-means state (+0.0165); neither is established here. The remaining question, whether the effect survives later steps, is stage 2.
-- Flag by flag: dup alone (12 to 24 clusters) recovers about 57% of the 1.7B gap in (c) and costs the 1.7B -0.011 in (r); meta/union and generic recover about all of it. Because generic contains the union and the union is 64% to 80% of generic, the data cannot separate the flags' contributions beyond "more flagged clusters, more effect".
+- **(c) holds, and it is specific to the flagged clusters.** The 1.7B's summaries in the flagged clusters close about all of the gap to the 1.7B (meta = union 99% fixed, 106% converged; generic 94%, 100%; dup 56%, 59%), 5/5 seeds, about 9 times the mean noise floor (0.0030 ACC) and 3.1 times its maximum (0.0084). The matched control `cd` (the same number of random unflagged 4B clusters taking the 1.7B's summaries) closes **-9%** of the gap (meta; ACC -0.0023 [-0.0120, +0.0074] fixed, -0.0013 converged; dup -15%, generic +2%): nothing. So the gain is not "1.7B summaries are better everywhere". **c - cd** (meta = union) is +0.0285 [+0.0149, +0.0420] ACC fixed and +0.0286 [+0.0170, +0.0403] converged, 5/5 seeds, +0.010 NMI [+0.006, +0.014] fixed; generic +0.0244 [+0.0053, +0.0435] fixed and +0.0238 [+0.0107, +0.0370] converged; dup +0.0188 [+0.0002, +0.0374] fixed and +0.0177 [-0.0025, +0.0380] converged (the duplicate clusters alone: the interval just excludes zero fixed and includes it converged). Shares of the gap closed by c - cd: meta 1.08 fixed, 1.11 converged; generic 0.92, 0.92; dup 0.71, 0.69 (`counterfactual_swaps_gap_closed.csv`, variant `c-cd`). These are ratios of means, and the gap they divide by (m - a, +0.0265 [+0.0133, +0.0397]) is itself uncertain, so a share above 1 means "about all of it", not more than all.
+- **The reverse holds the same way.** The 4B's flagged summaries lower the 1.7B by 0.027 ACC (meta = union), the same number of random 4B summaries by 0.002; **r - rd** is -0.0248 [-0.0410, -0.0086] fixed and -0.0218 [-0.0402, -0.0033] converged (NMI -0.0095 [-0.0162, -0.0028] fixed); generic -0.0183 [-0.0388, +0.0023] fixed, -0.0179 [-0.0383, +0.0025] converged (both intervals include zero, where the converged one just excluded it with the CPU embeddings); dup -0.0086 [-0.0174, +0.0002] fixed (now includes zero) and -0.0102 [-0.0184, -0.0020] converged. The loss that r - rd opens is 94% fixed and 84% converged (meta = union), 69% and 69% (generic), 32% and 39% (dup) of the 1.7B's lead over the 4B (variant `r-rd`, same file). The two directions agree: the effect travels with the summary text of the flagged clusters, and is not something else in the 4B run or a property of every 1.7B (or 4B) summary. **(d) closes nothing**, but because it harms the partition, so it does not play its intended role of showing that (b) works only through replacing fewer centroids. meta and union are the same set (dup is a subset of meta in every seed), so their rows are one result, not two.
+- **(b) does not hold at step 1.** Falling back to the k-means center in the flagged clusters does not recover a measurable amount of ACC and lowers NMI. In ACC the 4B at step 1 is below no replacement (ref - a = +0.0159 [+0.0065, +0.0253], 5/5 seeds, fixed; +0.0138 [+0.0055, +0.0221] converged) and below the 1.7B; in NMI it is **not** below no replacement (ref - a = -0.0011 [-0.0050, +0.0028]). (b) does not show that the flagged set explains the 4B's ACC deficit to the unreplaced k-means state: neither the flagged summaries as a set nor any flag recovers it. What the data do show is that the flagged 4B summaries are worse than the 1.7B's summaries of the same clusters.
+- **So: partly.** This is a step-1 counterfactual on logged state, and it supports a step-1 effect of the flagged summaries: replacing them with the 1.7B's removes the 4B's deficit to the 1.7B (against a matched control that does nothing), and the reverse transplant creates a comparable deficit (against a control that does nothing), so at step 1 the flagged summaries (as a set, by meta/union or generic) carry the difference between the two models. It does not show that they explain the 4B's whole gap in whole runs, and, through (b), it does not show that the flagged set accounts for the 4B's ACC deficit to the unreplaced k-means state (+0.0159); neither is established here. The remaining question, whether the effect survives later steps, is stage 2.
+- Flag by flag: dup alone (12 to 24 clusters) recovers about 56% of the 1.7B gap in (c) and costs the 1.7B -0.011 in (r), but both intervals now include zero (c - a, r - m) when fixed, so dup alone is suggestive, not shown; meta/union and generic recover about all of it. Because generic contains the union and the union is 64% to 80% of generic, the data cannot separate the flags' contributions beyond "more flagged clusters, more effect".
 
 ## 5. Limits
 
 - **Flagged clusters are 29% to 37% (meta) and 41% to 50% (generic) of all clusters,** so "random unflagged clusters" are not a size-matched set of points; the controls match the number of clusters, not of points (flagged clusters hold 32% to 42% of the points for meta, 46% to 53% for generic).
 - **One step.** Later steps need new summaries of the new partitions, which cannot be produced offline. The statement supported is: at step 1, replacing the flagged summaries with X changes the block's ACC by Y. It does not carry to whole runs; the final logged scores (#31) are not tested here. Stage 2 (GPU) does that.
-- **CPU-embedding noise.** The 4B's blocks are sensitive to 1e-7 changes in the start centers (Section 3). The (a) replay itself differs from the logged 4B partition in up to 1,937 points. The perturbation reruns show the differences are stable to that noise, not that they match the original GPU run.
+- **Encoder noise.** The 4B's blocks are sensitive to 1e-7 changes in the start centers (Section 3). The (a) replay equals the logged 4B partition exactly with the GPU embeddings; with the CPU embeddings it differed in up to 1,937 points, and the paired differences moved by at most 0.0013 ACC. The perturbation reruns show the differences are stable to a further 1e-6 re-encode; they do not say how the results would look with another encoder or device beyond that.
 - **Five seeds,** one dataset, one encoder, one model pair. Intervals are t-intervals with 4 degrees of freedom. About 100 comparisons are listed; no multiplicity correction. The dup, meta and generic rows share the same seeds and overlapping clusters, so they are not independent confirmations; union rows are identical to meta rows.
 - **The flags describe clusters, which differ in other ways.** Flagged clusters may be harder clusters (mixed intents), and the replaced summary comes from a model that saw the same members. The swap is an intervention on the summary text of those clusters, but not on which clusters are hard.
 - **The control (d) design** mixes near-data and far centers (Section 2); a control that replaced random unflagged clusters' summaries with something else of similar kind would be cleaner.
@@ -145,7 +145,9 @@ Criterion: flagged summaries cause the drop if (b) and (c) close most of the gap
 ```
 CUDA_VISIBLE_DEVICES="" python scripts/counterfactual_swaps.py \
     --own results/clinc150_qwen3-4b/20261027-221042 --other results/clinc150_qwen3-1.7b/20261027-202532 \
-    --cache-dir cache --summary-embeddings results/replacement_diagnostic/summary_embeddings_cpu.npz --out-dir docs/results
+    --cache-dir cache --summary-embeddings results/replacement_diagnostic/summary_embeddings_cuda.npz --out-dir docs/results
 ```
 
-CPU only. `--rebuild` recomputes the CSVs and tables from the saved rows in seconds (no replay). 18.8 minutes on 12 cores (with the `cd` control; 14.1 without) (WSL2), 5 seeds in parallel with 2 OpenMP threads each (the thread count affects the summation order of the Lloyd step, so it is fixed). Committed: `counterfactual_swaps_{flags,fidelity,per_seed,draws,paired,gap_closed,stability}.csv` and `counterfactual_swaps_tables.md`. Not committed: every row including each control draw, in the gitignored `results/counterfactual_swaps/`.
+`summary_embeddings_cuda.npz` is the GPU encode of the logged summaries (`scripts/embed_logged_summaries.py ... --device cuda`, about 20 s, see #33 section 9). Without a GPU the CPU encode `summary_embeddings_cpu.npz` can be passed instead; it is the fallback and costs exactness (the (a) replay then differs from the logged 4B partition).
+
+CPU only. `--rebuild` recomputes the CSVs and tables from the saved rows in seconds (no replay). 20.5 minutes on 12 cores in the GPU-embedding rerun (run niced alongside other jobs; the CPU-embedding run took 18.8 minutes with the `cd` control, 14.1 without) (WSL2), 5 seeds in parallel with 2 OpenMP threads each (the thread count affects the summation order of the Lloyd step, so it is fixed). Committed: `counterfactual_swaps_{flags,fidelity,per_seed,draws,paired,gap_closed,stability}.csv` and `counterfactual_swaps_tables.md`. Not committed: every row including each control draw, in the gitignored `results/counterfactual_swaps/`.
