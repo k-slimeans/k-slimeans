@@ -21,7 +21,7 @@ are written from them by `scripts/prompt_test_pilot.py` (see "Reproduce").
   The clearer prompt is `summarizer.prompt` in [`configs/clinc150_prompt_v2.yaml`](../../configs/clinc150_prompt_v2.yaml):
   "The following questions were asked by users. Write one new question that a user could have asked, in the same style, that
   covers what these questions have in common. Write only the question. Do not mention the questions, a group, a cluster or a topic."
-- **One prompt, fixed in advance.** It was written and committed before any run. There was no prompt search.
+- **One prompt, fixed in advance.** It was written and committed before any run (commit fe257e2, 2026-11-11; the pilot ran on 2026-11-12). There was no prompt search.
 - **Counts.** The surface rules are those of §2.4 (`kslimeans.surface`): a summary "mentions the cluster" if it contains
   "cluster" or "summar" in any case; a duplicate group is a set of clusters with exactly the same summary.
 
@@ -180,14 +180,14 @@ Members (sampled):
 These describe the 150 pilot summaries per row. They are not tested for significance.
 
 - **The share ending in "?" drops for the 4B, 87% to 65%.** 52 of the 4B's 150 clearer-prompt summaries do not end in "?" (old: 20,
-  which are mostly the multi-line "What is ... cluster? ... The cluster ..." answers). All 52 are fully lowercase, as are 2 more
+  11 of them multi-line "What is ... cluster? ... The cluster ..." answers). All 52 are fully lowercase, as are 2 more
   that end in "?", and the old prompt gave no lowercase summary. The members are lowercase questions without "?", so this
   looks like copying the users' style, "in the same style" in the prompt. Of the 52, 46 open with a question word or an
   auxiliary verb ("how do i change the oil in my car", "are you a bot or a human"): they are questions in form with the mark
   left off. The other 6 are requests ("order everything on my shopping list", "play the next song on the playlist",
   "set a timer or alarm for me", "cancel my dinner reservation please", "help me find my lost phone and disconnect it from your system",
   "please remove an item from my list"). The question-word check is a heuristic on the first word; it was read through by hand for the 4B. The 1.7B and 0.6B
-  shares stay at 99% and 90%.
+  shares are 99% and 90% (old: 97% and 89%).
 - **Summaries get shorter.** Mean words go from 17.2 to 11.1 (4B), 20.4 to 13.4 (1.7B) and 11.3 to 8.8 (0.6B).
 - **Output tokens fall:** 3,160 to 1,975 (-37.5%, 4B), 3,786 to 2,410 (-36%, 1.7B) and 2,157 to 1,725 (-20%, 0.6B). This is for
   one step of 150 summaries. It says the generated text is shorter, not what a full run costs.
@@ -199,7 +199,7 @@ These describe the 150 pilot summaries per row. They are not tested for signific
 
 ## 7. Timing caveat
 
-The pilot's seconds are not used for cost. A low-priority CPU job ran at the same time, and the pilot has no warm-up pass (repeat 0
+The pilot's seconds are not used for cost. A low-priority CPU job (the `nice -n 19` replays of #33, #47 and #50 from the GPU summary embeddings, recorded in the run log, not in these directories) ran at the same time, and the pilot has no warm-up pass (repeat 0
 includes the one-off CUDA start-up). Cost timing is #35 part 3. The idle check each directory's `gpu.json` recorded before the
 model loaded says idle for all six ("median sample within all thresholds"; median 1,215 MiB used, 0-1% utilization, 43-45 W):
 
@@ -227,7 +227,7 @@ To be added when the runs finish (`scripts/run_clinc150_prompt_v2.sh`, config `c
 Commands:
 
 ```bash
-PYTHON=/home/cooper/mst/clusteralgs/summaryCentroids/.venv/bin/python scripts/run_clinc150_prompt_v2.sh 4b 0.6b 1.7b
+PYTHON=/path/to/venv/bin/python scripts/run_clinc150_prompt_v2.sh 4b 0.6b 1.7b
 
 # Paired tables, all runs together: each v2 size and each old size against k-means, LSA and the old 4B.
 python scripts/aggregate_results.py results/clinc150_lsa/20261027-174631 results/clinc150_qwen3-0.6b/20261027-190908 \
