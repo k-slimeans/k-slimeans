@@ -2,4 +2,4 @@ run,method,seed,n_label_mismatch,n_iter,n_iter_kmeans,max_center_diff,sklearn
 clinc150_lsa,k-NLPmeans,0,0,20,20,1.4901161193847656e-08,1.9.1
 clinc150_qwen3-0.6b,k-SLMmeans,0,0,20,20,1.4901161193847656e-08,1.9.1
 clinc150_qwen3-1.7b,k-SLMmeans,0,0,20,20,2.9802322387695312e-08,1.9.1
-clinc150_qwen3-4b,k-SLMmeans,0,0,20,20,1.4901161193847656e-08,1.9.1
+clinc150_qwen3-4b,k-SLMmeans,0,0,20,20,2.9802322387695312e-08,1.9.1

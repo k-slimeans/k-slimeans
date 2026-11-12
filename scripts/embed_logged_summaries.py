@@ -5,8 +5,16 @@ the batch composition matches the original run. The result (`.npz`, keyed by run
 the device and library versions in its metadata) is what `scripts/replacement_diagnostic.py --summary-embeddings`
 reads; nothing else encodes.
 
+Encode on the device the runs used (`--device cuda`): the replay is then exact (0 label mismatches in all 120 fits of
+the four CLINC150 runs). A CPU encode differs by ~1e-6 per row and reproduces the 4B's blocks only partly (8 of 30
+fits); use it only as the fallback without a GPU.
+
 Usage:
 
+    python scripts/embed_logged_summaries.py results/clinc150_lsa/<stamp> ... \
+        --cache-dir /path/to/cache --out results/replacement_diagnostic/summary_embeddings_cuda.npz --device cuda
+
+    # fallback without a GPU (not exact for the 4B)
     CUDA_VISIBLE_DEVICES="" python scripts/embed_logged_summaries.py results/clinc150_lsa/<stamp> ... \
         --cache-dir /path/to/cache --out results/replacement_diagnostic/summary_embeddings_cpu.npz --device cpu
 """

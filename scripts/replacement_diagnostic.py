@@ -21,7 +21,10 @@ and under `--work-dir` (default `results/replacement_diagnostic`, gitignored; re
 Usage:
 
     python scripts/replacement_diagnostic.py results/clinc150_lsa/<stamp> ... --cache-dir cache \
-        --summary-embeddings results/replacement_diagnostic/summary_embeddings_cpu.npz --out-dir docs/results
+        --summary-embeddings results/replacement_diagnostic/summary_embeddings_cuda.npz --out-dir docs/results
+
+`summary_embeddings_cuda.npz` (GPU encode) makes the replay exact; `summary_embeddings_cpu.npz` is the fallback without
+a GPU and does not reproduce the 4B's blocks (see `docs/results/replacement_diagnostic.md`, section 2).
 """
 
 from __future__ import annotations
@@ -246,7 +249,7 @@ def build_tables(frames: dict[str, pd.DataFrame]) -> str:
     ]
     collapse = ["n_dup_clusters", "n_meta_clusters", "n_empty_replacement", "n_empty_end", "n_reseeded"]
     for title, step in (
-        ("Step 1 (shared step-0 partition; replayed from CPU embeddings)", 1),
+        ("Step 1 (shared step-0 partition; replayed from the summary embeddings)", 1),
         ("All five steps pooled (replayed; from step 2 on the previous block is replayed too)", None),
     ):
         parts.append(f"### {title}: means over seeds\n")
@@ -287,7 +290,7 @@ def build_tables(frames: dict[str, pd.DataFrame]) -> str:
         "are exact and `assignments_evolution[1]` is the real post-block partition. Mean over seeds of (score of the "
         "logged partition after the block) minus (score after plain Lloyd from the step-0 partition, same 20 "
         "iterations); `seeds_below` counts seeds with a lower ACC than the counterfactual; `d_acc_replayed` is the "
-        "same from the CPU-embedding replay, as a check.\n\n"
+        "same from the replay, as a check.\n\n"
         + md_table(headline, {"d_acc": "+.4f", "d_nmi": "+.4f", "d_ari": "+.4f", "d_acc_replayed": "+.4f"})
         + "\n"
     )
@@ -316,7 +319,8 @@ def build_tables(frames: dict[str, pd.DataFrame]) -> str:
             seeds_below=("d_acc", lambda v: f"{int((v < 0).sum())}/{len(v)}"),
         ).reset_index()
         parts.append(
-            "**Step 1, both sides run to sklearn's own stop** (cap 300 iterations; replayed from the CPU embeddings). "
+            "**Step 1, both sides run to sklearn's own stop** (cap 300 iterations; replayed from the summary "
+            "embeddings). "
             "A fixed 20-iteration budget can leave the replacement block less converged than the counterfactual "
             "(which starts converged), so this separates a worse end state from less convergence. `n_iter` and "
             "`n_iter_cf` are mean iterations to the stop, `capped*` the runs that hit the cap, `j_end_rel` the "

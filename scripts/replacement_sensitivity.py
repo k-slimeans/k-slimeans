@@ -6,7 +6,8 @@ realistic model, since identical texts encode identically; `iid` noise breaks ti
 
 The summary embeddings of the original runs were computed on a GPU; re-embedding on a CPU changes them by ~1e-6 (L2,
 per row), and a Lloyd block started from them can end in a different partition. This script measures that: for each
-method, seed and summary step it replays the block from the logged-summary embeddings (the reference), then from
+method, seed and summary step it replays the block from the logged-summary embeddings (the reference; with the GPU
+encode this is an exact replay of the logged block), then from
 copies perturbed by Gaussian noise of relative size `rel` (`start * (1 + rel * N(0, 1))`), with a fixed seed and several
 draws, and reports how many labels change and how ACC / NMI / ARI of the post-block partition change.
 
@@ -17,7 +18,9 @@ of a group of identical centers ("tied points") and the rest.
 Usage:
 
     python scripts/replacement_sensitivity.py results/clinc150_lsa/<stamp> ... --cache-dir cache \
-        --summary-embeddings results/replacement_diagnostic/summary_embeddings_cpu.npz --out-dir docs/results
+        --summary-embeddings results/replacement_diagnostic/summary_embeddings_cuda.npz --out-dir docs/results
+
+(`summary_embeddings_cpu.npz` is the fallback without a GPU; the reference is then not the logged block.)
 """
 
 from __future__ import annotations
