@@ -266,9 +266,13 @@ from the same step-0 partition.
   config also lists `baselines: kmeans` (the k-means row, not rerun here). Model, batch size (1), `max_new_tokens`,
   `max_input_tokens`, schedule, `tol`, seeds, embedder and dataset are identical.
 - Step-0 partition: `step0_sha1` (a hash of the step-0 labels) is identical per seed in the v2 4B run and in every #31 run
-  (seeds 0-4: 2b3858a9, 41db4cd8, 4f942755, 142872d5, f74393e0, as the paired script's own check also says). The step-0
+  (seeds 0-4: 2b3858a9, 41db4cd8, 4f942754, 142872d5, f74393e0, re-checked against the `metrics.jsonl` of the v2 and old 4B runs and the guarded 4B run; the paired script's own check agrees). The step-0
   `inertia` in `trace.jsonl` agrees between the v2 4B and the old 4B for all five seeds to float32 rounding (seeds 1-3 differ
   by 0.001 in about 10,700). The k-means row is the same in all #31 runs (ACC 0.5473, 0.5600, 0.5569, 0.5495, 0.5437).
+- Code revision: the old 4B ran at git 8222515 and the v2 4B at 341e420 (`environment.json`, clean tree in both). The changes in
+  `src` between them are meant to be behavior-neutral at default settings (summary guard off, `max_words_per_text` None).
+  Evidence for that: Section 4 shows this code regenerates the old-prompt logged summaries exactly (150 of 150 at every size),
+  and `step0_sha1` and the step-0 inertia match. It is not a proof for later steps.
 - Not checked: the step-1 summaries' inputs. They are the same by construction (same partition and member selection), and
   the pilot (Section 4) showed the same inputs reproduce the logged summaries exactly. After step 1 the partitions
   differ between prompts, as they should.
@@ -303,16 +307,24 @@ From `--cost-md` ([`prompt_test_cost.md`](prompt_test_cost.md), the two 4B rows 
 | v2 4B | 698 ± 10 | 1,131,772 ± 11,868 | 9,068 ± 185 | 1093.7 ± 20.7 | 1098.8 ± 20.6 | 3.8 ± 2.2 | 86.2 ± 69.0 |
 
 - **Do not read the drop from 1862 to 1099 s/seed as an effect of the prompt.** The #31 timings were inflated about 1.7 times by another process on
-  the card (see the header of `scripts/run_clinc150.sh` and #35). The v2 run was idle-checked
-  before start (`gpu.json`: idle, median sample within all thresholds; one low-priority CPU job is not covered by that
-  check, Section 7). The two times differ by contention and by prompt, and the data cannot split them.
+  the card (see `clinc150_summarizers.md`, Section 3 and its summary line on cost, the header of `scripts/run_clinc150_prompt_v2.sh`, and #35).
+  The v2 run was idle-checked before start (`gpu.json`: idle, median sample within all thresholds). The queue ran nothing
+  else during it: the guard run ended 18:12:18, the v2 4B ran 18:12:38-19:44:35 and the next job began 19:44:56. The in-run
+  monitor in `gpu.json` is stronger than the start check: the largest estimated foreign GPU memory over 1,092 samples was
+  1,355 MiB against a 1,216 MiB baseline (non-torch use +139 MiB). Light low-priority CPU work for other issues (test suites
+  and report scripts) ran on the machine at times during the run, and the GPU check does not cover it. The two times differ by
+  contention and by prompt, and the data cannot split them.
   The clean comparison is the #35 re-time of the old-prompt 4B at seed 0 under idle checks. It is queued.
+- One more timing point: the guarded 4B run (`results/clinc150_guard_qwen3-4b/20261112-160734`, old prompt, batch 1, seeds 0-4,
+  idle-checked at start) had a mean summarizer time of 1488.6 s per seed (676.6 calls, 14,937 output tokens), between 1855 and
+  1094. It follows different partitions (the guard) and overlapped CPU reruns of #33, #47 and #50 for about its first hour
+  (timing caveat in `summary_guard.md`), so it does not split contention from prompt either.
 - **Tokens are not affected by contention.** Output tokens fall from 15,620 to 9,068 per seed (-42%), in line with the
   pilot's -37.5% at step 1. Input tokens rise by 1% (1,120,190 to 1,131,772): the instruction is longer, and the
   members differ after step 1.
 - The call count is 698 against 714. Calls are made for clusters whose summary has to be rewritten, so it depends on how the
   partitions move. The difference of 16 in about 700 is small and is not read as an effect.
-- Peak GPU memory is the same (9.25 GB allocated, 9.41 GB reserved).
+- Peak GPU memory is the same: 9.25 GB allocated in both, 9.42 GB reserved (old) against 9.41 GB (v2).
 - Truncation: the log of the v2 run warns once, `a cluster's rendered prompt exceeded max_input_tokens=4096; dropped 2 of 192
   text(s)`. The warning is printed once per summarizer, so the counts come from the metrics: 1-7 truncated clusters per seed and 15-195
   dropped texts (v2) against 5-14 clusters and 183-821 texts (old), in about 700 calls. The figures are lower under the clearer prompt, but
@@ -321,8 +333,8 @@ From `--cost-md` ([`prompt_test_cost.md`](prompt_test_cost.md), the two 4B rows 
 
 ### 8.5 Lloyd iterations
 
-`trace.jsonl` logs the iterations of every k-means fit (`last_n_iter` against the cap `last_max_iter`). Under both prompts
-every fit ran to its cap: 20 iterations in each of 6 fits per seed, 120 per seed, in all 5 seeds (`converged` is False in every record). The counts
+`trace.jsonl` has 30 records per run (6 k-means fits per seed, 5 seeds), and in every one `last_n_iter` equals the cap
+`last_max_iter` of 20, under both prompts (120 iterations per seed). `metrics.jsonl` has `converged` False for all 5 seeds in both runs. The counts
 are the same in the v2 and the old 4B, so they say nothing about the prompt. They only show that neither run converged by the cap.
 
 ### 8.6 Reading
@@ -332,12 +344,13 @@ What the run shows:
 - With the clearer prompt, the 4B scores 0.568 ACC against 0.511 with the old one, +0.056 [+0.039, +0.074] on the same seeds
   and step-0 partitions, higher on all 5 seeds. NMI and ARI move the same way (+0.021, +0.036).
 - Under the clearer prompt the 4B is above k-means (+0.016 ACC [+0.009, +0.023], 5/5) and not distinguishable from LSA
-  (+0.007 [-0.001, +0.016]) with 5 seeds.
+  with 5 seeds: the ACC (+0.007 [-0.001, +0.016]) and ARI intervals include 0; NMI (+0.008 [+0.002, +0.014]) does not.
 - The surface problem of the old prompt is gone in this run: no summary mentions the cluster, and at most 2 clusters per seed
   share a summary at the end.
-- This agrees with #47. There, the 4B's flagged summaries (duplicates and cluster mentions) were worse than the 1.7B's at step 1,
-  but guarding them with the k-means centroid did not bring the 4B back above k-means. A different prompt, which stops those
-  summaries from being written in the first place, does.
+- This is consistent with #47. There, the 4B's flagged summaries (duplicates and cluster mentions) were worse than the 1.7B's
+  at step 1, but replacing them with the k-means centroid did not bring the 4B back above k-means (+0.009 [-0.006, +0.024]).
+  The clearer prompt changes every summary, not only the flagged third (10.9 against 17.7 words, 61% against 85% ending in "?"),
+  so this run does not show that the gain comes from removing the flagged summaries.
 
 What it does not show:
 
@@ -349,7 +362,7 @@ What it does not show:
   old 1.7B (-0.002 [-0.021, +0.017]) is a comparison across prompts and is not that answer.
 - It does not say the summaries are better or more faithful: the surface counts measure form. #33 and #34 look at that.
 - It does not give a prompt effect on cost (Section 8.4).
-- Truncation affected some prompts in both runs; the warning was seen once (2 of 192 texts dropped).
+- Truncation affected some clusters' prompts in both runs; the warning was seen once (2 of 192 texts dropped).
 
 Per the reading rule of the issue, the 4B recovers to the level of k-means and above it, and close to the old 1.7B. So the
 old size comparison is confounded by prompt reading for the 4B, and sizes have to be reported under both prompts once the
