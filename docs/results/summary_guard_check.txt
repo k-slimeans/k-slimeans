@@ -1,0 +1,49 @@
+seed 0 summary step 0: trace counts match the surface rules: True
+seed 0 summary step 1: trace counts match the surface rules: True
+seed 0 summary step 2: trace counts match the surface rules: True
+seed 0 summary step 3: trace counts match the surface rules: True
+seed 0 summary step 4: trace counts match the surface rules: True
+seed 0 guarded: calls per step [150, 143, 130, 121, 122], implied by the partitions [150, 143, 130, 121, 122], equal: True
+seed 0 #31 4B: calls per step [150, 141, 139, 142, 134], implied by the partitions [150, 141, 139, 142, 134], equal: True
+seed 0: step-1 summaries identical in both runs: True
+seed 0: step-0 partitions identical in both runs: True
+seed 1 summary step 0: trace counts match the surface rules: True
+seed 1 summary step 1: trace counts match the surface rules: True
+seed 1 summary step 2: trace counts match the surface rules: True
+seed 1 summary step 3: trace counts match the surface rules: True
+seed 1 summary step 4: trace counts match the surface rules: True
+seed 1 guarded: calls per step [150, 143, 137, 130, 122], implied by the partitions [150, 143, 137, 130, 122], equal: True
+seed 1 #31 4B: calls per step [150, 145, 142, 138, 135], implied by the partitions [150, 145, 142, 138, 135], equal: True
+seed 1: step-1 summaries identical in both runs: True
+seed 1: step-0 partitions identical in both runs: True
+seed 2 summary step 0: trace counts match the surface rules: True
+seed 2 summary step 1: trace counts match the surface rules: True
+seed 2 summary step 2: trace counts match the surface rules: True
+seed 2 summary step 3: trace counts match the surface rules: True
+seed 2 summary step 4: trace counts match the surface rules: True
+seed 2 guarded: calls per step [150, 144, 142, 122, 126], implied by the partitions [150, 144, 142, 122, 126], equal: True
+seed 2 #31 4B: calls per step [150, 146, 145, 140, 138], implied by the partitions [150, 146, 145, 140, 138], equal: True
+seed 2: step-1 summaries identical in both runs: True
+seed 2: step-0 partitions identical in both runs: True
+seed 3 summary step 0: trace counts match the surface rules: True
+seed 3 summary step 1: trace counts match the surface rules: True
+seed 3 summary step 2: trace counts match the surface rules: True
+seed 3 summary step 3: trace counts match the surface rules: True
+seed 3 summary step 4: trace counts match the surface rules: True
+seed 3 guarded: calls per step [150, 144, 138, 126, 125], implied by the partitions [150, 144, 138, 126, 125], equal: True
+seed 3 #31 4B: calls per step [150, 146, 143, 142, 140], implied by the partitions [150, 146, 143, 142, 140], equal: True
+seed 3: step-1 summaries identical in both runs: True
+seed 3: step-0 partitions identical in both runs: True
+seed 4 summary step 0: trace counts match the surface rules: True
+seed 4 summary step 1: trace counts match the surface rules: True
+seed 4 summary step 2: trace counts match the surface rules: True
+seed 4 summary step 3: trace counts match the surface rules: True
+seed 4 summary step 4: trace counts match the surface rules: True
+seed 4 guarded: calls per step [150, 145, 129, 122, 122], implied by the partitions [150, 145, 129, 122, 122], equal: True
+seed 4 #31 4B: calls per step [150, 145, 142, 139, 138], implied by the partitions [150, 145, 142, 139, 138], equal: True
+seed 4: step-1 summaries identical in both runs: True
+seed 4: step-0 partitions identical in both runs: True
+step-1 acc of the guarded run vs stage 1 variant b (meta, fixed): max abs diff 0.00e+00
+step-1 nmi of the guarded run vs stage 1 variant b (meta, fixed): max abs diff 0.00e+00
+step-1 ari of the guarded run vs stage 1 variant b (meta, fixed): max abs diff 5.55e-17
+step0_sha1 shared across all methods for seeds 0-4: yes

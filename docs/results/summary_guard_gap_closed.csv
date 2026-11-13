@@ -1,0 +1,10 @@
+metric,reference,gap_to_base,gain,share_closed
+acc,k-means,0.04024,0.00927111,0.230395
+acc,k-NLPmeans (LSA),0.0491556,0.00927111,0.188608
+acc,k-SLMmeans (Qwen3-1.7B),0.0586578,0.00927111,0.158054
+nmi,k-means,0.00855467,0.000960588,0.112288
+nmi,k-NLPmeans (LSA),0.0128251,0.000960588,0.074899
+nmi,k-SLMmeans (Qwen3-1.7B),0.0208982,0.000960588,0.0459652
+ari,k-means,0.0180524,-0.00688236,-0.381243
+ari,k-NLPmeans (LSA),0.0284607,-0.00688236,-0.24182
+ari,k-SLMmeans (Qwen3-1.7B),0.0404816,-0.00688236,-0.170012
