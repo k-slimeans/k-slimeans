@@ -42,6 +42,7 @@ from kslimeans.runlog import RunRecord, load_run, load_run_dataset, members_by_c
 K = 150
 GUARD_METHOD = "k-SLMmeans-guard"
 BASE_METHOD = "k-SLMmeans"
+STAGE1_TOL = 1e-9
 
 
 def guard_counts(record: RunRecord) -> pd.DataFrame:
@@ -115,8 +116,11 @@ def step_table(guard: RunRecord, base: RunRecord, small: RunRecord, gold: np.nda
     ARI of each 4B partition with the #31 1.7B's partition of the same fit.
     """
     rows = []
+    lengths = {len(r.assignments_evolution) for r in (guard, base, small)} | {len(guard.trace), len(base.trace)}
+    if len(lengths) != 1:
+        raise ValueError(f"seed {guard.seed}: the runs have different numbers of fits {sorted(lengths)}")
     for t, (a, b, c) in enumerate(
-        zip(guard.assignments_evolution, base.assignments_evolution, small.assignments_evolution)
+        zip(guard.assignments_evolution, base.assignments_evolution, small.assignments_evolution, strict=True)
     ):
         sg, sb = partition_scores(gold, a), partition_scores(gold, b)
         g_trace, b_trace = guard.trace[t], base.trace[t]
@@ -196,7 +200,10 @@ def build(
     guard_log, base_log, small_log = load_run(guard_dir), load_run(base_dir), load_run(small_dir)
     ds, _ = load_run_dataset(guard_log, cache_dir=cache_dir)
     gold = np.asarray(ds.labels)
-    seeds = sorted(set(guard_log.seeds) & set(base_log.seeds))
+    seeds = guard_log.seeds
+    for name, log in (("unguarded 4B", base_log), ("1.7B", small_log)):
+        if log.seeds != seeds:
+            raise ValueError(f"seed sets differ: guarded {seeds}, {name} {log.seeds}")
 
     labels = {
         "guard": method_label(guard_log.config),
@@ -206,6 +213,9 @@ def build(
         "lsa": "k-NLPmeans (LSA)",
     }
     per_seed = per_seed_table([lsa_dir, base_dir, small_dir, guard_dir])
+    for label, group in per_seed.groupby("method"):
+        if sorted(group.seed) != seeds:
+            raise ValueError(f"seed sets differ: guarded {seeds}, {label} {sorted(group.seed)}")
     references = [labels["base"], labels["kmeans"], labels["lsa"], labels["small"]]
     paired = paired_differences(per_seed, references)
     paired = paired[paired.method == labels["guard"]].drop(columns="method").reset_index(drop=True)
@@ -226,20 +236,28 @@ def build(
             if not ok:
                 raise ValueError(f"seed {seed} step {j}: logged guard counts differ from the surface rules")
         for name, rec in (("guarded", g), ("#31 4B", b)):
-            exp = expected_calls(rec.assignments_evolution, n_steps)
+            exp = expected_calls(rec.assignments_evolution, n_steps, k=len(g.summaries_evolution[0]))
             got = [r["n_calls"] for r in rec.trace[1:]]
             checks.append(f"seed {seed} {name}: calls per step {got}, implied by the partitions {exp}, equal: {exp == got}")
+            if exp != got:
+                raise ValueError(f"seed {seed} {name}: logged calls {got} differ from those implied by the partitions {exp}")
         same = g.summaries_evolution[0] == b.summaries_evolution[0]
         checks.append(f"seed {seed}: step-1 summaries identical in both runs: {same}")
         same0 = bool((g.assignments_evolution[0] == b.assignments_evolution[0]).all())
         checks.append(f"seed {seed}: step-0 partitions identical in both runs: {same0}")
+        if not (same and same0):
+            raise ValueError(f"seed {seed}: the runs do not share step 0 and the step-1 summaries")
     if stage1_csv is not None and Path(stage1_csv).exists():
         stage1 = pd.read_csv(stage1_csv, keep_default_na=False)
         b = stage1[(stage1.variant == "b") & (stage1.flag == "meta") & (stage1.setting == "fixed")].set_index("seed")
         first = pd.concat(steps, ignore_index=True).query("step == 1").set_index("seed")
+        if sorted(b.index) != sorted(first.index):
+            raise ValueError(f"seed sets differ: guarded {sorted(first.index)}, stage 1 {sorted(b.index)}")
         for metric in METRICS:
-            err = float((first[f"{metric}_guard"] - b[f"end_{metric}"]).abs().max())
+            err = float((first[f"{metric}_guard"] - b.loc[first.index, f"end_{metric}"]).abs().max())
             checks.append(f"step-1 {metric} of the guarded run vs stage 1 variant b (meta, fixed): max abs diff {err:.2e}")
+            if not err <= STAGE1_TOL:
+                raise ValueError(f"step-1 {metric} differs from stage 1 variant b by {err:.2e} (> {STAGE1_TOL:.0e})")
     checks.append(step0_sha1_summary([lsa_dir, base_dir, small_dir, guard_dir]))
 
     counts_df = pd.concat(counts, ignore_index=True)
