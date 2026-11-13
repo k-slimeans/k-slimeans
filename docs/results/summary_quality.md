@@ -17,8 +17,12 @@ scoring them against the final partition mixes two partitions. No kept/lost/gain
 re-run under #33 would remove the approximation.
 
 20,290 summaries were scored (18,750 CLINC150, 1,540 BANKING77). The v2 run has no BANKING77 counterpart. The logged `summary_inertia` was reproduced from the
-re-embedded summaries to a relative difference of at most 1.5e-7 on every CLINC150 step (1.1e-7 for the v2 run), so the CPU re-embedding matches the
+re-embedded summaries to a relative difference of at most 1.5e-7 on every CLINC150 step (1.1e-7 for the v2 run; the largest is an old LSA row, seed 3 step 1, and the small rise from the 1.4e-7 reported earlier is re-embedding noise on old rows, not an effect of the v2 data), so the CPU re-embedding matches the
 embeddings the runs used. No cluster was empty at a scored step.
+
+**Drift on the old rows when v2 was added.** Re-scoring the October runs reproduced every committed number to 1e-6 or less (`summary_inertia_replayed` moved by 0.1 on two rows), with one exception: near-tie Hungarian matches
+flipped on 3 old 4B per-step rows (seed 0 step 3, seed 2 step 1, seed 4 step 2), each adding 0.0067 to the label-alignment accuracy (one cluster of 150). The old 4B all-steps label accuracy therefore moved from 0.322 to 0.323. A repeat run of the old 4B alone gave the new values exactly,
+so the script is deterministic and the committed tables came from slightly different floating-point behaviour.
 
 ## 2. The scores (definitions in `src/kslimeans/summary_quality.py`)
 
@@ -215,15 +219,20 @@ Among summaries that pass every fluency proxy, the share that still fails covera
 
 What the scores show, descriptively:
 
-- **Coverage.** The clearer prompt raises the 4B's coverage on every measure above and puts it above the 1.7B: nearest-summary share 0.664 vs 0.493 (old 4B) and 0.604 (1.7B), intent coverage 0.811 vs 0.595 and 0.764, low-coverage flag 26% vs 48% and 34%. It stays below LSA (0.791, 0.959, 11%). The v2 4B has the highest label alignment of the four (0.510 sim, 0.485 acc).
+- **Coverage.** The clearer prompt raises the 4B's coverage on every measure above and puts it above the 1.7B: nearest-summary share 0.664 vs 0.493 (old 4B) and 0.604 (1.7B), intent coverage 0.811 vs 0.595 and 0.764, low-coverage flag 26% vs 48% and 34%. It stays below LSA (0.791, 0.959, 11%). The v2 4B has the highest label-alignment similarity of the four (0.510); its accuracy, 0.485, is above the 1.7B (0.451) and old 4B (0.323) but below LSA (0.523).
   The duplicate rule explains little of the gain now: without exact duplicates the v2 mean is 0.667 against 0.555 for the old 4B.
-- **Genericity.** Every flag is at or below the 1.7B's level, and the specificity margin is 0.148 (1.7B 0.109, old 4B 0.003, LSA 0.247). Mentions of the cluster go from 34% to 0%, duplicates from 11% to 1%,
+- **Genericity.** Every flag is at or within a point of the 1.7B's level (near-duplicate 1.2% against 0.9%), and the specificity margin is 0.148 (1.7B 0.109, old 4B 0.003, LSA 0.247). Mentions of the cluster go from 34% to 0%, duplicates from 11% to 1%,
   the generic union from 46% to 17% (1.7B 22%); the margin <= 0 share is 17% (1.7B 19%). It is not zero as for LSA, and the method-level genericity (0.224) is above LSA's (0.204) but below the 1.7B's (0.274) and old 4B's (0.290).
 - **Unsupported information.** The unsupported lemma share falls from 0.438 to 0.131 (1.7B 0.298) and the flag from 46% to 10% (1.7B 24%). Unsupported entities and numbers are rare in every model run. This check is lexical and the v2 summaries are short (10.9 words), so a
   few lemmas decide the share; a median of 0.000 means most v2 summaries use only words that occur in some member. Whether a summary is supported in meaning is not measured here (the hand check is meant to).
-- **Fluency proxies.** "Echoes the prompt" drops from 30% to 0% and quotes from 13% to 0%. "No '?'" rises, from 14% to 39% (1.7B 3%), and so does "copies a member" (1% to 12%, i.e. the model wrote one of the cluster's own queries). By these proxies this is the one family that gets worse, and it is why "not fluent" is 43% against 34%.
-  The "?" proxy probably overstates disfluency here. Of the 1,450 v2 summaries without a "?", 90% start with a question or auxiliary word (what, how, can, do, ...) and only 4% start with a capital letter; they read as lowercase questions with the mark dropped
-  (for example "what is the status of my flight"), which fits the pilot's finding that most lowercase summaries were still questions in form. For the old 4B the same share is 80%. The check was written for the October outputs and counts these as failures; the hand check, not the proxy, should say whether they are.
+- **Fluency proxies.** "Echoes the prompt" drops from 30% to 0% and quotes from 13% to 0%. "No '?'" rises, from 14% to 39% (1.7B 3%), and "copies a member" rises from 1% to 12%. The union "not fluent" is 43% against 34% for the old 4B; about 39 points of it are the missing "?" and
+  4.5 points are summaries whose only flag is the copy. It is a count of proxy failures, not a measure of how fluent the text is.
+  The "?" proxy probably overstates disfluency here. Of the 1,450 v2 summaries without a "?", 90% start with a question or auxiliary word (what, how, why, when, where, which, who, whom, whose, can, could, do, does, did, is, are, am, was, were, will, would, shall, should, have, has, had, may, might, must; matched on the lowercased first word; the share depends on this list)
+  and only 4% start with a capital letter. The old 4B's missing-"?" summaries (521) are 94% capitalised and 80% start with one of those words, so for the old 4B the missing mark mostly goes with a capitalised sentence and for v2 with a lowercase one. This supports reading the v2 cases as lowercase questions with the mark dropped
+  (for example "what is the status of my flight"), which fits the pilot's finding that most lowercase summaries were still questions in form. The check was written for the October outputs and counts these as failures; the hand check, not the proxy, should say whether they are.
+- **Verbatim copies.** 451 of the 3,750 v2 summaries (12%) are word-for-word copies of a cluster member. Copying is a fluency proxy, not evidence that these summaries are worse. Three things follow from it.
+  A copy has no unsupported lemmas by construction, so copies account for part of the drop in unsupported share: excluding them the v2 mean is 0.149 (against 0.131 with them, 0.438 for the old 4B). Copies also score better on coverage: the low-coverage flag is 6.7% for copies against 28% for the other v2 summaries
+  (mean nearest-summary share 0.83 against 0.64). And a copied member makes that cluster's summary embedding a member embedding, which matters for reading the ACC gain in #46; that is left to #50, and no causal claim is made here.
 
 By these scores the clearer prompt moves the 4B from the weakest model on coverage, genericity and unsupported content to one at or better than the 1.7B on all three, still below LSA on coverage and margin, with more of its summaries failing the "?" proxy. These are scores of the logged summaries. They do not say why the prompt helps (#47) or how this relates to
 the clustering outcome (#50). The 0.6B and 1.7B under the clearer prompt are queued and will be added to this subsection the same way; nothing is assumed about them here. Hand check: the v2 summaries are not in the hand-check sheets (section 5), and adding them is a choice for the person rating.

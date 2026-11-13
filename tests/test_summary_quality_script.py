@@ -95,3 +95,12 @@ def test_run_prompt_prefers_the_run_s_own_prompt():
     )
     assert script.run_prompt({"summarizer": {"type": "hf"}}, "old") == "old"
     assert script.run_prompt({"summarizer": {"type": "lsa"}}, "old") == "old"
+    assert script.run_prompt({"summarizer": {"type": "hf", "prompt": ""}}, "old") == "old"
+
+
+def test_asks_for_question_follows_the_run_prompt():
+    script = load_script()
+    hf = {"summarizer": {"type": "hf"}}
+    assert script.asks_for_question(hf, "Write one new question.")
+    assert not script.asks_for_question(hf, "Summarize these texts.")
+    assert not script.asks_for_question({"summarizer": {"type": "lsa"}}, "Write one new question.")

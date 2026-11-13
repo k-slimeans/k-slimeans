@@ -42,6 +42,11 @@ def run_prompt(config: dict, dataset_prompt: str) -> str:
     return config["summarizer"].get("prompt") or dataset_prompt
 
 
+def asks_for_question(config: dict, prompt: str) -> bool:
+    """True for model runs whose prompt asks for a question (the "?" check does not apply to extractive runs)."""
+    return "question" in prompt.lower() and config["summarizer"].get("type") == "hf"
+
+
 def score_run(run_dir: str, cache_dir: str, corpora: dict, nlp, final_only: bool) -> tuple[list[dict], list[dict]]:
     """Cluster rows and step rows of one run directory (`corpora` caches the per-dataset spaCy features)."""
     from kslimeans.runlog import embed_summaries, load_run, load_run_dataset, load_run_embedder
@@ -58,7 +63,7 @@ def score_run(run_dir: str, cache_dir: str, corpora: dict, nlp, final_only: bool
     )
     # Extractive summarizers are not asked for a question, so the "?" check applies to model runs only.
     prompt = run_prompt(config, ds.prompt)
-    asks_question = "question" in prompt.lower() and config["summarizer"].get("type") == "hf"
+    asks_question = asks_for_question(config, prompt)
 
     cluster_rows: list[dict] = []
     step_rows: list[dict] = []
