@@ -1,0 +1,5 @@
+run,method,summaries,tokens,oov_tokens,oov_share,zero_vectors
+bbc_tfidf_lsa,k-NLPmeans,125,4426,3145,0.710573881608676,0
+bbc_tfidf_qwen3-0.6b,k-SLMmeans,125,1626,878,0.5399753997539976,0
+bbc_tfidf_qwen3-1.7b,k-SLMmeans,125,2418,1332,0.5508684863523573,0
+bbc_tfidf_qwen3-4b,k-SLMmeans,125,2052,1016,0.4951267056530214,0

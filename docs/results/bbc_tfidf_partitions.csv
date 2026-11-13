@@ -1,0 +1,126 @@
+partition,run,seed,acc,cluster,size,business,entertainment,politics,sport,tech,composition
+step0,all methods,0,0.854,0,63,0,62,0,0,1,entertainment 62
+step0,all methods,0,0.854,1,138,96,21,16,2,3,business 96 + entertainment 21 + politics 16
+step0,all methods,0,0.854,2,113,0,7,0,98,8,sport 98
+step0,all methods,0,0.854,3,84,0,1,83,0,0,politics 83
+step0,all methods,0,0.854,4,102,4,9,1,0,88,tech 88
+final,bbc_tfidf_lsa k-NLPmeans,0,0.866,0,59,0,58,0,0,1,entertainment 58
+final,bbc_tfidf_lsa k-NLPmeans,0,0.866,1,124,96,17,6,1,4,business 96 + entertainment 17
+final,bbc_tfidf_lsa k-NLPmeans,0,0.866,2,118,0,10,1,99,8,sport 99 + entertainment 10
+final,bbc_tfidf_lsa k-NLPmeans,0,0.866,3,97,0,4,93,0,0,politics 93
+final,bbc_tfidf_lsa k-NLPmeans,0,0.866,4,102,4,11,0,0,87,tech 87 + entertainment 11
+step0,all methods,1,0.774,0,125,97,12,11,1,4,business 97 + entertainment 12 + politics 11
+step0,all methods,1,0.774,1,146,0,79,1,64,2,entertainment 79 + sport 64
+step0,all methods,1,0.774,2,98,3,7,0,0,88,tech 88
+step0,all methods,1,0.774,3,90,0,2,88,0,0,politics 88
+step0,all methods,1,0.774,4,41,0,0,0,35,6,sport 35
+final,bbc_tfidf_lsa k-NLPmeans,1,0.866,0,124,96,17,6,1,4,business 96 + entertainment 17
+final,bbc_tfidf_lsa k-NLPmeans,1,0.866,1,59,0,58,0,0,1,entertainment 58
+final,bbc_tfidf_lsa k-NLPmeans,1,0.866,2,102,4,11,0,0,87,tech 87 + entertainment 11
+final,bbc_tfidf_lsa k-NLPmeans,1,0.866,3,97,0,4,93,0,0,politics 93
+final,bbc_tfidf_lsa k-NLPmeans,1,0.866,4,118,0,10,1,99,8,sport 99 + entertainment 10
+step0,all methods,2,0.658,0,68,0,1,67,0,0,politics 67
+step0,all methods,2,0.658,1,220,92,31,14,3,80,business 92 + tech 80 + entertainment 31 + politics 14
+step0,all methods,2,0.658,2,109,0,6,1,96,6,sport 96
+step0,all methods,2,0.658,3,62,0,61,0,0,1,entertainment 61
+step0,all methods,2,0.658,4,41,8,1,18,1,13,politics 18 + tech 13
+final,bbc_tfidf_lsa k-NLPmeans,2,0.784,0,82,0,1,81,0,0,politics 81
+final,bbc_tfidf_lsa k-NLPmeans,2,0.784,1,190,100,34,18,4,34,business 100 + entertainment 34 + tech 34 + politics 18
+final,bbc_tfidf_lsa k-NLPmeans,2,0.784,2,112,0,7,1,96,8,sport 96
+final,bbc_tfidf_lsa k-NLPmeans,2,0.784,3,59,0,58,0,0,1,entertainment 58
+final,bbc_tfidf_lsa k-NLPmeans,2,0.784,4,57,0,0,0,0,57,tech 57
+step0,all methods,3,0.806,0,94,0,1,0,87,6,sport 87
+step0,all methods,3,0.806,1,81,0,1,80,0,0,politics 80
+step0,all methods,3,0.806,2,104,93,1,10,0,0,business 93 + politics 10
+step0,all methods,3,0.806,3,49,0,49,0,0,0,entertainment 49
+step0,all methods,3,0.806,4,172,7,48,10,13,94,tech 94 + entertainment 48 + sport 13 + politics 10
+final,bbc_tfidf_lsa k-NLPmeans,3,0.84,0,111,0,6,2,95,8,sport 95
+final,bbc_tfidf_lsa k-NLPmeans,3,0.84,1,91,0,3,88,0,0,politics 88
+final,bbc_tfidf_lsa k-NLPmeans,3,0.84,2,141,96,22,10,5,8,business 96 + entertainment 22 + politics 10
+final,bbc_tfidf_lsa k-NLPmeans,3,0.84,3,59,0,58,0,0,1,entertainment 58
+final,bbc_tfidf_lsa k-NLPmeans,3,0.84,4,98,4,11,0,0,83,tech 83 + entertainment 11
+step0,all methods,4,0.85,0,134,5,24,12,2,91,tech 91 + entertainment 24 + politics 12
+step0,all methods,4,0.85,1,112,95,10,6,0,1,business 95 + entertainment 10
+step0,all methods,4,0.85,2,83,0,1,82,0,0,politics 82
+step0,all methods,4,0.85,3,59,0,59,0,0,0,entertainment 59
+step0,all methods,4,0.85,4,112,0,6,0,98,8,sport 98
+final,bbc_tfidf_lsa k-NLPmeans,4,0.84,0,98,4,11,0,0,83,tech 83 + entertainment 11
+final,bbc_tfidf_lsa k-NLPmeans,4,0.84,1,141,96,22,10,5,8,business 96 + entertainment 22 + politics 10
+final,bbc_tfidf_lsa k-NLPmeans,4,0.84,2,91,0,3,88,0,0,politics 88
+final,bbc_tfidf_lsa k-NLPmeans,4,0.84,3,59,0,58,0,0,1,entertainment 58
+final,bbc_tfidf_lsa k-NLPmeans,4,0.84,4,111,0,6,2,95,8,sport 95
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,0,0.842,0,61,0,60,0,0,1,entertainment 60
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,0,0.842,1,119,96,8,15,0,0,business 96 + politics 15
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,0,0.842,2,138,0,23,4,100,11,sport 100 + entertainment 23 + tech 11
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,0,0.842,3,78,0,1,77,0,0,politics 77
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,0,0.842,4,104,4,8,4,0,88,tech 88
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,1,0.83,0,152,95,26,27,2,2,business 95 + politics 27 + entertainment 26
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,1,0.83,1,62,0,61,0,0,1,entertainment 61
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,1,0.83,2,101,5,6,1,0,89,tech 89
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,1,0.83,3,73,0,1,72,0,0,politics 72
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,1,0.83,4,112,0,6,0,98,8,sport 98
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,2,0.872,0,98,1,4,92,1,0,politics 92
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,2,0.872,1,125,95,19,8,1,2,business 95 + entertainment 19
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,2,0.872,2,114,0,8,0,98,8,sport 98
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,2,0.872,3,63,0,62,0,0,1,entertainment 62
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,2,0.872,4,100,4,7,0,0,89,tech 89
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,3,0.878,0,103,2,6,95,0,0,politics 95
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,3,0.878,1,118,0,9,0,100,9,sport 100
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,3,0.878,2,112,93,13,4,0,2,business 93 + entertainment 13
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,3,0.878,3,64,0,63,0,0,1,entertainment 63
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,3,0.878,4,103,5,9,1,0,88,tech 88
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,4,0.834,0,116,0,7,2,99,8,sport 99
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,4,0.834,1,147,96,21,22,1,7,business 96 + politics 22 + entertainment 21
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,4,0.834,2,77,0,1,76,0,0,politics 76
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,4,0.834,3,63,0,62,0,0,1,entertainment 62
+final,bbc_tfidf_qwen3-0.6b k-SLMmeans,4,0.834,4,97,4,9,0,0,84,tech 84
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,0,0.904,0,107,2,86,1,16,2,entertainment 86 + sport 16
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,0,0.904,1,104,95,6,2,0,1,business 95
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,0,0.904,2,91,0,1,0,84,6,sport 84
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,0,0.904,3,99,1,2,96,0,0,politics 96
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,0,0.904,4,99,2,5,1,0,91,tech 91
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,1,0.85,0,104,94,4,6,0,0,business 94
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,1,0.85,1,60,0,59,0,0,1,entertainment 59
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,1,0.85,2,123,6,18,9,1,89,tech 89 + entertainment 18
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,1,0.85,3,85,0,1,84,0,0,politics 84
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,1,0.85,4,128,0,18,1,99,10,sport 99 + entertainment 18 + tech 10
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,2,0.874,0,103,0,4,98,1,0,politics 98
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,2,0.874,1,122,95,17,2,1,7,business 95 + entertainment 17
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,2,0.874,2,113,0,7,0,98,8,sport 98
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,2,0.874,3,63,0,62,0,0,1,entertainment 62
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,2,0.874,4,99,5,10,0,0,84,tech 84 + entertainment 10
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,3,0.86,0,116,0,10,0,98,8,sport 98 + entertainment 10
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,3,0.86,1,95,1,1,93,0,0,politics 93
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,3,0.86,2,92,90,1,0,0,1,business 90
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,3,0.86,3,60,0,59,0,0,1,entertainment 59
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,3,0.86,4,137,9,29,7,2,90,tech 90 + entertainment 29
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,4,0.878,0,99,3,7,0,0,89,tech 89
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,4,0.878,1,122,96,18,7,0,1,business 96 + entertainment 18
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,4,0.878,2,98,1,4,93,0,0,politics 93
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,4,0.878,3,62,0,61,0,0,1,entertainment 61
+final,bbc_tfidf_qwen3-1.7b k-SLMmeans,4,0.878,4,119,0,10,0,100,9,sport 100 + entertainment 10
+final,bbc_tfidf_qwen3-4b k-SLMmeans,0,0.878,0,64,0,63,0,0,1,entertainment 63
+final,bbc_tfidf_qwen3-4b k-SLMmeans,0,0.878,1,119,96,15,7,0,1,business 96 + entertainment 15
+final,bbc_tfidf_qwen3-4b k-SLMmeans,0,0.878,2,112,0,7,1,98,6,sport 98
+final,bbc_tfidf_qwen3-4b k-SLMmeans,0,0.878,3,92,0,2,90,0,0,politics 90
+final,bbc_tfidf_qwen3-4b k-SLMmeans,0,0.878,4,113,4,13,2,2,92,tech 92 + entertainment 13
+final,bbc_tfidf_qwen3-4b k-SLMmeans,1,0.866,0,132,95,20,9,2,6,business 95 + entertainment 20
+final,bbc_tfidf_qwen3-4b k-SLMmeans,1,0.866,1,63,0,62,0,0,1,entertainment 62
+final,bbc_tfidf_qwen3-4b k-SLMmeans,1,0.866,2,100,5,8,0,0,87,tech 87
+final,bbc_tfidf_qwen3-4b k-SLMmeans,1,0.866,3,94,0,3,91,0,0,politics 91
+final,bbc_tfidf_qwen3-4b k-SLMmeans,1,0.866,4,111,0,7,0,98,6,sport 98
+final,bbc_tfidf_qwen3-4b k-SLMmeans,2,0.834,0,82,0,2,80,0,0,politics 80
+final,bbc_tfidf_qwen3-4b k-SLMmeans,2,0.834,1,156,96,27,20,10,3,business 96 + entertainment 27 + politics 20 + sport 10
+final,bbc_tfidf_qwen3-4b k-SLMmeans,2,0.834,2,99,0,3,0,90,6,sport 90
+final,bbc_tfidf_qwen3-4b k-SLMmeans,2,0.834,3,62,0,61,0,0,1,entertainment 61
+final,bbc_tfidf_qwen3-4b k-SLMmeans,2,0.834,4,101,4,7,0,0,90,tech 90
+final,bbc_tfidf_qwen3-4b k-SLMmeans,3,0.866,0,105,0,6,0,91,8,sport 91
+final,bbc_tfidf_qwen3-4b k-SLMmeans,3,0.866,1,99,0,4,95,0,0,politics 95
+final,bbc_tfidf_qwen3-4b k-SLMmeans,3,0.866,2,133,96,21,5,9,2,business 96 + entertainment 21
+final,bbc_tfidf_qwen3-4b k-SLMmeans,3,0.866,3,63,0,62,0,0,1,entertainment 62
+final,bbc_tfidf_qwen3-4b k-SLMmeans,3,0.866,4,100,4,7,0,0,89,tech 89
+final,bbc_tfidf_qwen3-4b k-SLMmeans,4,0.828,0,99,5,6,0,0,88,tech 88
+final,bbc_tfidf_qwen3-4b k-SLMmeans,4,0.828,1,161,95,31,17,13,5,business 95 + entertainment 31 + politics 17 + sport 13
+final,bbc_tfidf_qwen3-4b k-SLMmeans,4,0.828,2,84,0,1,83,0,0,politics 83
+final,bbc_tfidf_qwen3-4b k-SLMmeans,4,0.828,3,62,0,61,0,0,1,entertainment 61
+final,bbc_tfidf_qwen3-4b k-SLMmeans,4,0.828,4,94,0,1,0,87,6,sport 87

@@ -274,6 +274,8 @@ PYTHON=.venv/bin/python scripts/run_bbc.sh dense   # the same with all-MiniLM-L6
 
 Steps and the member-selection ablation (`0.6b-random`) are described in `scripts/run_bbc.sh`.
 
+Results write-up: `docs/results/bbc.md`.
+
 ### RQ2: adaptive schedule on CLINC150
 
 `configs/rq2_clinc150.yaml` is the base run (fixed schedule, 5 summaries, k-means baseline, Qwen3-0.6B, seeds 0–4).
