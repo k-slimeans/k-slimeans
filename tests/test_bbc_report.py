@@ -119,3 +119,20 @@ def test_script_writes_tables(run, tmp_path, monkeypatch):
     assert "| step0 | all methods | 0 | 0.667 | a 12 + b 12 ; c 12 ; mixed (no topic has 10) |" in out["part.md"].read_text()
     assert out["oov.csv"].read_text().startswith("run,method,summaries,tokens")
     assert out["part.csv"].read_text().startswith("partition,run,seed,acc,cluster,size,a,b,c,composition")
+
+
+def test_composition_boundary_is_inclusive():
+    module = _load_script()
+
+    assert module.composition(np.array([10, 9, 0]), NAMES) == "a 10"
+    assert module.composition(np.array([10, 10, 9]), NAMES) == "a 10 + b 10"
+    assert module.composition(np.array([9, 9, 9]), NAMES) == f"mixed (no topic has {module.MIN_SHOWN})"
+
+
+def test_k_must_match_the_topics(run):
+    module = _load_script()
+
+    with pytest.raises(ValueError, match="topics but 2 names"):
+        module.partition_rows([run], GOLD, NAMES[:2])
+    with pytest.raises(ValueError, match="one cluster per topic"):
+        module.crosstab(np.array([0, 3]), np.array([0, 1]), 3)

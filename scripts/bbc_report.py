@@ -64,6 +64,8 @@ def oov_rows(run_dirs) -> list[dict]:
 
 def crosstab(labels: np.ndarray, gold: np.ndarray, k: int) -> np.ndarray:
     """`k x k` counts, rows = clusters, columns = gold topics."""
+    if int(labels.max()) >= k:
+        raise ValueError(f"labels use {int(labels.max()) + 1} clusters but k is {k}: expected one cluster per topic")
     counts = np.zeros((k, k), dtype=np.int64)
     np.add.at(counts, (labels, gold), 1)
     return counts
@@ -77,12 +79,14 @@ def matched_accuracy(counts: np.ndarray) -> float:
 def composition(row: np.ndarray, names: list[str]) -> str:
     """`business 93 + tech 95` for the topics with at least MIN_SHOWN members, largest first."""
     shown = [(n, c) for n, c in sorted(zip(names, row), key=lambda x: -x[1]) if c >= MIN_SHOWN]
-    return " + ".join(f"{n} {c}" for n, c in shown) if shown else "mixed (no topic has 10)"
+    return " + ".join(f"{n} {c}" for n, c in shown) if shown else f"mixed (no topic has {MIN_SHOWN})"
 
 
 def partition_rows(run_dirs, gold: np.ndarray, names: list[str]) -> list[dict]:
     """Step-0 partition per seed (once) and the final partition of every run, per cluster."""
     k = len(names)
+    if int(gold.max()) + 1 != k:
+        raise ValueError(f"gold labels have {int(gold.max()) + 1} topics but {k} names were given")
     rows = []
     step0_seen: set[int] = set()
     for run_dir in run_dirs:

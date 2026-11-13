@@ -49,7 +49,7 @@ Five seeds, one dataset, one model family. Numbers are means over seeds unless s
   k-means++ initialization, a step-0 fit, then 5 summary steps (a fixed schedule of 5 summaries), each followed by a block of at most 20 Lloyd iterations (120 in total), `initial_iter` and `final_iter` on,
   `tol` 1e-4. The "k-means" row is the step-0 partition: its ACC equals the step-0 ACC of every seed in both variants, and `step0_sha1` is identical across all methods of a seed.
 - **Environment.** All eight runs (`environment.json`): git `341e420`, clean tree (`git_dirty` false), Python 3.14.7, torch 2.14.0+cu130, transformers 5.17.0, sentence-transformers 6.0.1, scikit-learn 1.9.1,
-  RTX 3060, bfloat16. The BBC configs, `scripts/run_bbc.sh`, `data.py` and `embeddings.py` are unchanged between that commit and 4a61777, the base of this write-up. The GPU idle check (`gpu.json`) passed for all eight runs ("median sample
+  RTX 3060, bfloat16. The BBC configs, `scripts/run_bbc.sh`, `data.py` and `embeddings.py` are unchanged since that commit. The GPU idle check (`gpu.json`) passed for all eight runs ("median sample
   within all thresholds"); the queue logs record the card at 1,216 MiB, 0% utilization and about 43 W before each variant started. The TF-IDF runs started 2026-11-12 19:45 and finished by 20:00; the dense runs ran 20:01 to 20:09.
 
 ## 2. Results
@@ -135,7 +135,7 @@ partition are in [`bbc_dense_partitions.md`](bbc_dense_partitions.md) / [`.csv`]
 | 3 | 0.960 | one topic per cluster |
 | 4 | 0.954 | one topic per cluster |
 
-In both bad seeds business and tech share a cluster (seed 0: all of both topics but 12 articles; seed 2: 70 of each plus a mixed remainder), the merged-topic shape expected for k = 5 with equal-sized topics (checked here from the counts, not assumed).
+In both bad seeds business and tech share a cluster (seed 0: all of both topics but 12 articles; seed 2: 70 of each plus a mixed remainder), a business/tech merge in 2 of the 5 seeds (checked from the counts, not assumed).
 In seed 0 the cluster that this frees up splits sport 63/37. In seed 2 a fifth cluster holds the remaining business and tech articles with a few from other topics.
 
 Final ACC per seed, dense (from [`bbc_dense_per_seed.csv`](bbc_dense_per_seed.csv)):
@@ -157,7 +157,7 @@ Final ACC per seed, dense (from [`bbc_dense_per_seed.csv`](bbc_dense_per_seed.cs
   The summary mentions technology only.
 
 **TF-IDF: no two-mode pattern.** Step-0 ACC is 0.854, 0.774, 0.658, 0.806, 0.850 (seeds 0-4) and the finals sit between 0.784 and 0.904 for every method. The errors are spread over several clusters, mostly entertainment articles
-spread into other clusters: in almost every final partition one cluster is mostly entertainment (58-63 articles) and several other clusters each hold 10 or more entertainment articles.
+spread into other clusters: in 24 of the 25 final partitions one cluster is mostly entertainment (58-63 articles), and usually one to three other clusters (up to three) each hold 10 or more entertainment articles. The exception is the 1.7B in seed 0, whose entertainment cluster has 86 entertainment and 16 sport articles and no other cluster has 10 entertainment articles.
 Seed 2 is the worst start (0.658): one cluster holds 92 business, 80 tech, 31 entertainment and 14 politics articles. LSA's seed-2 final (0.784) has 34 tech articles in the business cluster and a separate tech cluster of 57, while the three Qwen sizes
 end at 0.872, 0.874 and 0.834. The TF-IDF seeds are therefore all moderate rather than split into good and bad.
 
@@ -256,7 +256,7 @@ No figures were made. Definitions are those of [`replacement_diagnostic.md`](rep
   (ARI with the pre partition 0.71-0.75; CLINC150 0.65-0.85).
 - Duplicates and collapsed centroids: none (0 duplicate summaries, 0 empty clusters at the replacement or at the end of any block, 0 reseeded).
 - Outcome at step 1, logged partition minus plain Lloyd from the same step-0 partition (mean ACC difference, seeds below): LSA +0.020 (1/5), 0.6B +0.022 (1/5), 1.7B +0.057 (0/5), 4B +0.046 (1/5). On CLINC150 the same quantity was +0.005, +0.002, +0.011 and -0.016.
-  The step-1 improvement over plain Lloyd is larger here, with 5 seeds and one start per seed. This is a description of 20 (method, seed) pairs, not an effect estimate.
+  In NMI and ARI the means are +0.029 / +0.059 (1.7B) and +0.016 / +0.044 (4B), but about zero or mixed for LSA (NMI -0.015, ARI +0.017) and the 0.6B (-0.002, +0.003). So the step-1 improvement over plain Lloyd shows in ACC for the 1.7B and 4B and in all three metrics only for those two, with 5 seeds and one start per seed. This is a description of 20 (method, seed) pairs, not an effect estimate.
 - Share of the final summaries that no longer describe the final partition (Jaccard below 0.5, or nearer another cluster's final center): LSA 0 of 25, 0.6B 5, 1.7B 1, 4B 4.
 
 **Dense variant (not run).** An exact replay needs the summaries re-encoded by MiniLM on the GPU the runs used (as for CLINC150, where a CPU encode differs by about 1e-6 per row and did not reproduce the 4B's blocks). This is one queued GPU step of about a minute, then CPU replays.
@@ -277,7 +277,7 @@ Five seeds, one dataset with 5 topics, one model family, one prompt, one member-
 
 - **In the TF-IDF space, every summary method has a higher mean than k-means, and the 1.7B has the highest.** The gaps are 0.05-0.09 in ACC against seed spreads of 0.02-0.08, and almost all paired intervals include 0. Two of 30 do not, both with a lower end near 0.
   The data do not separate LSA from the Qwen sizes, or the Qwen sizes from each other.
-- **Size does not order the Qwen results** (1.7B above 4B above 0.6B in TF-IDF; 0.6B above 1.7B and 4B in the dense control), as on CLINC150 and Bank77 (`clinc150_summarizers.md`). With one model family and two embeddings this is not a trend either way.
+- **Size does not order the Qwen results.** In TF-IDF the order 1.7B above 4B above 0.6B is within noise (every paired interval between sizes includes 0), as on CLINC150 and Bank77 (`clinc150_summarizers.md`). The dense ordering is not used as evidence: it is one seed's outcome (Section 3). With one model family this is not a trend either way.
 - **The dense control mostly shows the effect of the starting partition.** Seeds 0 and 2 start in a business/tech merged optimum and decide the means and spreads. Whether a method leaves that optimum in a given seed is not explained by these runs.
   On the other three seeds all methods are within 0.008 of each other.
 - **Compared with CLINC150 (#31), qualitatively:** the 4B is not below k-means here (on CLINC150 it was below k-means on all 5 seeds), there are no cluster-mentioning or duplicate summaries (CLINC150 had 34% mentions for the 4B; a different prompt, dataset and task, so not a controlled comparison), and the replacement moves
@@ -301,6 +301,7 @@ python scripts/prepare_bbc.py                 # data/bbc500.csv from the ids fil
 scripts/run_bbc.sh tfidf                      # k-means, LSA, Qwen3 0.6B/1.7B/4B, seeds 0-4; table in results/bbc_tfidf_table.md
 scripts/run_bbc.sh dense
 
+TFIDF_RUNS="results/bbc_tfidf_lsa/<stamp> results/bbc_tfidf_qwen3-0.6b/<stamp> results/bbc_tfidf_qwen3-1.7b/<stamp> results/bbc_tfidf_qwen3-4b/<stamp>"
 for v in tfidf dense; do
   RUNS="results/bbc_${v}_lsa/<stamp> results/bbc_${v}_qwen3-0.6b/<stamp> results/bbc_${v}_qwen3-1.7b/<stamp> results/bbc_${v}_qwen3-4b/<stamp>"
   python scripts/aggregate_results.py $RUNS \
@@ -317,13 +318,18 @@ python scripts/bbc_report.py $TFIDF_RUNS --ids data/bbc500_ids.csv \
     --oov-md docs/results/bbc_tfidf_oov.md --oov-csv docs/results/bbc_tfidf_oov.csv   # TF-IDF runs only
 
 # Replacement diagnostic, TF-IDF (CPU, about 70 s). Write to a scratch directory, not docs/results: the file names carry no
-# dataset prefix and an examples file with article text is written; copy the numeric files under the bbc_tfidf_replacement_ names.
+# dataset prefix and an examples file with article text is written; the numeric files are then copied under the committed names below.
 CUDA_VISIBLE_DEVICES="" python scripts/embed_logged_summaries.py $TFIDF_RUNS --cache-dir cache \
     --out results/replacement_diagnostic/bbc_tfidf_summary_embeddings.npz --device cpu
 CUDA_VISIBLE_DEVICES="" python scripts/replacement_diagnostic.py $TFIDF_RUNS --cache-dir cache \
     --summary-embeddings results/replacement_diagnostic/bbc_tfidf_summary_embeddings.npz \
     --out-dir results/replacement_diagnostic/bbc_tfidf --work-dir results/replacement_diagnostic/bbc_tfidf_work
+# Commit only these (not examples.md, which quotes article text; not iterations.csv):
+OUT=results/replacement_diagnostic/bbc_tfidf
+for f in verification.csv verification.md mechanism.csv steps.csv outcome.csv tables.md; do
+  cp $OUT/replacement_diagnostic_$f docs/results/bbc_tfidf_replacement_$f
+done
 ```
 
-`TFIDF_RUNS` is the four `results/bbc_tfidf_*/<stamp>` directories. The script ends with a `KeyError` in the figure step (Section 7) after writing all tables and CSVs. The dense replay is in Section 7.
+The script ends with a `KeyError` in the figure step (Section 7) after writing all tables and CSVs. The dense replay is in Section 7.
 Tests: `tests/test_bbc_report.py`.
