@@ -86,3 +86,12 @@ def test_method_label_names_the_model():
     assert method_label({"summarizer": {"type": "hf", "model_id": "Qwen/Qwen3-4B"}}, "k-SLMmeans") == (
         "k-SLMmeans (Qwen3-4B)"
     )
+
+
+def test_run_prompt_prefers_the_run_s_own_prompt():
+    script = load_script()
+    assert script.run_prompt({"summarizer": {"type": "hf", "prompt": "Write one new question."}}, "old") == (
+        "Write one new question."
+    )
+    assert script.run_prompt({"summarizer": {"type": "hf"}}, "old") == "old"
+    assert script.run_prompt({"summarizer": {"type": "lsa"}}, "old") == "old"

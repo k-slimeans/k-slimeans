@@ -37,6 +37,11 @@ from kslimeans.summary_quality import aggregate_scores, load_nlp, method_label
 KEYS = ["dataset", "method", "run", "seed", "step", "source_step", "approx_partition"]
 
 
+def run_prompt(config: dict, dataset_prompt: str) -> str:
+    """The prompt the run's summarizer was given: its own `summarizer.prompt`, else the dataset default."""
+    return config["summarizer"].get("prompt") or dataset_prompt
+
+
 def score_run(run_dir: str, cache_dir: str, corpora: dict, nlp, final_only: bool) -> tuple[list[dict], list[dict]]:
     """Cluster rows and step rows of one run directory (`corpora` caches the per-dataset spaCy features)."""
     from kslimeans.runlog import embed_summaries, load_run, load_run_dataset, load_run_embedder
@@ -52,7 +57,8 @@ def score_run(run_dir: str, cache_dir: str, corpora: dict, nlp, final_only: bool
         embedder.encode([n.replace("_", " ") for n in ds.label_names]) if ds.label_names is not None else None
     )
     # Extractive summarizers are not asked for a question, so the "?" check applies to model runs only.
-    asks_question = "question" in ds.prompt.lower() and config["summarizer"].get("type") == "hf"
+    prompt = run_prompt(config, ds.prompt)
+    asks_question = "question" in prompt.lower() and config["summarizer"].get("type") == "hf"
 
     cluster_rows: list[dict] = []
     step_rows: list[dict] = []
@@ -65,7 +71,7 @@ def score_run(run_dir: str, cache_dir: str, corpora: dict, nlp, final_only: bool
                 S = embed_summaries(embedder, summaries)
                 rows, step = score_step(
                     summaries, S, X, sp.labels, ds.labels, corpora[ds.name], nlp,
-                    prompt=ds.prompt, asks_question=asks_question, after=sp.after, label_emb=label_emb,
+                    prompt=prompt, asks_question=asks_question, after=sp.after, label_emb=label_emb,
                 )
                 key = {
                     "dataset": ds.name,
