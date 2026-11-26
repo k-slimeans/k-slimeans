@@ -1,0 +1,8 @@
+item,unit,usd,source,checked
+gpu,per hour,0.242,https://www.aquanode.io/pricing,2026-11-26
+api_input:gpt-4o,per 1M tokens,2.50,https://developers.openai.com/api/docs/models/gpt-4o?site_locale=en,2026-11-26
+api_output:gpt-4o,per 1M tokens,10.00,https://developers.openai.com/api/docs/models/gpt-4o?site_locale=en,2026-11-26
+api_input:claude-sonnet-4-6,per 1M tokens,3.00,https://platform.claude.com/docs/en/models/sonnet-4-6/overview,2026-11-26
+api_output:claude-sonnet-4-6,per 1M tokens,15.00,https://platform.claude.com/docs/en/models/sonnet-4-6/overview,2026-11-26
+api_input:deepseek-v4-pro,per 1M tokens,1.32,https://api-docs.deepseek.com/quick_start/pricing/,2026-11-26
+api_output:deepseek-v4-pro,per 1M tokens,3.96,https://api-docs.deepseek.com/quick_start/pricing/,2026-11-26
