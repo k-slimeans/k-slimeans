@@ -8,3 +8,4 @@ cache/
 data/stackexchange/*.csv
 /data/arxiv/
 /data/bbc500.csv
+venv/
