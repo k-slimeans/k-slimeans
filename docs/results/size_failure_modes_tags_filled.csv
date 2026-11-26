@@ -1,0 +1,154 @@
+cluster,size,model,prompt,summary,echoes_instruction,mentions_cluster_or_questions,quote_marks_or_markup,copies_member_verbatim,no_question_mark,answers_instead_of_asking,covers_one_subgroup,adds_detail_no_member_has,other,notes
+16,223,Qwen3-0.6B,old,What are the key points you're asking about in this cluster of questions?,1,1,0,0,0,0,0,0,,"Task-level question, no content"
+16,223,Qwen3-0.6B,clearer,What are the international transaction fees associated with my card?,0,0,0,0,0,0,1,0,,Card fees only
+16,223,Qwen3-1.7B,old,"What are the key financial and transaction-related concerns and requests related to multiple accounts, including checking, savings, credit cards, and online purchases, and how can they be addressed?",0,0,0,0,0,0,0,1,,"Checking, savings and online purchases not explicit; absent from displayed sample, full cluster unverified"
+16,223,Qwen3-1.7B,clearer,What are the common concerns users have about their financial transactions and card fees?,0,0,0,0,0,0,0,0,Third-person user framing,"Financial transactions and fees, broad but relevant"
+16,223,Qwen3-4B,old,"What is the summary of the following cluster of questions? 
+
+The cluster of questions revolves around various financial and account-related inquiries, including transferring funds between accounts, checking balances for purchases, understanding credit card limits and fees, tracking transactions, and monitoring the status of online orders and payments.",1,1,0,0,0,1,0,1,,"Echo then explanatory answer; order status and credit limits not shown (present in gold breakdown); absent from displayed sample, full cluster unverified"
+16,223,Qwen3-4B,clearer,Can you check the status of my recent online purchases and provide information about my account balances and transaction fees?,0,0,0,0,0,0,0,1,,"Recent online purchase status not shown (order status is in gold breakdown); absent from displayed sample, full cluster unverified"
+39,127,Qwen3-0.6B,old,What are some of the questions you can ask me?,0,0,0,0,0,0,0,0,Vague assistant capability / perspective shift,Generic assistant capability question; little identity coverage
+39,127,Qwen3-0.6B,clearer,What can I ask the AI to help me with?,0,0,0,0,0,0,1,0,,Assistant help only
+39,127,Qwen3-1.7B,old,What is the primary purpose of the AI and what are the key aspects of its functionality and design?,0,0,0,0,0,0,0,0,Abstract third-person framing,"Design and function, misses social exchanges"
+39,127,Qwen3-1.7B,clearer,"What are the different ways to interact with the ai, and what are the various functions it can perform?",0,0,0,0,0,0,0,0,,Interaction and functions; misses identity details
+39,127,Qwen3-4B,old,"What are the common questions asked about the capabilities, origin, and identity of an AI system?",0,1,0,0,0,0,0,0,,Meta question about common questions; covers identity and origin
+39,127,Qwen3-4B,clearer,"What can I ask you, AI?",0,0,0,0,0,0,1,0,,Assistant help only
+51,345,Qwen3-0.6B,old,What is the quickest way to transfer money between accounts?,0,0,0,0,0,0,1,1,,"Transfers only; quickest constraint not shown; absent from displayed sample, full cluster unverified"
+51,345,Qwen3-0.6B,clearer,can you help me unlock my bank account?,0,0,0,0,0,0,1,0,,Account hold/unlocking only
+51,345,Qwen3-1.7B,old,"What are the main tasks and concerns related to transferring money between bank accounts, checking balances, and account management?",0,0,0,0,0,0,0,0,,"Covers transfers, balances and management"
+51,345,Qwen3-1.7B,clearer,What is the best way to check my bank balance and manage my accounts efficiently?,0,0,0,0,0,0,0,0,,Balance and account management
+51,345,Qwen3-4B,old,How can I transfer money between bank accounts and check my bank balances?,0,0,0,0,0,0,0,0,,"Transfers and balances, two main groups"
+51,345,Qwen3-4B,clearer,How can I transfer money between different bank accounts?,0,0,0,0,0,0,1,0,,Transfers only
+59,131,Qwen3-0.6B,old,What is the date 5 days from today?,0,0,0,0,0,0,1,0,,Date calculation only
+59,131,Qwen3-0.6B,clearer,can you set a timer for 5 minutes?,0,0,0,0,0,0,1,0,,Timer only
+59,131,Qwen3-1.7B,old,What is the main theme or common request in the cluster of questions provided?,1,1,0,0,0,0,0,0,,Task echo
+59,131,Qwen3-1.7B,clearer,What is the best time to schedule a meeting with john for 5 pm today?,0,0,0,0,0,0,1,1,,"Meeting only; today not shown for John; absent from displayed sample, full cluster unverified"
+59,131,Qwen3-4B,old,What is the main topic that the cluster of questions revolves around?,1,1,0,0,0,0,0,0,,Task echo
+59,131,Qwen3-4B,clearer,Can you reserve a table for 5 people at a restaurant at 5 pm?,0,0,0,0,0,0,1,0,,Restaurant reservation only
+83,63,Qwen3-0.6B,old,Can you make a reservation at Outback Steakhouse for a party of 5 at 7:00 PM under Jack Arnold?,0,0,0,0,0,0,1,1,,"Reservation subgroup; party, time and name not shown; absent from displayed sample, full cluster unverified"
+83,63,Qwen3-0.6B,clearer,What's a good recipe for steak?,0,0,0,0,0,0,1,0,,Cooking/recipe subgroup
+83,63,Qwen3-1.7B,old,"What is the best way to reserve a table at Outback Steakhouse for a party of 5 at 7:00 PM, and what are the wait times and reservation policies?",0,0,0,0,0,0,1,1,,"Reservation subgroup; party of five and 7 pm not shown; absent from displayed sample, full cluster unverified"
+83,63,Qwen3-1.7B,clearer,How can I ensure my reservation at outback steakhouse is confirmed and available for the requested time?,0,0,0,0,0,0,1,0,,Reservation subgroup; confirmation is related
+83,63,Qwen3-4B,old,"How can I make a reservation at a steakhouse, check its availability, and learn about cooking and nutritional information for steak?",0,0,0,0,0,0,0,0,,"Reservations, availability, cooking and nutrition"
+83,63,Qwen3-4B,clearer,can you help me reserve a table at a steakhouse for a group of people at a specific time and name,0,0,0,0,1,0,1,0,,Reservation subgroup; missing question mark
+32,215,Qwen3-0.6B,old,What is the schedule for meetings today?,0,0,0,0,0,0,1,0,,Existing meeting schedule only
+32,215,Qwen3-0.6B,clearer,How can I schedule a meeting with someone on my calendar?,0,0,0,0,0,0,1,0,,New meeting scheduling only
+32,215,Qwen3-1.7B,old,"What is the user's schedule for today, including meetings, reminders, and availability for meeting rooms, and how can they schedule or manage their meetings?",0,0,0,0,0,0,0,0,Third-person framing,"Covers existing and new meetings, reminders and rooms"
+32,215,Qwen3-1.7B,clearer,How can I check if there are any meetings scheduled for today and what times they are set for?,0,0,0,0,0,0,1,0,,Existing meeting schedule only
+32,215,Qwen3-4B,old,"What is the summary of the cluster?  
+The cluster of questions revolves around scheduling meetings, checking meeting schedules and availability, setting reminders, and managing meeting rooms. The questions cover various aspects such as checking what is on one's schedule, scheduling meetings with specific people and times, setting reminders, checking meeting room availability, and",1,1,0,0,0,1,0,0,Truncated output,Echo and explanation; truncated ending
+32,215,Qwen3-4B,clearer,How can I check my schedule for meetings and set up new ones?,0,0,0,0,0,0,0,0,,Existing and new meetings
+34,159,Qwen3-0.6B,old,"How can I request a PTO request for the dates from March 1 to 2, and when can I schedule a PTO request for the dates from April 22 to May 1?",0,0,0,0,0,0,1,1,,"PTO requests only; specific dates not shown; absent from displayed sample, full cluster unverified"
+34,159,Qwen3-0.6B,clearer,can you set up a pto request for me for the dates june 4th to june 8th?,0,0,0,0,0,0,1,1,,"PTO requests only; dates not shown; absent from displayed sample, full cluster unverified"
+34,159,Qwen3-1.7B,old,"How can I request a PTO request for specific dates, including weekends, and what is the status of my PTO usage and remaining days?",0,0,0,0,0,0,0,1,,"Weekend constraint not shown; covers requests and usage; absent from displayed sample, full cluster unverified"
+34,159,Qwen3-1.7B,clearer,How much pto days are available for me to use in the current month?,0,0,0,0,0,0,1,1,,"PTO balance only; current month not shown; absent from displayed sample, full cluster unverified"
+34,159,Qwen3-4B,old,"How can I submit or schedule a PTO request for specific dates, and what is the current status of my available PTO days?",0,0,0,0,0,0,0,0,,PTO requests and available days
+34,159,Qwen3-4B,clearer,Can you submit a pto request for me from [start date] to [end date]?,0,0,1,0,0,0,1,0,,PTO requests only; bracket placeholders
+62,142,Qwen3-0.6B,old,What are some fun facts about the mountain range in the area near the closest gas station?,0,0,0,0,0,0,1,1,,"Fun facts only; mountain range and gas station not shown; absent from displayed sample, full cluster unverified"
+62,142,Qwen3-0.6B,clearer,What is the nearest gas station to Glendale?,0,0,0,0,0,0,1,1,,"Directions only; Glendale and gas station not shown; absent from displayed sample, full cluster unverified"
+62,142,Qwen3-1.7B,old,"What is the best way to ask for directions to the nearest gas station, coffee shop, or other essential services while traveling?",0,0,0,0,0,0,1,1,,"Directions only; gas station not shown; absent from displayed sample, full cluster unverified"
+62,142,Qwen3-1.7B,clearer,What is the safest place to travel in the world?,0,0,0,0,0,0,1,0,,Travel safety only
+62,142,Qwen3-4B,old,What is the best way to summarize the given cluster of questions?,1,1,0,0,0,0,0,0,,Task echo
+62,142,Qwen3-4B,clearer,Where can I find the closest [specific location or establishment] to my current location?,0,0,1,0,0,0,1,0,,Directions only; bracket placeholder
+100,83,Qwen3-0.6B,old,How long will it take to drive to the park in West County?,0,0,0,0,0,0,1,1,,"Travel time subgroup; driving and West County not shown; absent from displayed sample, full cluster unverified"
+100,83,Qwen3-0.6B,clearer,How long will it take to get to the library by bus?,0,0,0,0,0,0,1,1,,"Bus travel time only; library not shown; absent from displayed sample, full cluster unverified"
+100,83,Qwen3-1.7B,old,"What is the estimated time for a bus ride to various destinations, including cities, landmarks, and locations like the park, library, airport, and monuments, and how can one plan their journey by bus?",0,0,0,0,0,0,0,1,,"Multiple bus intents; library, airport and monuments not shown; absent from displayed sample, full cluster unverified"
+100,83,Qwen3-1.7B,clearer,How long will it take to reach the airport by bus?,0,0,0,0,0,0,1,1,,"Bus travel time only; airport not shown; absent from displayed sample, full cluster unverified"
+100,83,Qwen3-4B,old,What is the estimated travel time by bus to various destinations?,0,0,0,0,0,0,1,0,,Travel time only
+100,83,Qwen3-4B,clearer,how long does it take to get to a specific destination by bus,0,0,0,0,1,0,1,0,,Travel time only; missing question mark
+149,246,Qwen3-0.6B,old,What should I do if my card is lost or damaged?,0,0,0,0,0,0,0,0,,Lost and damaged cards
+149,246,Qwen3-0.6B,clearer,what should i do if my card is lost,0,0,0,0,1,0,1,0,,Lost cards only
+149,246,Qwen3-1.7B,old,"What should I do if my card is lost, damaged, or stolen, and how can I report it to get a replacement?",0,0,0,0,0,0,0,1,,"Theft not shown; lost/damaged and replacement supported; absent from displayed sample, full cluster unverified"
+149,246,Qwen3-1.7B,clearer,What should I do if my card is damaged and I need a replacement?,0,0,0,0,0,0,1,0,,Damaged cards only
+149,246,Qwen3-4B,old,How do I report a lost or damaged card and what steps should I take to replace it?,0,0,0,0,0,0,0,0,,Lost and damaged cards
+149,246,Qwen3-4B,clearer,How do I report a lost or damaged card?,0,0,0,0,0,0,0,0,,Lost and damaged cards
+4,154,Qwen3-0.6B,old,"Can you help me make a reservation at Chili's for tomorrow? Please confirm the details: party of two, February 22nd, two in the afternoon.",0,0,0,0,0,0,1,1,,"Reservation-related subgroup; Chili’s, party size and date/time not shown; absent from displayed sample, full cluster unverified"
+4,154,Qwen3-0.6B,clearer,What are some good dinner ideas for the upcoming week?,0,0,0,0,0,0,1,1,,"Meal suggestions only; upcoming week not shown; absent from displayed sample, full cluster unverified"
+4,154,Qwen3-1.7B,old,"What are some restaurant and meal suggestions for dinner, including reservations, food types, and cooking ideas?",0,0,0,0,0,0,0,0,,"Dining, meals, recipes and reservations"
+4,154,Qwen3-1.7B,clearer,What should I do if I need to make a reservation for a restaurant and also want to check the availability of a specific table?,0,0,0,0,0,0,1,0,,Restaurant reservation/availability only
+4,154,Qwen3-4B,old,"What are the various ways to seek restaurant reservations, dining suggestions, meal ideas, and cooking recipe recommendations?",0,0,0,0,0,0,0,0,,"Dining, meals, recipes and reservations"
+4,154,Qwen3-4B,clearer,What should I eat for dinner?,0,0,0,0,0,0,1,0,,Meal suggestions only
+108,169,Qwen3-0.6B,old,What are some roundtrip flights available from Dallas to Los Angeles from March 2 to March 10?,0,0,0,0,0,0,1,1,,"Flight booking only; route and dates not shown; absent from displayed sample, full cluster unverified"
+108,169,Qwen3-0.6B,clearer,what roundtrip flights from denver to new york are available from march 2 to march 10?,0,0,0,0,0,0,1,1,,"Flight booking only; dates not shown; absent from displayed sample, full cluster unverified"
+108,169,Qwen3-1.7B,old,"What is the best way to find roundtrip flights from various cities to different destinations, including airports in the US and international locations, and what are the key factors to consider when booking flights for travel dates and budget constraints?",0,0,0,0,0,0,0,1,,"Flight booking; international destinations not shown; absent from displayed sample, full cluster unverified"
+108,169,Qwen3-1.7B,clearer,What is the best way to find roundtrip flights from Dallas to Los Angeles for the dates of March 2 to March 10?,0,0,0,0,0,0,1,1,,"Flight booking only; route and dates not shown; absent from displayed sample, full cluster unverified"
+108,169,Qwen3-4B,old,"What is the estimated time to get to the airport from current location in LA, and what are the options for booking flights and resolving luggage issues?",0,0,0,0,0,0,0,0,,"Airport travel, booking, luggage"
+108,169,Qwen3-4B,clearer,What are the steps to apply for an american express card?,0,0,0,0,0,0,0,1,Unrelated topic,"Unrelated card application; no displayed support; absent from displayed sample, full cluster unverified"
+124,200,Qwen3-0.6B,old,How long will it take for your credit card to be replaced after it gets stolen?,0,0,0,0,0,0,1,0,,Replacement duration only
+124,200,Qwen3-0.6B,clearer,How long will it take for my credit card to be replaced when I lose it?,0,0,0,0,0,0,1,1,,"Replacement only; loss not shown (theft is); absent from displayed sample, full cluster unverified"
+124,200,Qwen3-1.7B,old,"What is the typical time frame for receiving a replacement credit card after losing or having a stolen credit card, including the time it takes for the new card to be mailed and delivered?",0,0,0,0,0,0,1,1,,"Replacement only; loss not shown; absent from displayed sample, full cluster unverified"
+124,200,Qwen3-1.7B,clearer,How long does it take for a credit card company to process and send a replacement card after a loss or theft?,0,0,0,0,0,0,1,1,,"Replacement only; loss not shown; absent from displayed sample, full cluster unverified"
+124,200,Qwen3-4B,old,How long does it take to replace a credit card and what is the expiration date of a credit card?,0,0,0,0,0,0,0,0,,Replacement and expiration
+124,200,Qwen3-4B,clearer,How long does it take to replace a credit card and what is the expiration date of my credit card?,0,0,0,0,0,0,0,0,,Replacement and expiration
+128,157,Qwen3-0.6B,old,What is the best way to pay your bills?,0,0,0,0,0,0,1,0,,Bill payment only; misses balance and due dates
+128,157,Qwen3-0.6B,clearer,can you help me pay my bill?,0,0,0,0,0,0,1,0,,Bill payment only
+128,157,Qwen3-1.7B,old,"How can I manage and pay my various bills, including utilities, loans, subscriptions, and other expenses, and what is the best way to track and ensure timely payment of my bills?",0,0,0,0,0,0,0,1,,"Subscriptions not shown; covers payment and tracking; absent from displayed sample, full cluster unverified"
+128,157,Qwen3-1.7B,clearer,How can I efficiently manage and track all my bill payments to ensure they are paid on time?,0,0,0,0,0,0,0,0,,Bill management and timely payment
+128,157,Qwen3-4B,old,"How can I pay various bills (electric, water, phone, car, etc.) using different accounts (Charles Schwab, Amex, PayPal, etc.) and manage my bill payments effectively?",0,0,0,0,0,0,0,1,,"Named accounts and some bill types not shown; absent from displayed sample, full cluster unverified"
+128,157,Qwen3-4B,clearer,how can i pay my bill online,0,0,0,0,1,0,1,0,,Bill payment only; online is implied by app
+141,210,Qwen3-0.6B,old,"Is ""rescind"" a word with a positive connotation?",0,0,1,0,0,0,0,1,Off-topic word definition,"Quoted word rescind not shown; off-topic spelling/definition; absent from displayed sample, full cluster unverified"
+141,210,Qwen3-0.6B,clearer,"""Thank you for helping me out today!""",0,0,1,0,1,0,0,0,Statement of gratitude rather than question,"Gratitude statement, not a question; quotation wrapper"
+141,210,Qwen3-1.7B,old,What is the sentiment expressed in the conversation about gratitude and appreciation for help?,0,0,0,0,0,0,0,0,,"Meta sentiment framing, gratitude and appreciation"
+141,210,Qwen3-1.7B,clearer,How can I express gratitude in a meaningful way when receiving assistance?,0,0,0,0,0,0,1,0,,Gratitude only; misses goodbyes
+141,210,Qwen3-4B,old,What is the main theme of the following cluster of questions?,1,1,0,0,0,0,0,0,,Task echo
+141,210,Qwen3-4B,clearer,What are some common ways to express gratitude towards someone?,0,0,0,0,0,0,1,0,,Gratitude only; misses goodbyes
+22,157,Qwen3-0.6B,old,Can you help me cancel all the dinner reservations and events I've scheduled?,0,0,0,0,0,0,0,0,,Cancellation and calendar events
+22,157,Qwen3-0.6B,clearer,Can you cancel my dinner reservation for tonight?,0,0,0,0,0,0,0,1,,"Tonight not shown; absent from displayed sample, full cluster unverified"
+22,157,Qwen3-1.7B,old,How can I cancel my dinner reservations and related calendar entries?,0,0,0,0,0,0,0,0,,Cancellation and calendar entries
+22,157,Qwen3-1.7B,clearer,Can you help me cancel my upcoming reservations for dinner and events?,0,0,0,0,0,0,0,0,,Cancellation and events
+22,157,Qwen3-4B,old,What is the main topic of the following cluster of questions?,1,1,0,0,0,0,0,0,,Task echo
+22,157,Qwen3-4B,clearer,cancel my dinner reservation please,0,0,0,0,1,0,0,0,,"Valid cancellation request, missing question mark"
+86,84,Qwen3-0.6B,old,What transactions have I made on liquor in the past month?,0,0,0,0,0,0,1,1,,"Spending subgroup; liquor and past month not shown; absent from displayed sample, full cluster unverified"
+86,84,Qwen3-0.6B,clearer,how much have i spent on alcohol recently?,0,0,0,0,0,0,1,1,,"Spending subgroup; alcohol not shown; absent from displayed sample, full cluster unverified"
+86,84,Qwen3-1.7B,old,"What is the total amount spent on food, eating out, alcohol, and other categories in the past month, including recent transactions like dining out, groceries, and coffee?",0,0,0,0,0,0,0,1,,"Alcohol, groceries, coffee and past month not shown; absent from displayed sample, full cluster unverified"
+86,84,Qwen3-1.7B,clearer,What have I spent on beverages recently?,0,0,0,0,0,0,1,1,,"Spending subgroup; beverages not shown; absent from displayed sample, full cluster unverified"
+86,84,Qwen3-4B,old,"What is the total amount spent on various categories such as food, alcohol, groceries, and other expenses in the past month?",0,0,0,0,0,0,0,1,,"Alcohol, groceries and past month not shown; absent from displayed sample, full cluster unverified"
+86,84,Qwen3-4B,clearer,What have i spent on various categories of expenses recently?,0,0,0,0,0,0,0,0,,Broad spending history
+89,81,Qwen3-0.6B,old,Can you schedule a car maintenance check for me?,0,0,0,0,0,0,0,0,,Car maintenance
+89,81,Qwen3-0.6B,clearer,where can i schedule to get my tires checked out?,0,0,0,0,0,0,1,0,,"Tire checks only, misses general maintenance"
+89,81,Qwen3-1.7B,old,"How can I schedule car maintenance and tire checks, including finding local places and making appointments for my vehicle?",0,0,0,0,0,0,0,0,,Maintenance and tire checks
+89,81,Qwen3-1.7B,clearer,How can I schedule a tire inspection and ensure my car is maintained on time?,0,0,0,0,0,0,0,0,,Tire inspection and maintenance
+89,81,Qwen3-4B,old,How can I schedule car maintenance and tire checks for my vehicle?,0,0,0,0,0,0,0,0,,Maintenance and tire checks
+89,81,Qwen3-4B,clearer,how do i schedule car maintenance and tire checks,0,0,0,0,1,0,0,0,,Missing question mark
+140,160,Qwen3-0.6B,old,Can you help me book a car rental in Nashville?,0,0,0,0,0,0,0,1,,"Nashville not shown; absent from displayed sample, full cluster unverified"
+140,160,Qwen3-0.6B,clearer,can you help me book a car rental in new york from march 2 to march 4?,0,0,0,0,0,0,0,1,,"New York shown, dates not shown for that city; absent from displayed sample, full cluster unverified"
+140,160,Qwen3-1.7B,old,"How can I book a rental car for specific dates and preferences, including location, make, model, and duration?",0,0,0,0,0,0,0,0,,"Rental location, dates and preferences"
+140,160,Qwen3-1.7B,clearer,"How can I find a rental car with specific requirements like a certain make, model, and duration in different cities?",0,0,0,0,0,0,0,0,,Rental preferences and locations
+140,160,Qwen3-4B,old,"What are the common requests related to car rentals, payments, and reservations?",0,0,0,0,0,0,0,0,,"Rental, payment and reservations; meta wording"
+140,160,Qwen3-4B,clearer,Can you help me book a car rental for a specific date and location with certain preferences?,0,0,0,0,0,0,0,0,,"Rental dates, location and preferences"
+142,157,Qwen3-0.6B,old,What is the definition of incomprehensible?,0,0,0,0,0,0,1,1,,"Definition minority; incomprehensible not shown; absent from displayed sample, full cluster unverified"
+142,157,Qwen3-0.6B,clearer,what is the point of sentience?,0,0,0,0,0,0,1,1,,"Definition minority; sentience not shown; absent from displayed sample, full cluster unverified"
+142,157,Qwen3-1.7B,old,What is the definition of an anachronism and what does it mean for a statement to be false or incorrect?,0,0,0,0,0,0,0,0,,Definition and rejection/incorrectness
+142,157,Qwen3-1.7B,clearer,"What does ""no"" mean in different contexts?",0,0,0,0,0,0,0,0,Intent shift: rejection to definition,Meaning of no; changes rejection into definition
+142,157,Qwen3-4B,old,What is the main theme of the cluster?,1,1,0,0,0,0,0,0,,Task echo
+142,157,Qwen3-4B,clearer,what is the meaning of no,0,0,0,0,1,0,0,0,Intent shift: rejection to definition,Meaning of no; changes rejection into definition
+29,131,Qwen3-0.6B,old,What is the next song on the playlist?,0,0,0,0,0,0,0,0,Intent shift: playback to song identity,Asks identity of next song rather than requesting playback
+29,131,Qwen3-0.6B,clearer,can you play the next song on this playlist?,0,0,0,0,0,0,0,0,,Requests next song playback
+29,131,Qwen3-1.7B,old,What is the user's request for the next song on the playlist?,0,0,0,0,0,0,0,0,Third-person framing,Third-person request framing
+29,131,Qwen3-1.7B,clearer,How can I ensure the next song on the playlist is played as requested?,0,0,0,0,0,0,0,0,,Next song playback
+29,131,Qwen3-4B,old,What are the common ways to request the next song in a playlist?,0,0,0,0,0,0,0,0,Meta request framing,Meta wording about ways to request next song
+29,131,Qwen3-4B,clearer,play the next song on the playlist,0,0,0,0,1,0,0,0,,Valid playback command; missing question mark
+67,100,Qwen3-0.6B,old,How can I transfer or roll over my 401k account?,0,0,0,0,0,0,0,0,,401k rollover
+67,100,Qwen3-0.6B,clearer,How can I roll over my 401k?,0,0,0,0,0,0,0,0,,401k rollover
+67,100,Qwen3-1.7B,old,How can I transfer or rollover my 401(k) and what steps do I need to follow?,0,0,0,0,0,0,0,0,,401k rollover
+67,100,Qwen3-1.7B,clearer,How can I determine if my 401k can be rolled over to another account?,0,0,0,0,0,0,0,0,,401k rollover eligibility
+67,100,Qwen3-4B,old,How can I transfer or rollover my 401k?,0,0,0,0,0,0,0,0,,401k rollover
+67,100,Qwen3-4B,clearer,How can I rollover or transfer my 401k?,0,0,0,0,0,0,0,0,,401k rollover
+80,132,Qwen3-0.6B,old,What is the number you get when rolling a dice?,0,0,0,0,0,0,0,0,Intent shift--action to outcome question,"Asks result of roll, rather than requesting roll"
+80,132,Qwen3-0.6B,clearer,How many calories do you get when rolling a dice?,0,0,0,0,0,0,0,1,Incoherent combination of topics,"Combines calories and dice; no displayed support for calories; absent from displayed sample, full cluster unverified"
+80,132,Qwen3-1.7B,old,What is the purpose of rolling dice in the context of the cluster?,0,1,0,0,0,0,0,0,,Meta framing about purpose in cluster
+80,132,Qwen3-1.7B,clearer,What is the typical number of sides on a standard die?,0,0,0,0,0,0,0,0,Intent shift--action to die properties,Asks die properties rather than requesting roll
+80,132,Qwen3-4B,old,What is a general summary of the cluster of questions?,1,1,0,0,0,0,0,0,,Task echo
+80,132,Qwen3-4B,clearer,can you roll a dice for me please,0,0,0,0,1,0,0,0,,Valid dice-roll request; missing question mark
+88,35,Qwen3-0.6B,old,Are you a bot or a person?,0,0,0,0,0,0,0,0,,Bot identity
+88,35,Qwen3-0.6B,clearer,Are you a bot or a person?,0,0,0,0,0,0,0,0,,Bot identity
+88,35,Qwen3-1.7B,old,Are you considered a bot or a human?,0,0,0,0,0,0,0,0,,Bot identity
+88,35,Qwen3-1.7B,clearer,Are you capable of determining whether you are a bot or a human?,0,0,0,0,0,0,0,0,,Bot identity; asks ability to determine it
+88,35,Qwen3-4B,old,Are you a bot or a human?,0,0,0,0,0,0,0,0,,Bot identity
+88,35,Qwen3-4B,clearer,are you a bot or a human,0,0,0,0,1,0,0,0,,Missing question mark
+144,114,Qwen3-0.6B,old,Can you help me locate my phone?,0,0,0,0,0,0,0,0,,Locate phone
+144,114,Qwen3-0.6B,clearer,can you locate my phone?,0,0,0,0,0,0,0,0,,Locate phone
+144,114,Qwen3-1.7B,old,How can I locate or find my lost phone or cellphone?,0,0,0,0,0,0,0,0,,Locate phone
+144,114,Qwen3-1.7B,clearer,Can you help me determine where my phone is located?,0,0,0,0,0,0,0,0,,Locate phone
+144,114,Qwen3-4B,old,How can I find my lost or missing phone?,0,0,0,0,0,0,0,0,,Locate phone
+144,114,Qwen3-4B,clearer,can you help me find my lost phone,0,0,0,0,1,0,0,0,,Missing question mark
