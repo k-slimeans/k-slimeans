@@ -61,6 +61,28 @@ So the order of the sizes changes between datasets (`clinc150_summarizers.md` se
 
 **(d) Batch size, which differs by model, so size and batching are confounded. Interventional for the summaries, not for the scores.** The runs used batch 8 / 4 / 1 for 0.6B / 1.7B / 4B on CLINC150 and BBC, and 8 / 4 / 2 on BANKING77 (`cost_justification.md` section 1; `prelim_bank77.md` section 1). Every size has one batch size per dataset, so batch size cannot be separated from size in the clustering results. Greedy decoding at a fixed batch size reproduces the logged summaries exactly (150 of 150 at every size), but at batch 1 instead of the logged batch 25 of 150 of the 0.6B's step-1 summaries (17%) and 42 of 150 of the 1.7B's (28%) differ (`cost_timing.md` section 5). So a model at two batch sizes is two slightly different summarizers. Whether the changed summaries cluster differently was not measured, and the 4B does not fit a larger batch on this card, so a size comparison at fixed batch size was not possible.
 
+**(e) Failure modes read by hand, by size and prompt. Association, descriptive, one seed and one step, AI-assisted tags.**
+
+The #36 review packet has 25 CLINC150 clusters at step 1 of seed 0, five from each of five purity bins. Every run starts step 1 from the same partition, so each cluster's six summaries (three sizes, two prompts) describe the same members. Each summary was tagged against the ten members shown in the packet (`size_failure_modes.md`, `size_failure_modes_tags_filled.csv`). The tags were made with AI assistance, as the annotation file's name says, and were not re-checked by a second reader.
+
+Counts out of 25:
+
+| tag | 0.6B old | 0.6B v2 | 1.7B old | 1.7B v2 | 4B old | 4B v2 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| echoes the instruction | 1 | 0 | 1 | 0 | 8 | 0 |
+| mentions the cluster or the questions | 1 | 0 | 2 | 0 | 9 | 0 |
+| answers instead of asking | 0 | 0 | 0 | 0 | 2 | 0 |
+| no "?" | 0 | 2 | 0 | 0 | 0 | 10 |
+| covers only one sub-group | 13 | 17 | 3 | 12 | 1 | 10 |
+| adds a detail no shown member has | 11 | 11 | 10 | 6 | 3 | 2 |
+
+Quote marks (1, 1, 0, 0, 0, 2) and copies of a shown member (0 everywhere) are in the source table.
+
+- **They agree with the surface counts of (b).** The old 4B mentions the cluster in 9 of 25 (34% over the full run), the smaller sizes in 1 and 2 of 25 (8%), and no v2 summary does.
+- **They narrow (b).** Under the October prompt the 4B's failure is task-level talk about the cluster. The 0.6B fails differently: it covers only one sub-group in 13 of 25 and adds a detail absent from the shown members in 11 of 25, against 1 and 3 for the 4B. Part of the 4B's low sub-group count is that a task-level summary covers no sub-group at all, which the tag does not count. So the 4B is the size with the October prompt-reading failure, not the only size with failures.
+- **The clearer prompt narrows coverage.** Under it, cluster talk is gone at every size, but covering only one sub-group goes up at every size: 0.6B 13 to 17, 1.7B 3 to 12, 4B 1 to 10. This fits the scope note of Section 4: the clearer prompt removed a surface failure and was not shown to make summaries more faithful. The 4B's v2 summaries lack a "?" in 10 of 25, which often follows the members' informal style rather than marking a failure of content (`size_failure_modes.md`).
+- **Limits.** "Adds a detail" and "one sub-group" are judged from ten shown members, so an added detail is not a confirmed invention. These are 25 clusters at one step of one seed, tagged once.
+
 ## 3. What five seeds can and cannot separate
 
 **Method.** The 45 rows of [`size_result_table.csv`](size_result_table.csv) are the three size pairs by three metrics for each of the five settings in Section 1. For each, `sd` is the sample standard deviation (ddof = 1) of the 5 per-seed paired differences, copied from `prompt_test_paired.csv`, `bbc_tfidf_paired.csv` and `bbc_dense_paired.csv`, or computed from `prelim_bank77_per_seed.csv` by `aggregate.paired_differences`. The 95% interval half-width is t(0.975, 4) * sd / sqrt(5) = 2.776 * sd / 2.236 = 1.242 * sd.
@@ -101,18 +123,28 @@ What this says:
 
 ## 4. Scope statement
 
-- **Checkpoints and decoding.** Qwen3-0.6B, 1.7B and 4B, thinking off, greedy decoding, `max_new_tokens` 64. One model family: the sizes also differ in how they were trained (Section 5, pending), so "size" here means "these three checkpoints".
+- **Checkpoints and decoding.** Qwen3-0.6B, 1.7B and 4B, thinking off, greedy decoding, `max_new_tokens` 64. One model family: the sizes also differ in architecture and in how they were trained (Section 5), so "size" here means "these three checkpoints".
 - **Prompts.** CLINC150: the dataset's own prompt (October) and one clearer prompt written before any run (#46); BANKING77, BBC: the upstream or dataset prompt only. No prompt search, and no per-size tuning.
 - **Data and encoders.** CLINC150 (150 intents) and BANKING77 (77) with one sentence encoder; BBC (500 articles, k = 5) in TF-IDF and in a dense space; 5 seeds.
 - **Hardware.** One 12 GB consumer GPU under WSL2, which fixes the batch sizes (the 4B only fits at batch 1 on CLINC150) and so ties batch size to model size.
 - **Not claimed.** Nothing here says larger models are not better in general, that there is a size at which quality rises, or that the clearer prompt is a good prompt (it removed a surface failure; it was not shown to make summaries more faithful, `prompt_test.md` section 8.3).
 
-## 5. Pending inputs (Nabin, due Nov 26)
+## 5. How the three checkpoints differ in training (#36 question 6)
 
-These two files are not in the repo yet. Nothing above depends on them, and nothing below is filled in.
+From the Qwen3 technical report (arXiv:2505.09388v1), summarized in `docs/qwen3_sizes_notes.md`. The numbers below were checked against the report on 2026-11-27.
 
-- **TODO(#36, Nabin): failure modes by size and prompt, from `docs/results/size_failure_modes.md`.** Hand-tagged failure modes per size under the October and the clearer prompt. To be added to Section 2(b) and (c): a count per size and prompt of the tagged modes, set beside the surface counts used above (which are rule-based and count form only). If the tags agree with the surface counts, Section 2(b) stays as an association with a human-checked label; if the 1.7B or 0.6B show failures the surface rules miss (for example generic but well-formed questions), then the claim that the 4B is the main failing size under the October prompt needs to be narrowed.
-- **TODO(#36, Nabin): the Qwen3 training notes, from `docs/qwen3_sizes_notes.md`.** What the Qwen3 technical report says about how the three sizes were trained (issue question 6). To be added to Section 4 and the "not explained" paragraph of Section 2: the training differences between the checkpoints (for example how the smaller sizes were distilled from larger ones), stated as differences between these checkpoints. If the sizes differ in training in ways that bear on instruction following, that is a candidate reason for the prompt-reading differences in 2(a), and it still cannot be separated from parameter count with one family. It is not a test of it.
+- **Architecture (Table 1).** The 0.6B and 1.7B have 28 layers, 16 query and 8 key-value heads and a 32K context. The 4B has 36 layers, 32 query and 8 key-value heads and a 128K context. All three tie their embeddings. Our runs cap the input at 4,096 tokens, so the context difference does not apply.
+- **Pre-training (Sections 3.1 to 3.2).** One recipe for the family: about 36 trillion tokens in 119 languages and dialects, in three stages (general, reasoning, then long context at 32,768 tokens), with learning rate and batch size set per model from scaling laws. The report gives no per-checkpoint data mixture or token count.
+- **Post-training (Section 4.5).** All three are "lightweight" models trained by strong-to-weak distillation from a larger teacher (Qwen3-32B or Qwen3-235B-A22B): off-policy first, then on-policy, matching the teacher's logits by KL divergence. The report does not say which teacher, data or budget each student got.
+- **Instruction following, non-thinking mode (Tables 18 and 20).** For 0.6B / 1.7B / 4B:
+  - IFEval strict prompt: 54.5 / 68.2 / 81.2;
+  - MMLU-Redux: 44.6 / 64.4 / 77.3;
+  - WritingBench: 5.13 / 6.54 / 6.85.
+
+**What this adds:**
+- The checkpoints differ in more than parameter count: depth, heads, and a distillation whose details the report leaves out. So "size" here stays "these three checkpoints".
+- The 4B scores highest on a general instruction-following benchmark, yet it read our October prompt worst (Section 2(b) and (e)). Following instructions in general is not the same property as producing a summary that works as a centroid.
+- With one family and no controlled test, this describes these checkpoints. It does not explain the size result (`qwen3_sizes_notes.md` section 6).
 
 ## 6. Reproduce
 
