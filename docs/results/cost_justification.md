@@ -2,7 +2,7 @@
 
 This is the cost half of the main question (#82, part of #84), built only from runs that already exist: what each method costs on each dataset, what it buys in ACC, NMI and ARI over the extractive LSA summarizer and over plain k-means, and the extra seconds it costs per ACC point **where the benefit is clear of seed noise**. Nothing was re-run and nothing was re-timed. The overall synthesis is #50's job; this document only reads the cost against the benefit.
 
-Scope, in one place: **Qwen3-0.6B / 1.7B / 4B, greedy decoding, one RTX 3060 12 GB under WSL2, 5 seeds (arXiv: 1 seed), the prompts named in each row.** Every interval is the paired 95% Student-t interval over seeds (4 degrees of freedom), uncorrected for the many comparisons, taken from the repo's `aggregate.paired_differences` (the CLINC150 and BBC intervals equal the committed `prompt_test_paired.csv`, `bbc_tfidf_paired.csv` and `bbc_dense_paired.csv`; the BANKING77 ones agree with `prelim_bank77.md`). **Dollar figures: pending #10** (see "Prices"). `CONFIRM(#10)`.
+Scope, in one place: **Qwen3-0.6B / 1.7B / 4B, greedy decoding, one RTX 3060 12 GB under WSL2, 5 seeds (arXiv: 1 seed), the prompts named in each row.** Every interval is the paired 95% Student-t interval over seeds (4 degrees of freedom), uncorrected for the many comparisons, taken from the repo's `aggregate.paired_differences` (the CLINC150 and BBC intervals equal the committed `prompt_test_paired.csv`, `bbc_tfidf_paired.csv` and `bbc_dense_paired.csv`; the BANKING77 ones agree with `prelim_bank77.md`). Dollars use the #10 price list (`docs/cost_assumptions.md`, checked 2026-11-26; Section 4).
 
 Files: [`cost_justification_table.csv`](cost_justification_table.csv) (every column), [`cost_justification_table.md`](cost_justification_table.md) (cost, benefit and cost-per-benefit tables for every dataset, with the full timing text of each row), [`cost_justification_pareto.png`](cost_justification_pareto.png).
 
@@ -89,17 +89,44 @@ Scoped to what ran. With 5 seeds the intervals are wide, so "no measured benefit
 
 **When the extractive summarizer is the better choice, and when an SLM is worth it (what ran).**
 - Where the paired ACC interval against LSA contains 0 (CLINC150: the October 1.7B and the three v2 sizes; BANKING77; BBC TF-IDF), the SLMs show no measured benefit over LSA, and LSA costs less: 25 to 84 times fewer summarizer seconds on CLINC150 and 10 to 34 on BBC TF-IDF as logged, and 65 to 241 times fewer whole-method seconds on BANKING77 (a different seconds basis, so not pooled). Where the interval is clearly below 0 (CLINC150 October 0.6B and 4B), the SLM costs more and does worse. On this evidence LSA is the better-value choice in all of these; whether an SLM adds a small gain there cannot be told from 5 seeds.
-- The only measured ACC gain of an SLM over LSA is BBC with the dense embedder: +0.5 to +0.6 ACC points for the 1.7B and 4B, uncorrected for the many paired comparisons made (`bbc.md` Section 2: 4 of 30 dense intervals exclude 0, all for differences of at most 0.009, where LSA, the 1.7B and the 4B end in the same basin and differ by a few articles, so `bbc.md` does not read it as a method difference), lower interval ends at +0.001, 24 to 38 more seconds per seed on a 500-article corpus at unequal step counts, and unpriced (pending #10).
+- The only measured ACC gain of an SLM over LSA is BBC with the dense embedder: +0.5 to +0.6 ACC points for the 1.7B and 4B, uncorrected for the many paired comparisons made (`bbc.md` Section 2: 4 of 30 dense intervals exclude 0, all for differences of at most 0.009, where LSA, the 1.7B and the 4B end in the same basin and differ by a few articles, so `bbc.md` does not read it as a method difference), lower interval ends at +0.001, 24 to 38 more seconds per seed on a 500-article corpus at unequal step counts, which is $0.002 and $0.005 per ACC point at the GPU rental rate (Section 4).
 - Where the data cannot tell at all: arXiv (1 seed, no interval).
 - One model family, one prompt per dataset except CLINC150, greedy decoding, one GPU, batch sizes that differ by model: the table does not separate model size from batching, and says nothing about larger models or about summary quality (#38, #50).
 
 ## 4. Prices
 
-**Dollar figures pending #10.** `docs/cost_assumptions.md` (GPU $/hour and API list prices per 1M input and output tokens, with source and date; #10 step 1, due Nov 26) does not exist yet, so the dollar columns of the table are empty. The script takes them from `--prices`, a CSV with `item,unit,usd,source,checked` rows:
+The prices are #10's, in `docs/cost_assumptions.md` and `docs/cost_assumptions.csv` (all checked 2026-11-26):
+- **GPU:** an RTX 3060 12 GB at **$0.242 per GPU-hour**. That is an on-demand rental quote for the same card, used as a cloud-equivalent price for the logged local seconds. It is not the cost of owning the card and does not include electricity.
+- **API list prices** per 1M input / output tokens: GPT-4o $2.50 / $10.00, Claude Sonnet 4.6 $3.00 / $15.00, and DeepSeek V4 Pro $1.32 / $3.96 (its peak rate).
 
-- `gpu`, unit `hour`: the local GPU price. Local dollars are the row's seconds at that rate (LSA is priced at the same rate although its summarizer runs on the CPU, so its local dollars are an upper bound).
-- `api_input:<model>` and `api_output:<model>`, unit `1M tokens`: one API model's list prices. Hypothetical API dollars are the row's logged input and output tokens at those prices, 0 for k-means and LSA (no API call), and empty where the tokens were not logged (BANKING77, arXiv).
-- Every row needs a source and a check date. `CONFIRM(#10)`: these item names are this script's convention; match them to `docs/cost_assumptions.md` when it lands, then rerun with `--prices`. The dollars per ACC point use the same interval gate as the seconds. A hypothetical API price is a cost figure only; it says nothing about how good a large model's summaries would be (#38).
+The table was rerun with `--prices docs/cost_assumptions.csv`. Every dollar column of `cost_justification_table.csv` and `.md` comes from these prices. Local dollars are the seconds of Section 1 at the GPU rate, so they carry the same timing codes.
+
+**What the dollars add, on CLINC150 (per seed, as logged):**
+- **Local cost.**
+  - LSA costs $0.001. That is an upper bound: its summarizer runs on the CPU but is priced at the GPU rate.
+  - The SLMs cost $0.025 (v2 0.6B) to $0.125 (October 4B).
+  - Per ACC point over k-means, where the gate passes: LSA $0.001, the SLMs $0.02 to $0.05.
+  - Every method costs cents per seed on 22,500 queries. Seconds and dollars use one rate, so the ratios to LSA are the same as for seconds: 25 to 84 times for the rows that gain over k-means.
+- **Hypothetical API cost.** Sending the same prompts (about 1.1M input and 8k to 18k output tokens per seed) to a hosted large model would cost, per seed:
+  - $1.51 to $1.55 (DeepSeek V4 Pro);
+  - $2.88 to $2.96 (GPT-4o);
+  - $3.48 to $3.59 (Claude Sonnet 4.6).
+
+  That is 12 to 139 times the local rental cost of the same calls, almost all of it input tokens. A large model would tokenize and answer differently, so this is the price of our token counts at those rates, nothing more. It says nothing about how good a large model's summaries would be (#38).
+
+**Elsewhere:**
+- BBC: $0.001 to $0.006 per seed locally and $0.06 to $0.27 by API. The one SLM gain over LSA, BBC dense (Section 3), costs $0.002 (1.7B) and $0.005 (4B) per ACC point at the GPU rate.
+- BANKING77: $0.007 to $0.026 per seed, on whole-method seconds. No API dollars, because tokens were not logged.
+- arXiv pilot: $0.40 for the one-seed SLM run (code `E`, an upper bound).
+
+**Reading.** In absolute terms everything here is cheap, because the datasets are small and the model runs locally. Dollars grow with the number of calls and tokens. The cost question on these datasets is therefore a relative one. Where the data can tell, no SLM shows an ACC gain over LSA, at 25 to 84 times LSA's summarizer cost (CLINC150) and 65 to 241 times its whole-method seconds (BANKING77). A hosted large model would add about 1.5 to 3.6 dollars per seed on CLINC150 for summaries whose quality we did not measure.
+
+**Format.** The script reads `--prices`, a CSV with `item,unit,usd,source,checked` rows:
+- `gpu`, unit `hour`, is the local GPU price.
+- `api_input:<model>` and `api_output:<model>`, unit `1M tokens`, are one API model's list prices. Hypothetical API dollars are 0 for k-means and LSA (no API call) and empty where tokens were not logged (BANKING77, arXiv).
+- Units are compared loosely: `per hour` and `per 1M tokens` are accepted, case and spacing are ignored.
+- Every row needs a source and a check date.
+- The dollars per ACC point use the same interval gate as the seconds.
 
 A small example file with made-up numbers, for the unit tests only, is `tests/fixtures/cost_prices_example.csv`.
 
