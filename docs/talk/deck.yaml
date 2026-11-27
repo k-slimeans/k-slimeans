@@ -33,8 +33,8 @@ slides:
   type: title
   title: "When is a generated summary a useful centroid?"
   subtitle: "Small-language-model summaries as k-means centroids (k-SLiMeans)"
-  byline: "Cooper Wooley · Samiksha TODO(surname) · Nabin Paudyal"
-  occasion: "TODO(course) · December 2, 2026"
+  byline: "Cooper Wooley · Samiksha Aryal · Nabin Paudyal"
+  occasion: "December 2, 2026"
   quote: "“When does a generated summary provide a useful centroid, and when is its additional computational cost justified?”"
   notes: |
     [0:30] Our project answers one question, the one our instructor asked us after the November report: when does a generated summary give a useful centroid, and when is its extra computational cost justified?
