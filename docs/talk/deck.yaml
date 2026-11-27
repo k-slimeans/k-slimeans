@@ -1,0 +1,674 @@
+# Slide content for the Dec 2 talk (#83). `build_deck.py` turns this file into the .pptx.
+#
+# Every number comes from a committed file in docs/results/, named in the slide's `source` line, and was checked
+# against it on Nov 27. Chart values are copied from the CSVs named in each `data_source`.
+# Conventions: "old" = the October prompt (#31); "v2" = the clearer prompt (#46); "step 1" = the first summary step and
+# the 20-iteration Lloyd block after it; "final" = the score after all five summary steps. Intervals are paired 95%
+# Student-t over 5 seeds (4 df), uncorrected.
+#
+# Slides owned by Samiksha and Nabin are `placeholder` slides: they fix the title, the time and the sources only.
+
+meta:
+  title: "When is a generated summary a useful centroid?"
+  footer: "k-SLiMeans · Dec 2, 2026"
+  total_minutes: 30
+
+# One color per method, used on every chart.
+series_colors:
+  k-means: shuttle
+  LSA: orient
+  "0.6B": lima
+  "1.7B": miner
+  "old 4B": tango
+  "v2 4B": amethyst
+
+slides:
+
+# ---------------------------------------------------------------------------------------------- Part 1 (Cooper, 4 min)
+
+- id: "1.1"
+  part: 1
+  speaker: Cooper
+  minutes: 0.5
+  type: title
+  title: "When is a generated summary a useful centroid?"
+  subtitle: "Small-language-model summaries as k-means centroids (k-SLiMeans)"
+  byline: "Cooper Wooley · Samiksha TODO(surname) · Nabin Paudyal"
+  occasion: "TODO(course) · December 2, 2026"
+  quote: "“When does a generated summary provide a useful centroid, and when is its additional computational cost justified?”"
+  notes: |
+    [0:30] Our project answers one question, the one our instructor asked us after the November report: when does a generated summary give a useful centroid, and when is its extra computational cost justified?
+    Everything you'll see comes from runs we already had. After the November 18 feedback we added no new models or experiments.
+    I'll set up the method and then take apart what a replacement does. Samiksha covers how good the summaries are, Nabin covers model size and cost, and I close with the answer.
+
+- id: "1.2"
+  part: 1
+  speaker: Cooper
+  minutes: 1
+  type: flow
+  title: "Each round, a summary of the cluster becomes its new center"
+  steps:
+    - {label: "Embed", detail: "every text → a vector, once, shared by all methods"}
+    - {label: "Step 0", detail: "k-means++ start, one Lloyd block"}
+    - {label: "Summarize", detail: "each cluster's members → one text", loop: true}
+    - {label: "Replace", detail: "the summary's embedding becomes the cluster's center", loop: true, accent: true}
+    - {label: "Lloyd block", detail: "20 iterations: assign, re-average", loop: true}
+    - {label: "Score", detail: "ACC, NMI, ARI against the gold labels"}
+  loop_label: "× 5 summary steps"
+  variants:
+    - {name: "k-NLPmeans (upstream)", detail: "LSA picks 5 member sentences: extractive"}
+    - {name: "k-SLMmeans (ours)", detail: "Qwen3 0.6B / 1.7B / 4B writes one new question"}
+  callout: "On a given seed every method starts from the same step-0 partition, so at step 1 the summarizer is the only difference."
+  source: "README “How the algorithm maps to the code”, “Reproduction status” · clinc150_summarizers.md §1 · replacement_diagnostic.md §1"
+  notes: |
+    [1:00] This is the upstream k-NLPmeans loop (arXiv 2502.09667), which we re-implemented. Ours gives the same assignments as the upstream code in every check we ran.
+    Embed the texts, run k-means once. Then, five times: summarize each cluster, embed the summary, and let that embedding replace the cluster's center. Then run a Lloyd block of 20 iterations.
+    The summarizer is the only thing we change. The upstream method uses LSA, an extractive summarizer that picks five member sentences. Ours asks a small Qwen3 model to write one new question.
+    One design point matters for everything later. For a given seed, every method starts from the same step-0 partition. So at summary step 1, cluster c has the same members whichever model summarized it, and every comparison is paired by seed.
+
+- id: "1.3"
+  part: 1
+  speaker: Cooper
+  minutes: 1
+  type: two_column
+  title: "One main dataset, three sizes of one model family, five paired seeds"
+  left:
+    heading: "Data"
+    items:
+      - "**CLINC150**: 22,500 queries, 150 intents, k = 150. The main dataset, and the only one replayed cluster by cluster"
+      - "**BANKING77**: 3,080 queries, 77 intents"
+      - "**BBC News**: 500 articles, 5 topics (TF-IDF and a dense encoder)"
+      - "**arXiv**: a 200k-abstract pilot, 1 seed"
+  right:
+    heading: "Protocol"
+    items:
+      - "**Qwen3 0.6B / 1.7B / 4B**: greedy, thinking off, ≤ 64 new tokens; batch 8 / 4 / 1"
+      - "**Two prompts on CLINC150**: the October prompt and a clearer one, fixed before any run"
+      - "**5 seeds**, all methods paired on the same step-0 partition"
+      - "**Paired differences**, 95% t-interval (4 df), not corrected for multiple comparisons"
+      - "One RTX 3060, 12 GB"
+  source: "clinc150_summarizers.md §1, §2.2 · prompt_test.md §1 · bbc.md §1 · arxiv_status.md §5.1 · cost_justification.md §1"
+  notes: |
+    [1:00] CLINC150 carries the mechanism results, because it is the dataset we can replay cluster by cluster. The other datasets are method-level only.
+    The summarizers are three sizes of one family, Qwen3, run locally with greedy decoding. The batch sizes differ because the 4B only fits on our 12 GB card at batch 1; Nabin comes back to that.
+    Five seeds give wide intervals. An interval that only just excludes zero is weak evidence, and "not detectable" means not detectable with five seeds, not "no effect".
+
+- id: "1.4"
+  part: 1
+  speaker: Cooper
+  minutes: 1
+  type: bar_chart
+  title: "Where we started: the largest model did worst"
+  chart:
+    caption: "CLINC150 · final ACC · October prompt · mean of 5 seeds · axis starts at 0.48"
+    categories: ["k-means", "LSA", "0.6B", "1.7B", "old 4B"]
+    values: [0.551, 0.560, 0.541, 0.570, 0.511]
+    labels: ["0.551", "0.560", "0.541", "0.570", "0.511"]
+    highlight: "old 4B"
+    axis_min: 0.48
+    axis_max: 0.59
+    reference_line: {value: 0.551, label: "k-means"}
+    data_source: "clinc150_summarizers_table.csv"
+  side:
+    - {stat: "5 / 5", text: "seeds where the 4B is below k-means and below LSA"}
+    - {stat: "34%", text: "of the 4B's summaries, over all steps, talk about “the cluster” (0.6B and 1.7B: 8%)"}
+    - {quote: "“What is the main topic of the following cluster of questions?”", text: "the 4B's most common summary"}
+  source: "CLINC150 · final · October prompt · 5 seeds · measurement; the link to the summaries is an association · clinc150_summarizers.md §2.1, §2.2, §2.4"
+  notes: |
+    [1:00] This was our October result. The 1.7B was the best method, and the largest model, the 4B, was the worst: below k-means and below LSA in all five seeds, at 0.511 ACC.
+    Its summaries show one obvious failure. A third of them talk about the cluster instead of standing in for it. The most common one is literally "What is the main topic of the following cluster of questions?" At the final step, 16 to 21 of the 150 clusters per seed share an identical summary.
+    At this point that is only an association: the failure and the low score go together. Part 3 tests it.
+    Transition: "Before we open up the replacement step, Samiksha and Nabin place this in the closest work."
+
+# ---------------------------------------------------------------------------------------------- Part 2 (Samiksha and Nabin, 3 min)
+
+- id: "2.1"
+  part: 2
+  speaker: "Samiksha, Nabin"
+  minutes: 1.5
+  type: placeholder
+  title: "Closest work"
+  todo: "TODO(#80): the closest work on summary or prototype centroids and on LLM-assisted clustering, with its cost."
+  sources: ["#80", "docs/related_work_notes.md (once merged)"]
+  notes: |
+    [1:30] TODO(#80, Samiksha and Nabin).
+
+- id: "2.2"
+  part: 2
+  speaker: "Samiksha, Nabin"
+  minutes: 1.5
+  type: placeholder
+  title: "What we add"
+  todo: "TODO(#80): what this project adds over that work: small local models, the step-1 replay and swap test, cost against the extractive summarizer."
+  sources: ["#80"]
+  notes: |
+    [1:30] TODO(#80, Samiksha and Nabin). End with the handoff to Cooper: "So what does a replacement actually do?"
+
+# ---------------------------------------------------------------------------------------------- Part 3 (Cooper, 8 min)
+
+- id: "3.1"
+  part: 3
+  speaker: Cooper
+  minutes: 0.75
+  type: equation
+  title: "Replacing a center raises the objective by exactly how far it moves"
+  equations:
+    - "J(C, Z) = Σ_{i} ‖x_{i} − z_{c(i)}‖² = J(C, X̄) + Σ_{k} n_{k} ‖z_{k} − x̄_{k}‖²"
+    - "ΔJ = Σ_{k} n_{k} ( ‖s_{k} − x̄_{k}‖² − ‖m_{k} − x̄_{k}‖² )"
+  equation_notes:
+    - "For fixed assignments C, the cluster mean is the best center."
+    - "Swap the old centers m for the summaries s, keeping C: J rises by exactly the size-weighted squared distance from the mean."
+  stats:
+    - {stat: "+81% to +139%", text: "rise in J at step 1, assignments fixed (LSA to old 4B)"}
+    - {stat: "2.9 × 10⁻¹⁶", text: "largest relative error of the identity over 25 logged replacements"}
+  source: "CLINC150 · step 1 · LSA, old 0.6B / 1.7B / 4B, v2 4B · 5 seeds · identity, checked numerically · replacement_diagnostic.md §3 · replacement_objective_identity.csv"
+  notes: |
+    [0:45] This is the corrected version of the objective argument in Section 4.1 of our report, which the feedback asked us to fix.
+    What holds is a statement about fixed assignments. For a fixed set of members, the mean is the best center. Put anything else there and the objective rises, by exactly how far the new center is from the mean, weighted by cluster size.
+    We checked that identity on every logged step-1 replacement, 25 of them. Both sides agree to floating-point precision. At step 1, with the assignments held fixed, the objective rises by 81% for LSA and up to 139% for the old 4B.
+
+- id: "3.2"
+  part: 3
+  speaker: Cooper
+  minutes: 1
+  type: line_chart
+  title: "After reassignment the objective only falls, but where it ends does not rank accuracy"
+  chart:
+    caption: "CLINC150 · step 1 · seed 0 · objective ÷ objective before the replacement"
+    x_label: "Lloyd iteration after the replacement (−1 = before)"
+    x: [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    series:
+      - {name: "LSA", values: [1.0, 1.7319, 1.0249, 1.0068, 1.0029, 1.0015, 1.0007, 1.0002, 0.9998, 0.9996, 0.9995, 0.9993, 0.9992, 0.9991, 0.9990, 0.9990, 0.9990, 0.9989, 0.9989, 0.9989, 0.9989, 0.9988]}
+      - {name: "0.6B", values: [1.0, 1.7873, 1.0820, 1.0371, 1.0224, 1.0152, 1.0112, 1.0089, 1.0072, 1.0059, 1.0050, 1.0044, 1.0039, 1.0035, 1.0032, 1.0028, 1.0025, 1.0024, 1.0022, 1.0021, 1.0019, 1.0018]}
+      - {name: "1.7B", values: [1.0, 1.9439, 1.0833, 1.0379, 1.0256, 1.0196, 1.0145, 1.0110, 1.0092, 1.0079, 1.0071, 1.0063, 1.0055, 1.0049, 1.0045, 1.0042, 1.0040, 1.0038, 1.0037, 1.0035, 1.0032, 1.0030]}
+      - {name: "old 4B", values: [1.0, 1.9590, 1.1291, 1.0690, 1.0466, 1.0360, 1.0298, 1.0247, 1.0200, 1.0168, 1.0149, 1.0131, 1.0117, 1.0109, 1.0102, 1.0096, 1.0090, 1.0085, 1.0081, 1.0078, 1.0071, 1.0061]}
+      - {name: "v2 4B", values: [1.0, 1.7021, 1.0581, 1.0263, 1.0163, 1.0118, 1.0097, 1.0079, 1.0059, 1.0045, 1.0039, 1.0035, 1.0033, 1.0030, 1.0029, 1.0029, 1.0028, 1.0028, 1.0028, 1.0028, 1.0027, 1.0027]}
+    axis_min: 0.95
+    axis_max: 2.0
+    data_source: "replacement_diagnostic_iterations.csv (kind = replay, seed 0, step 1) ÷ j_before of replacement_diagnostic_steps.csv"
+  side:
+    - {head: "Follows", text: "Reassignment and every Lloyd step can only lower J."}
+    - {head: "Measured", text: "After reassignment J is still +70% to +98%; Lloyd removes 88% to 97% of the rise in one iteration (October runs, all steps)."}
+    - {head: "Does not follow", text: "Where the block ends, or anything about ACC."}
+    - {head: "Example", text: "1.7B and old 4B: the same rise (+95%, +98%), both end above plain Lloyd in J, yet on opposite sides of it in ACC (+0.011, −0.016)."}
+  source: "CLINC150 · step 1 · 5 methods · 5 seeds (chart: seed 0) · identity (monotone part); measurement of logged runs; the J-versus-ACC contrast is descriptive · replacement_diagnostic.md §3, §6"
+  notes: |
+    [1:00] Once points move, the identity no longer applies. Reassignment and each Lloyd step can only lower the objective, and that's all that follows.
+    Measured: right after reassignment the objective is still 70 to 98 percent above where it started, and Lloyd removes most of that within one iteration.
+    What does not follow is where the block ends. The replacement run and a plain Lloyd run from the same start are two different trajectories, and either can end lower.
+    The clean example is the 1.7B against the old 4B: the same jump, both end slightly above plain Lloyd in the objective, 0.18 and 1.4 percent, and on opposite sides of it in ACC. The size of the jump doesn't rank the outcomes, and a lower objective doesn't mean a better partition.
+
+- id: "3.3"
+  part: 3
+  speaker: Cooper
+  minutes: 0.75
+  type: clustered_bar
+  title: "Summaries move each center about one radius, and about half the points change cluster"
+  chart:
+    caption: "CLINC150 · step 1 · share of all 22,500 points · mean of 5 seeds"
+    categories: ["LSA", "0.6B", "1.7B", "old 4B", "v2 4B"]
+    series:
+      - {name: "change cluster at the replacement", values: [0.253, 0.467, 0.468, 0.561, 0.404]}
+      - {name: "still in a different cluster after the 20-iteration block", values: [0.090, 0.332, 0.287, 0.448, 0.265]}
+    percent: true
+    data_source: "replacement_diagnostic_steps.csv (step 1: frac_moved_replacement, frac_moved_end)"
+  side:
+    - {stat: "0.89 to 1.08", text: "RMS cluster radii from a summary to the center it replaces (LSA to old 4B)"}
+    - {stat: "120 / 120", text: "logged Lloyd blocks reproduced exactly by our replay"}
+  source: "CLINC150 · step 1 · LSA, old 0.6B / 1.7B / 4B, v2 4B · 5 seeds · measurement (exact replay) · replacement_diagnostic.md §2, §4, §8"
+  notes: |
+    [0:45] This is what a replacement does geometrically. A summary's embedding sits about one cluster radius from the mean it replaces, for the extractive LSA summary as for the model summaries.
+    The model summaries move about half of all points at once; LSA moves a quarter. After 20 Lloyd iterations the centers come back close to where they were, but the partition doesn't: 29 to 45 percent of the points stay in a different cluster, against 9 percent for LSA.
+    The moves aren't random: points move toward their gold intent 24 to 31 times more often than to shuffled destinations, but such moves are few.
+    These are measurements from an exact replay. With the GPU-encoded summaries, all 120 logged blocks of the October runs reproduce with no label mismatches.
+
+- id: "3.4"
+  part: 3
+  speaker: Cooper
+  minutes: 1
+  type: forest
+  title: "Moving members helps mixed clusters and hurts pure ones"
+  chart:
+    caption: "CLINC150 · step 1 · change in the members' purity minus plain Lloyd from the same start · 95% interval"
+    panels:
+      - name: "Mixed clusters (purity ≤ 0.4; 187 of 750)"
+        rows:
+          - {label: "LSA", mean: 0.011563, lo: 0.007389, hi: 0.015738}
+          - {label: "0.6B", mean: 0.049849, lo: 0.024034, hi: 0.075664}
+          - {label: "1.7B", mean: 0.056544, lo: 0.039159, hi: 0.073929}
+          - {label: "old 4B", mean: 0.042325, lo: 0.017791, hi: 0.066859}
+          - {label: "v2 4B", mean: 0.033917, lo: 0.006050, hi: 0.061784}
+      - name: "Pure clusters (purity > 0.9; 169 of 750)"
+        rows:
+          - {label: "LSA", mean: -0.017025, lo: -0.034437, hi: 0.000388}
+          - {label: "0.6B", mean: -0.060480, lo: -0.103092, hi: -0.017869}
+          - {label: "1.7B", mean: -0.036450, lo: -0.056406, hi: -0.016494}
+          - {label: "old 4B", mean: -0.089606, lo: -0.137485, hi: -0.041726}
+          - {label: "v2 4B", mean: -0.026040, lo: -0.070685, hi: 0.018606}
+    x_min: -0.15
+    x_max: 0.10
+    x_format: "+0.00"
+    decimals: 3
+    data_source: "synthesis_clinc150_intent_help_reference.csv (strata <=.4 and >.9, d_member_purity_vs_cf)"
+  side:
+    - {head: "Against random moves of the same size", text: "the summaries' moves do better in every purity stratum (+0.03 to +0.26)."}
+    - {head: "The quality scores don't tell which case a cluster is in", text: "partial rank correlation −0.06 to +0.14 once purity and size are controlled; 4 of 23 intervals exclude 0."}
+  source: "CLINC150 · step 1 · LSA, old Qwen3, v2 4B · 5 seeds · association against two references · synthesis.md §3, §5, §10, §11 links 3 and 3b"
+  notes: |
+    [1:00] Moving members isn't the same as doing harm. The same kind of move raises the purity of a mixed cluster and lowers it in a pure one. Part of that is mechanical: a pure cluster can only lose purity.
+    So we compare with two references. Against plain Lloyd from the same start, this sign pattern holds for every summarizer; LSA shows the same signs, smaller, because it moves fewer members. Against random moves of the same size, the summaries' moves do better in every stratum.
+    What does not separate the two cases is any of our summary-quality scores: once purity and size are controlled they are weak and inconsistent.
+    All of this is association; the replacement wasn't randomized per cluster.
+    Transition: "So the quality scores don't predict harm cluster by cluster. But the old 4B is clearly worse as a whole. Is it those odd summaries?"
+
+- id: "3.5"
+  part: 3
+  speaker: Cooper
+  minutes: 0.5
+  type: stat_table
+  title: "The October 4B at step 1: cluster talk, duplicates, emptied clusters"
+  table:
+    caption: "CLINC150 · step 1 · per seed, mean of 5 seeds"
+    columns: ["", "1.7B", "old 4B", "v2 4B"]
+    highlight_column: "old 4B"
+    rows:
+      - ["summaries that mention the cluster", "13.6", "50.2", "0"]
+      - ["clusters that share an identical summary", "0.8", "18.8", "1.2"]
+      - ["clusters emptied by the replacement", "0.6", "10.8", "0.4"]
+      - ["step-1 ACC minus plain Lloyd from the same start", "+0.0106", "−0.0159", "+0.0024"]
+      - ["seeds below plain Lloyd", "0 / 5", "5 / 5", "2 / 5"]
+  callout: "Identical summaries give identical centers: the first copy takes the points and the rest are emptied."
+  source: "CLINC150 · step 1 · 1.7B, old 4B, v2 4B · 5 seeds · measurement · replacement_diagnostic.md §5, §6, §8"
+  notes: |
+    [0:30] Here is the old 4B at step 1. A third of its summaries talk about the cluster, about 19 clusters per seed share an identical summary, and 11 clusters a seed are left empty, because identical summaries make identical centers and the first copy takes all the points.
+    Its step-1 partition is below plain Lloyd in ACC in all five seeds; the deficit survives running both sides to convergence.
+    These are measurements, and the link between the odd summaries and the deficit is still an association. The next slide tests it.
+
+- id: "3.6"
+  part: 3
+  speaker: Cooper
+  minutes: 1.25
+  type: forest
+  title: "Swap test: at step 1, the flagged summaries carry the gap"
+  intro: "Flagged before any outcome was seen: the 4B's summary duplicates another or mentions “cluster” / “summar”. 43 to 56 of 150 clusters per seed."
+  chart:
+    caption: "CLINC150 · step-1 ACC change when the step-1 block is replayed with edited start centers · 95% interval · 5 seeds"
+    panels:
+      - name: ""
+        rows:
+          - {label: "1.7B's summaries into the 4B's flagged clusters", mean: 0.026133, lo: 0.018522, hi: 0.033745, note: "5/5"}
+          - {label: "control: into as many random unflagged clusters", mean: -0.002337, lo: -0.012048, hi: 0.007374, note: "1/5"}
+          - {label: "swap minus its control", mean: 0.028471, lo: 0.014925, hi: 0.042017, note: "5/5", emphasis: true}
+          - {label: "reverse: the 4B's flagged summaries into the 1.7B, minus control", mean: -0.024755, lo: -0.040953, hi: -0.008557, note: "0/5"}
+          - {label: "flagged clusters keep their k-means center instead", mean: 0.006373, lo: -0.005778, hi: 0.018525, note: "3/5"}
+    x_min: -0.05
+    x_max: 0.05
+    x_format: "+0.00"
+    decimals: 4
+    reference_line: {value: 0.026480, label: "the whole 4B → 1.7B step-1 gap"}
+    data_source: "counterfactual_swaps_paired.csv (flag = union, setting = fixed, metric = end_acc: c vs a, cd vs a, c−cd, r−rd, b vs a; m vs a for the gap)"
+  side:
+    - {head: "Shown", text: "At step 1 the 4B-to-1.7B difference travels with the text of the flagged summaries."}
+    - {head: "Not shown", text: "That they are worse than no summary, or that this carries past step 1."}
+  source: "CLINC150 · step 1 only · old 4B and 1.7B · 5 seeds · interventional · counterfactual_swaps.md §1–§5 · synthesis.md §10"
+  notes: |
+    [1:15] This is the one experiment where we changed the summaries themselves. Because every method starts step 1 from the same partition, we can take the 4B's start centers and swap single rows.
+    Putting the 1.7B's summaries into the flagged clusters closes the whole step-1 gap between the two models, in all five seeds. Putting them into the same number of random unflagged clusters does nothing. The swap minus its control is plus 0.0285. And the reverse swap opens a gap of about the same size in the 1.7B. Both directions agree.
+    Two things it does not show. Falling back to the k-means center in those clusters recovers nothing measurable, so the flagged summaries are worse than the 1.7B's, not clearly worse than no summary. And flagged clusters may also be harder clusters. This is step 1, one model pair.
+
+- id: "3.7"
+  part: 3
+  speaker: Cooper
+  minutes: 1
+  type: forest
+  title: "Over all five steps, removing the flagged summaries does not detectably recover the final score"
+  intro: "Guarded run: at every summary step the flagged 4B clusters start from their k-means center instead of their summary (32% to 35% of clusters)."
+  chart:
+    caption: "CLINC150 · final ACC · old 4B · 95% interval · 5 seeds"
+    panels:
+      - name: ""
+        rows:
+          - {label: "guarded 4B minus the 4B as run", mean: 0.009271, lo: -0.005880, hi: 0.024422, note: "4/5", emphasis: true}
+          - {label: "guarded 4B minus k-means", mean: -0.030969, lo: -0.042926, hi: -0.019012, note: "0/5"}
+    x_min: -0.05
+    x_max: 0.05
+    x_format: "+0.00"
+    decimals: 4
+    data_source: "summary_guard_paired.csv (acc; references k-SLMmeans (Qwen3-4B) and k-means)"
+  side:
+    - {head: "Not shown", text: "that the flagged summaries explain the 4B's final deficit."}
+    - {head: "Not shown either", text: "that they don't: a gain of up to +0.024 is not excluded."}
+    - {head: "Step 1 and final, across methods", text: "rank correlation +0.60 over 25 method-seed pairs, carried by the old 4B (+0.24 without it); within a method none detectable."}
+  source: "CLINC150 · final · old 4B · 5 seeds · interventional (the guard); association (step 1 against final) · summary_guard.md §1, §2, §5 · synthesis.md §10, §11 link 4"
+  notes: |
+    [1:00] This is where the step-1 result stops. The guard removes the flagged summaries' influence at every step, and the final score does not come back by an amount five seeds can detect: plus 0.009, with an interval from minus 0.006 to plus 0.024. The guarded 4B stays 0.031 below k-means.
+    That doesn't contradict the swap test. The guard replaces a bad summary with no summary, not with a better one, and at step 1 that variant also showed nothing.
+    The swap itself was never run over five steps: later steps need new summaries of new partitions, which means new runs, and the final feedback asked us to add no new experiments.
+    Across methods, step-1 and final scores do go together, but that rests on the old 4B alone. So we don't use the step-1 result to explain any final score.
+
+- id: "3.8"
+  part: 3
+  speaker: Cooper
+  minutes: 0.5
+  type: forest
+  title: "What did change the 4B's final score: a clearer prompt"
+  quotes:
+    - {label: "October", text: "“The following is cluster of questions. Write a question that summarizes the following cluster:”"}
+    - {label: "Clearer (#46), fixed before any run", text: "“… Write one new question that a user could have asked, in the same style, that covers what these questions have in common. Write only the question. Do not mention the questions, a group, a cluster or a topic.”"}
+  chart:
+    caption: "CLINC150 · final ACC, clearer minus October prompt · same seeds and start partitions · 95% interval"
+    panels:
+      - name: ""
+        rows:
+          - {label: "0.6B", mean: 0.021591, lo: 0.010388, hi: 0.032794, note: "5/5"}
+          - {label: "1.7B", mean: -0.006818, lo: -0.023381, hi: 0.009746, note: "1/5"}
+          - {label: "4B", mean: 0.056400, lo: 0.038537, hi: 0.074263, note: "5/5", emphasis: true}
+    x_min: -0.03
+    x_max: 0.08
+    x_format: "+0.00"
+    decimals: 3
+    data_source: "prompt_test_paired.csv (acc; reference = October model, method = the same size under v2)"
+  side:
+    - {head: "v2 4B", text: "above k-means by +0.016 [+0.009, +0.023]; against LSA +0.007 [−0.001, +0.016]."}
+    - {head: "Limit", text: "several wording changes at once, so it does not isolate which change mattered."}
+  source: "CLINC150 · final · Qwen3 0.6B / 1.7B / 4B, both prompts · 5 seeds · interventional, two runs, several changes at once · prompt_test.md §1, §3, §8.2, §8.6"
+  notes: |
+    [0:30] The prompt is our other intervention: we changed one input and re-ran all five steps on the same seeds and start partitions. The clearer prompt removed the 4B's final deficit, plus 0.056 ACC in all five seeds, and its cluster talk with it.
+    But the wording changed in several ways at once, and we chose it by the 4B's surface counts, so it doesn't tell us which change mattered, and it doesn't isolate the cluster-talk failure. Nabin will show what it does to the comparison between sizes.
+
+- id: "3.9"
+  part: 3
+  speaker: Cooper
+  minutes: 0.75
+  type: claims_table
+  title: "How far the evidence goes"
+  table:
+    columns: ["Claim", "Evidence", "Scope", "Status"]
+    rows:
+      - ["Replacing the centers raises J at fixed assignments, by the size-weighted squared movement", "identity", "step 1, 25 replays", "shown"]
+      - ["The objective after the block ranks the outcomes", "association", "step 1", "not shown"]
+      - ["Summaries move centers about one radius and half the points; Lloyd does not undo it", "measurement", "step 1", "shown"]
+      - ["Mixed clusters gain purity, pure ones lose", "association, 2 references", "step 1", "shown"]
+      - ["Quality scores predict which clusters gain", "association", "step 1", "not shown"]
+      - ["The flagged 4B summaries carry its step-1 gap to the 1.7B", "intervention (swap)", "step 1, 4B and 1.7B", "shown"]
+      - ["They explain the 4B's final deficit", "intervention (guard)", "final, 4B", "not shown"]
+      - ["The clearer prompt removes the 4B's final deficit", "intervention, several changes", "final", "shown"]
+  bottom_line: "No step-1 result is used to explain a final score."
+  source: "CLINC150 unless noted · 5 seeds · synthesis.md §10"
+  notes: |
+    [0:45] This is part 3 in one table, and the same table goes in the manuscript. Read it by the last column.
+    The step-1 swap is our strongest causal result, and it is about step 1. The final-score interventions are the guard, which is inconclusive, and the prompt, which works but changed several things at once.
+    Transition: "Samiksha now asks the direct question: are these summaries good representatives, by our scores and by human raters?"
+
+# ---------------------------------------------------------------------------------------------- Part 4 (Samiksha, 5 min)
+
+- id: "4.1"
+  part: 4
+  speaker: Samiksha
+  minutes: 1
+  type: placeholder
+  title: "Four scores, kept separate"
+  todo: "Fluency, coverage, genericity, unsupported content: what each measures and why they are not merged."
+  sources: ["summary_quality.md §2 (definitions)"]
+  notes: |
+    [1:00] TODO(Samiksha).
+
+- id: "4.2"
+  part: 4
+  speaker: Samiksha
+  minutes: 1
+  type: placeholder
+  title: "Readable is not representative"
+  todo: "36% to 44% of the fluent Qwen3 summaries fail coverage or specificity (LSA 14%); what happens to their clusters."
+  sources: ["synthesis.md §12", "summary_quality.md §3, §4"]
+  notes: |
+    [1:00] TODO(Samiksha). Don't repeat slide 3.4; point back to it.
+
+- id: "4.3"
+  part: 4
+  speaker: Samiksha
+  minutes: 1
+  type: placeholder
+  title: "The human evaluation: two blind raters, 40 summaries per dataset"
+  todo: "Design (rubric, blinding, sample) and the agreement between the raters: TODO(#34) numbers."
+  sources: ["docs/summary_audit_rubric.md", "summary_quality.md §5", "#34"]
+  notes: |
+    [1:00] TODO(#34, Samiksha).
+
+- id: "4.4"
+  part: 4
+  speaker: Samiksha
+  minutes: 1
+  type: placeholder
+  title: "Human judgments against the automatic scores"
+  todo: "Each rater and the consensus against the automatic flags: TODO(#34)."
+  sources: ["summary_quality.md §5", "#34"]
+  notes: |
+    [1:00] TODO(#34, Samiksha).
+
+- id: "4.5"
+  part: 4
+  speaker: Samiksha
+  minutes: 1
+  type: placeholder
+  title: "Does the unsupported-content flag punish paraphrases?"
+  todo: "The paraphrase check: flagged summaries both raters judged supported, by category: TODO(#34)."
+  sources: ["summary_quality.md §5", "#34"]
+  notes: |
+    [1:00] TODO(#34, Samiksha).
+
+# ---------------------------------------------------------------------------------------------- Part 5 (Samiksha, 2 min)
+
+- id: "5.1"
+  part: 5
+  speaker: Samiksha
+  minutes: 1
+  type: placeholder
+  title: "A cluster a summary helped"
+  todo: "A worked cluster: summary, movement, assignments, outcome. The mixed-cluster case of slide 3.4."
+  sources: ["synthesis.md §12 (worked examples)", "synthesis_case_studies.md (#50)"]
+  notes: |
+    [1:00] TODO(#50 case studies, Samiksha).
+
+- id: "5.2"
+  part: 5
+  speaker: Samiksha
+  minutes: 1
+  type: placeholder
+  title: "A cluster a summary hurt"
+  todo: "A worked cluster where a readable summary dissolved a good cluster."
+  sources: ["synthesis.md §12", "synthesis_case_studies.md (#50)"]
+  notes: |
+    [1:00] TODO(#50 case studies, Samiksha).
+
+# ---------------------------------------------------------------------------------------------- Part 6 (Nabin, 4 min)
+
+- id: "6.1"
+  part: 6
+  speaker: Nabin
+  minutes: 1
+  type: placeholder
+  title: "Under the clearer prompt, size no longer orders the models"
+  todo: "The size result under both prompts (ACC 0.563 / 0.563 / 0.568 under v2)."
+  sources: ["size_result.md §1", "prompt_test.md §8.7"]
+  notes: |
+    [1:00] TODO(Nabin).
+
+- id: "6.2"
+  part: 6
+  speaker: Nabin
+  minutes: 1.25
+  type: placeholder
+  title: "What explains it, by kind of evidence"
+  todo: "Prompt (interventional), the 4B's failure modes, the hand-read tags by size and prompt (§2(e)), batch size."
+  sources: ["size_result.md §2(a)–(e)", "size_failure_modes.md"]
+  notes: |
+    [1:15] TODO(Nabin).
+
+- id: "6.3"
+  part: 6
+  speaker: Nabin
+  minutes: 1
+  type: placeholder
+  title: "What five seeds can and cannot separate"
+  todo: "Minimum detectable difference 1.662 × sd; 37 of 45 size gaps fall below it."
+  sources: ["size_result.md §3"]
+  notes: |
+    [1:00] TODO(Nabin).
+
+- id: "6.4"
+  part: 6
+  speaker: Nabin
+  minutes: 0.75
+  type: placeholder
+  title: "These three checkpoints, not model size in general"
+  todo: "How the checkpoints differ in training (Qwen3 report), and the scope statement."
+  sources: ["size_result.md §4, §5", "docs/qwen3_sizes_notes.md"]
+  notes: |
+    [0:45] TODO(Nabin).
+
+# ---------------------------------------------------------------------------------------------- Part 7 (Nabin, 3 min)
+
+- id: "7.1"
+  part: 7
+  speaker: Nabin
+  minutes: 1
+  type: placeholder
+  title: "What each method costs"
+  todo: "Seconds, tokens and dollars per seed (GPU at $0.242 per hour; API list prices)."
+  sources: ["cost_justification.md §1, §2, §4", "docs/cost_assumptions.md"]
+  notes: |
+    [1:00] TODO(Nabin).
+
+- id: "7.2"
+  part: 7
+  speaker: Nabin
+  minutes: 1
+  type: placeholder
+  title: "Cost per ACC point, only where the gain is clear of seed noise"
+  todo: "The gated cost per ACC point over LSA and over k-means; the Pareto view."
+  sources: ["cost_justification.md §3, §4", "cost_justification_pareto.png"]
+  notes: |
+    [1:00] TODO(Nabin).
+
+- id: "7.3"
+  part: 7
+  speaker: Nabin
+  minutes: 1
+  type: placeholder
+  title: "A small LM or the extractive summarizer?"
+  todo: "When LSA is the better choice, and when an SLM would be worth it."
+  sources: ["cost_justification.md §3, §4"]
+  notes: |
+    [1:00] TODO(Nabin). Hand back to Cooper for the answer.
+
+# ---------------------------------------------------------------------------------------------- Part 8 (Cooper, 1 min)
+
+- id: "8.1"
+  part: 8
+  speaker: Cooper
+  minutes: 1
+  type: answer
+  title: "The answer"
+  left:
+    heading: "When is a summary a useful centroid?"
+    items:
+      - "When it stands in for its members: it moves little and **protects** the cluster; it does not improve it."
+      - "When it moves members, step 1 **helped mixed clusters and hurt pure ones**, and our quality scores couldn't tell which in advance."
+      - "**Readable ≠ representative**: 36% to 44% of the fluent Qwen3 summaries fail coverage or specificity (LSA 14%). Human check: TODO(#34)."
+      - "Failed stand-ins hurt at step 1 (swap test). That they decide the final score is **not shown**; the prompt's wording mattered more than size."
+  right:
+    heading: "Is the extra cost justified?"
+    items:
+      - "CLINC150: LSA gains **+0.009 ACC** over k-means for **15 s** a seed. No SLM is shown above LSA, at **25 to 84 times** its summarizer time."
+      - "In dollars: **$0.025 to $0.125** a seed on a rented GPU (LSA $0.001). The same prompts to a hosted large model: **$1.51 to $3.59** a seed."
+      - "BANKING77 and BBC: no measured ACC gain over LSA (BBC dense +0.5 points, not read as a method difference)."
+      - "On this evidence the **extractive summarizer is the better-value choice**."
+  limits: "Limits: one model family · per-cluster analysis on one dataset · 5 seeds, uncorrected intervals · interventions at step 1 on one model pair · arXiv is a one-seed pilot"
+  source: "synthesis.md §10, §12, §13 · cost_justification.md §3, §4 · bbc.md §2"
+  notes: |
+    [1:00] Our answer has two halves, both mostly from CLINC150 and Qwen3.
+    A generated summary is a useful centroid when it actually stands in for its members: then it moves little and keeps the cluster. When it does move members, at step 1 that helped mixed clusters and hurt pure ones, and our quality scores didn't tell the two apart in advance. Failed stand-ins hurt at step 1, which the swap test shows; that they decide the final score, we couldn't show.
+    On cost: no small model was shown to beat the extractive summarizer on accuracy, and LSA takes a small fraction of the time, and a tenth of a cent a seed. So on this evidence the extra cost of a small LM is not justified, and the extractive summarizer is the better-value choice.
+    Thank you. We're happy to take questions.
+
+- id: "Q"
+  part: 8
+  speaker: All
+  minutes: 0
+  type: closing
+  title: "Questions"
+  subtitle: "Code, runs and every number: github.com/k-slimeans/k-slimeans (README → Results index)"
+  notes: |
+    Each of us takes questions on our own parts. Backup slides B1 to B5 follow.
+
+# ---------------------------------------------------------------------------------------------- Backup (Cooper)
+
+- id: "B1"
+  part: backup
+  speaker: Cooper
+  minutes: 0
+  type: bullets
+  title: "Backup: the replay is exact"
+  items:
+    - "With the GPU-encoded summaries, 120 of 120 logged blocks reproduce with 0 label mismatches."
+    - "A CPU re-encode differs by about 1e-6 per row and changed up to 9% of the old 4B's labels: the blocks are chaotic."
+    - "Noise floor for the old 4B: 0.0030 ACC on average, 0.0084 at most. The step-1 swap effect is about 9 times the mean floor."
+  source: "replacement_diagnostic.md §2 · counterfactual_swaps.md §3"
+  notes: |
+    If asked how we know the diagnostics describe the real runs.
+
+- id: "B2"
+  part: backup
+  speaker: Cooper
+  minutes: 0
+  type: bullets
+  title: "Backup: the 4B's step-1 deficit is not an iteration-budget artifact"
+  items:
+    - "Running both sides to convergence: −0.0138 ACC against plain Lloyd, 5 of 5 seeds below."
+    - "With the 20-iteration block: −0.0159."
+  source: "replacement_diagnostic.md §6"
+  notes: |
+    If asked whether 20 iterations were too few for the 4B to recover.
+
+- id: "B3"
+  part: backup
+  speaker: Cooper
+  minutes: 0
+  type: bullets
+  title: "Backup: why the keep-k-means control is not used"
+  items:
+    - "Putting random unflagged clusters back on their k-means centers lowers ACC by 0.019 to 0.032 and leaves 28 to 39 clusters empty."
+    - "So the keep-k-means variant minus that control mostly measures the control's own damage. The swap is compared with its matched swap control instead."
+  source: "counterfactual_swaps.md §2"
+  notes: |
+    If asked why slide 3.6 uses the swap control.
+
+- id: "B4"
+  part: backup
+  speaker: Cooper
+  minutes: 0
+  type: bullets
+  title: "Backup: the chain from summary to final score"
+  items:
+    - "Quality → movement: better coverage, less drift (rank correlation −0.36 to −0.74), largely by construction."
+    - "Movement → members lost: more drift, more members lost (+0.08 to +0.61; the 1.7B's interval includes 0)."
+    - "Members lost → purity: the sign is set by purity before (+0.21 to +0.34 in mixed clusters, −0.46 to −0.61 in pure ones; slide 3.4)."
+    - "Step-1 partition → final score: +0.60 across 25 method-seed pairs, +0.24 without the old 4B; none detectable within a method."
+    - "Cost: no SLM shown above LSA on CLINC150 ACC, at 25 to 84 times its summarizer seconds."
+  source: "synthesis.md §3, §11"
+  notes: |
+    If asked how the pieces connect.
+
+- id: "B5"
+  part: backup
+  speaker: Cooper
+  minutes: 0
+  type: bullets
+  title: "Backup: the objective at the end of the step-1 block"
+  items:
+    - "Block end against the plain-Lloyd run from the same start: LSA −0.17%, 0.6B +0.35%, 1.7B +0.18%, old 4B +1.4%, v2 4B +0.09%."
+    - "Only LSA ends below the objective it had before the replacement."
+  source: "replacement_diagnostic.md §3"
+  notes: |
+    If asked whether the replacement leaves the objective worse.
