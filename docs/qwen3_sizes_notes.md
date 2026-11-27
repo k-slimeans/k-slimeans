@@ -2,7 +2,7 @@
 
 ## Purpose
 
-These notes examine whether the three Qwen3 checkpoints used in k-SLiMeans differ in ways other than parameter count, and whether those differences provide a plausible explanation for their prompt-dependent clustering performance. The primary source is the original [Qwen3 Technical Report, arXiv:2505.09388v1 (14 May 2025)](https://arxiv.org/html/2505.09388v1). Section and table numbers refer to that version.
+These notes examine whether the three Qwen3 checkpoints used in k-SLiMeans differ in ways other than parameter count, and whether those differences provide a plausible explanation for their prompt-dependent clustering performance. The primary source is the original [Qwen3 Technical Report, arXiv:2505.09388v1 (14 May 2025)](https://arxiv.org/html/2505.09388v1). Section and table numbers refer to that version. The architecture, training and benchmark numbers below were checked against it on 2026-11-27.
 
 ## 1. Architecture and context length
 

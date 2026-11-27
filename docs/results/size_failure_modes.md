@@ -36,4 +36,4 @@ The observations agree with the full-run surface checks in [clinc150_summarizers
 
 The counts are descriptive, unweighted and limited to a single seed and replacement step. A task echo may cover no subgroup and thus escape the subgroup-only tag. Only ten members per cluster are visible, so sample-absent details are not confirmed hallucinations and zero displayed-member copies does not establish zero copying across the full clusters.
 
-**Annotation source:** `size_failure_modes_tags_ai_assisted.csv`; review packet: [size_failure_modes_step1_seed0.md](../review_packets/size_failure_modes_step1_seed0.md). Update the counts and annotation source if the reviewer changes the tags.
+**Annotation source:** [`size_failure_modes_tags_filled.csv`](size_failure_modes_tags_filled.csv) (150 rows: 25 clusters, 6 summaries each), tagged with AI assistance and not re-checked by a second reader. Review packet: [size_failure_modes_step1_seed0.md](../review_packets/size_failure_modes_step1_seed0.md).
