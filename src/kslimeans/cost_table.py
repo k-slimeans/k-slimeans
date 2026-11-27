@@ -148,6 +148,12 @@ class Prices:
         return self.gpu_usd_per_hour is not None or bool(self.api)
 
 
+def _unit(raw) -> str:
+    """A price unit compared loosely: case and spacing ignored, and an optional leading "per" ("per hour" is "hour")."""
+    unit = re.sub(r"\s+", " ", str(raw)).strip().lower()
+    return unit[4:] if unit.startswith("per ") else unit
+
+
 def parse_prices(frame: pd.DataFrame) -> Prices:
     """Validate a prices frame (`item,unit,usd,source,checked`) and split it into GPU and API prices.
 
@@ -166,7 +172,7 @@ def parse_prices(frame: pd.DataFrame) -> Prices:
     parts: dict[str, dict[str, float]] = {}
     sources = []
     for item, (_, row) in zip(items, frame.iterrows()):
-        unit = str(row["unit"]).strip()
+        unit = _unit(row["unit"])
         try:
             usd = float(row["usd"])
         except (TypeError, ValueError):
@@ -177,16 +183,16 @@ def parse_prices(frame: pd.DataFrame) -> Prices:
             if pd.isna(row[column]) or not str(row[column]).strip():
                 raise ValueError(f"price of '{item}' has no {column}: every price needs its source and date")
         if item == GPU_ITEM:
-            if unit != GPU_UNIT:
-                raise ValueError(f"'{item}' must be per {GPU_UNIT}, got unit '{unit}'")
+            if unit != GPU_UNIT.lower():
+                raise ValueError(f"'{item}' must be per {GPU_UNIT}, got unit '{row['unit']}'")
             gpu = usd
         else:
             prefix = next((p for p in API_PREFIXES if item.startswith(p)), None)
             model = item[len(prefix) :] if prefix else ""
             if not prefix or not model:
                 raise ValueError(f"unknown price item '{item}': use '{GPU_ITEM}', 'api_input:<model>' or 'api_output:<model>'")
-            if unit != API_UNIT:
-                raise ValueError(f"'{item}' must be per {API_UNIT}, got unit '{unit}'")
+            if unit != API_UNIT.lower():
+                raise ValueError(f"'{item}' must be per {API_UNIT}, got unit '{row['unit']}'")
             parts.setdefault(model, {})[API_PREFIXES[prefix]] = usd
         sources.append((item, usd, str(row["source"]).strip(), str(row["checked"]).strip()))
     for model, got in parts.items():

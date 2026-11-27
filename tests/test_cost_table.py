@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 from pathlib import Path
 
 import numpy as np
@@ -225,6 +226,26 @@ def test_prices_csv_parsing():
     assert prices.gpu_usd_per_hour == 0.50
     assert prices.api == {"test-model": (2.0, 8.0)}
     assert ct.load_prices(None) is None
+
+
+def test_prices_units_accept_per_prefix_and_case():
+    """`per hour` and `per 1M tokens` (the wording asked for on #10) mean `hour` and `1M tokens`."""
+    body = (
+        "item,unit,usd,source,checked\n"
+        "gpu,per hour,0.25,x,2000-01-01\n"
+        "api_input:m,per 1M tokens,1,x,2000-01-01\n"
+        "api_output:m, Per  1m Tokens ,2,x,2000-01-01\n"
+    )
+    prices = ct.parse_prices(pd.read_csv(io.StringIO(body), dtype=str, keep_default_na=False))
+    assert prices.gpu_usd_per_hour == 0.25
+    assert prices.api == {"m": (1.0, 2.0)}
+
+
+def test_committed_price_list_parses():
+    """The #10 price list in docs/ feeds the cost table as committed."""
+    prices = ct.load_prices(Path(__file__).resolve().parents[1] / "docs" / "cost_assumptions.csv")
+    assert prices.gpu_usd_per_hour is not None and prices.gpu_usd_per_hour > 0
+    assert len(prices.api) >= 2 and all(i >= 0 and o >= 0 for i, o in prices.api.values())
 
 
 @pytest.mark.parametrize(
