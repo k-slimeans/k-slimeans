@@ -76,9 +76,18 @@ MINUS = "−"
 LINE = 1.22  # line height as a multiple of the font size (Calibri)
 
 
+# Slides are laid out in a virtual 13.333 in wide space; K maps it onto the real slide (1.0 unless the template is smaller).
+K = 1.0
+
+
 def I(v):
-    """Inches to EMU."""
-    return Emu(int(round(v * 914400)))
+    """Virtual inches to EMU."""
+    return Emu(int(round(v * 914400 * K)))
+
+
+def PT(v):
+    """Virtual points to a Length."""
+    return Pt(v * K)
 
 
 def rgb(hexstr):
@@ -134,8 +143,13 @@ def _load_font(key, bold, italic):
     return font
 
 
+BODY_AS_CAMBRIA = False  # template body font (Tisa) is wide and not installed: measure Cambria x 1.05
+
+
 def char_em(ch, key, bold, italic):
     """Advance width of one character in em."""
+    if BODY_AS_CAMBRIA and key == "body":
+        return char_em(ch, "eq", bold, italic) * 1.05
     ck = (ch, key, bold, italic)
     v = _width_cache.get(ck)
     if v is None:
@@ -254,14 +268,15 @@ class Ctx:
         self.content = content
         self.prs = prs
         self.warnings = []
-        self.W = prs.slide_width / 914400.0
-        self.H = prs.slide_height / 914400.0
+        self.W = prs.slide_width / 914400.0 / K  # virtual inches
+        self.H = prs.slide_height / 914400.0 / K
         if mode == "template":
             self.face = {"body": "+mn-lt", "head": "+mj-lt", "eq": "Cambria Math"}
         else:
             self.face = {"body": "Calibri", "head": "Franklin Gothic Medium", "eq": "Cambria Math"}
         self.colors = {k: PALETTE[v] for k, v in (content.get("series_colors") or {}).items()}
         self.layouts = {}
+        self.title_scale = 1.0
         self.slide_id = ""
 
     def warn(self, msg):
@@ -277,14 +292,14 @@ _ANCHOR = {"t": MSO_ANCHOR.TOP, "m": MSO_ANCHOR.MIDDLE, "b": MSO_ANCHOR.BOTTOM}
 def write_para(c, para, p):
     para.alignment = _ALIGN[p.align]
     if p.line:
-        para.line_spacing = Pt(p.line)
-    para.space_before = Pt(p.before)
-    para.space_after = Pt(p.after)
+        para.line_spacing = PT(p.line)
+    para.space_before = PT(p.before)
+    para.space_after = PT(p.after)
     for text, st in parse(p.text, p.eq):
         r = para.add_run()
         r.text = text
         f = r.font
-        f.size = Pt(p.size)
+        f.size = PT(p.size)
         f.bold = bool(p.bold or st.get("bold"))
         f.italic = bool(p.italic)
         f.name = c.face[p.font]
@@ -296,11 +311,11 @@ def write_para(c, para, p):
         elif st.get("base") == "sup":
             rpr.set("baseline", "30000")
         if p.spc:
-            rpr.set("spc", str(p.spc))
+            rpr.set("spc", str(int(p.spc * K)))
     if p.bullet:
         ppr = para._p.get_or_add_pPr()
-        ppr.set("marL", str(int(BULLET_INDENT * 914400)))
-        ppr.set("indent", str(-int(BULLET_INDENT * 914400)))
+        ppr.set("marL", str(int(BULLET_INDENT * 914400 * K)))
+        ppr.set("indent", str(-int(BULLET_INDENT * 914400 * K)))
         clr = etree.SubElement(ppr, qn("a:buClr"))
         etree.SubElement(clr, qn("a:srgbClr")).set("val", MINER)
         etree.SubElement(ppr, qn("a:buFont")).set("typeface", "Arial")
@@ -340,7 +355,7 @@ def add_box(sl, kind, x, y, w, h, name, fill=None, line=None, line_w=1.0, dash=N
         shp.fill.background()
     if line:
         shp.line.color.rgb = rgb(line)
-        shp.line.width = Pt(line_w)
+        shp.line.width = PT(line_w)
         if dash:
             shp.line.dash_style = dash
     else:
@@ -372,7 +387,7 @@ def add_line(sl, x1, y1, x2, y2, color, width_pt, name, dash=None, arrow=False):
     ln.name = name
     drop_style(ln)
     ln.line.color.rgb = rgb(color)
-    ln.line.width = Pt(width_pt)
+    ln.line.width = PT(width_pt)
     if dash:
         ln.line.dash_style = dash
     if arrow:
@@ -441,11 +456,11 @@ def pick_layouts(prs):
     by_name = {}
     for lay in layouts:
         by_name.setdefault(lay.name.strip().lower(), lay)
-    title = by_name.get("title slide") or next(
+    title = by_name.get("1.1_title slide") or by_name.get("title slide") or next(
         (lay for lay in layouts if layout_has(lay, TITLE_TYPES) and layout_has(lay, (PP_PLACEHOLDER.SUBTITLE,))), None)
-    content = (by_name.get("title only") or by_name.get("title and content")
+    content = (by_name.get("title and content 1-column") or by_name.get("title only") or by_name.get("title and content")
                or next((lay for lay in layouts if layout_has(lay, TITLE_TYPES)), None))
-    closing = by_name.get("section header") or title
+    closing = by_name.get("closing slide") or by_name.get("section header") or title
     if title is None:
         title = content
     if content is None or title is None:
@@ -476,9 +491,8 @@ def set_title_text(ph, text):
         extra._p.getparent().remove(extra._p)
 
 
-def title_size_pt(slide):
-    """Font size the title placeholder inherits from its layout or master (32 pt if none is found)."""
-    layout = slide.slide_layout
+def title_size_pt(layout):
+    """Font size the layout's title placeholder inherits from the layout or master (32 pt if none is found)."""
     for root in (layout._element, layout.slide_master._element):
         sz = root.xpath('.//p:sp[p:nvSpPr/p:nvPr/p:ph[@type="title" or @type="ctrTitle"]]//a:lstStyle/a:lvl1pPr/a:defRPr/@sz')
         if sz:
@@ -487,30 +501,100 @@ def title_size_pt(slide):
     return int(sz[0]) / 100.0 if sz else 32.0
 
 
-def fit_title(c, slide, tph, text):
-    """Fill the title placeholder and, if the text would overflow it, store a shrink factor (normAutofit fontScale)."""
-    set_title_text(tph, text)
-    size = title_size_pt(slide)
-    w, h = tph.width / 914400.0 - 0.2, tph.height / 914400.0 - 0.1
-    scale = 1.0
+def ph_box(ph):
+    """Placeholder geometry in virtual inches (x, y, w, h)."""
+    return tuple(v / 914400.0 / K for v in (ph.left, ph.top, ph.width, ph.height))
+
+
+def ph_by_idx(slide, idx):
+    return next((ph for ph in slide.placeholders if ph.placeholder_format.idx == idx), None)
+
+
+def title_scale(layout, text):
+    """Largest shrink factor (5 % steps, down to 50 %) at which `text` fits the layout's title placeholder."""
+    tph = next(ph for ph in layout.placeholders if ph.placeholder_format.idx == 0)
+    size = title_size_pt(layout) / K
+    x, y, w, h = ph_box(tph)
     for pct in range(100, 49, -5):
-        if text_height([P(text, size=size * pct / 100.0, font="head")], w) <= h:
+        z = size * pct / 100.0
+        if text_height([P(text, size=z, font="head", line=z * 1.1)], w) <= h:
+            return pct / 100.0
+    return 0.5
+
+
+def fit_title(c, slide, tph, text, scale=None):
+    """Fill the title placeholder; if `scale` (or the text's own fit) is below 1, set the shrunk size on the run."""
+    set_title_text(tph, text)
+    if scale is None:
+        scale = title_scale(slide.slide_layout, text)
+    if scale < 1.0:  # an explicit size (font and color stay inherited) renders the same in every application
+        real = title_size_pt(slide.slide_layout) * scale
+        for run in tph.text_frame.paragraphs[0].runs:
+            run.font.size = Pt(real)
+        if scale < 0.5 + 1e-9:
+            c.warn("title needs more than a 50% shrink to fit the template's title placeholder")
+
+
+def ph_size_pt(layout, idx, default=20.0):
+    """Level-1 font size a layout placeholder defines (default if it inherits one we do not read)."""
+    sz = layout._element.xpath(f'.//p:sp[p:nvSpPr/p:nvPr/p:ph[@idx="{idx}"]]//a:lstStyle/a:lvl1pPr/a:defRPr/@sz')
+    return int(sz[0]) / 100.0 if sz else default
+
+
+def fill_ph(c, slide, ph, text, font="body", unbreakable=False, space_pt=0.0):
+    """Put `text` in a placeholder (formatting inherited); shrink via normAutofit fontScale if it would overflow.
+
+    With `unbreakable`, the longest word must also fit the width (so URLs are not split)."""
+    set_title_text(ph, text)
+    size = ph_size_pt(slide.slide_layout, ph.placeholder_format.idx) / K
+    x, y, w, h = ph_box(ph)
+    h -= space_pt / K / 72.0  # space the layout adds before and after the paragraph
+    scale = 0.5
+    for pct in range(100, 49, -5):
+        z = size * pct / 100.0
+        p = P(text, size=z, font=font, line=z * 1.2)
+        if text_height([p], w) <= h and (not unbreakable or longest_word(p) <= w):
             scale = pct / 100.0
             break
     else:
-        scale = 0.5
-    if scale < 1.0:
-        tph.text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
-        tph.text_frame._txBody.bodyPr.find(qn("a:normAutofit")).set("fontScale", str(int(scale * 100000)))
-        if scale < 0.7:
-            c.warn(f"title shrinks to {int(scale * 100)}% to fit the template's title placeholder")
+        c.warn(f"placeholder idx {ph.placeholder_format.idx} text needs more than a 50% shrink")
+    if scale < 1.0:  # an explicit size renders the same everywhere, unlike autofit
+        real = ph_size_pt(slide.slide_layout, ph.placeholder_format.idx) * scale
+        for run in ph.text_frame.paragraphs[0].runs:
+            run.font.size = Pt(real)
+
+
+def add_footer_placeholder(slide, text):
+    """python-pptx does not copy footer placeholders onto new slides; clone the layout's with `text`."""
+    lph = next((ph for ph in slide.slide_layout.placeholders if ph_type(ph) == PP_PLACEHOLDER.FOOTER), None)
+    if lph is None:
+        return
+    sp = copy.deepcopy(lph._element)
+    sppr = sp.find(qn("p:spPr"))
+    for child in list(sppr):
+        sppr.remove(child)  # inherit position and size from the layout
+    tx = sp.find(qn("p:txBody"))
+    for child in list(tx):
+        if child.tag in (qn("a:p"), qn("a:lstStyle")):
+            tx.remove(child)
+    etree.SubElement(tx, qn("a:lstStyle"))
+    para = etree.SubElement(tx, qn("a:p"))
+    run = etree.SubElement(para, qn("a:r"))
+    etree.SubElement(run, qn("a:rPr")).set("lang", "en-US")
+    etree.SubElement(run, qn("a:t")).text = text
+    ids = [int(e.get("id")) for e in slide.shapes._spTree.iter() if e.tag == qn("p:cNvPr")]
+    sp.find(".//" + qn("p:cNvPr")).set("id", str(max(ids + [1]) + 1))
+    slide.shapes._spTree.append(sp)
 
 
 def remove_empty_placeholders(slide, keep):
     for ph in list(slide.placeholders):
-        if ph in keep or ph.has_text_frame and ph.text_frame.text.strip():
+        if ph in keep or ph_type(ph) == PP_PLACEHOLDER.FOOTER or ph.has_text_frame and ph.text_frame.text.strip():
             continue
         ph._element.getparent().remove(ph._element)
+
+
+UNIVERSITY = "Missouri University of Science and Technology"
 
 
 def new_slide(c, kind):
@@ -522,15 +606,15 @@ def new_slide(c, kind):
     return sl, sl.shapes.title
 
 
-def source_line(c, sl, s, box_left, box_w):
+def source_line(c, sl, s, box_left, box_w, y=None):
     src = s.get("source")
     if not src:
         return
     if c.mode == "fallback":
-        y, h, w = c.H - 0.6, 0.45, box_w - 3.2
+        y, h, w, anchor = c.H - 0.6, 0.45, box_w - 3.2, "b"
     else:
-        y, h, w = c.H - 0.72, 0.42, box_w
-    add_text(c, sl, box_left, y, w, h, [P(src, size=10, color=SHUTTLE)], "source line", anchor="t" if c.mode == "template" else "b")
+        h, w, anchor = 0.26 / K, box_w, "t"
+    add_text(c, sl, box_left, y, w, h, [P(src, size=10, color=SHUTTLE)], "source line", anchor=anchor)
 
 
 def content_frame(c, s, n):
@@ -546,19 +630,26 @@ def content_frame(c, s, n):
         box = Box(left, 1.82, width, c.H - 0.75 - 1.82)
         source_line(c, sl, s, left, width)
         add_text(c, sl, c.W - 0.5 - 3.0, c.H - 0.6, 3.0, 0.45,
-                 [P(f"{c.content['meta']['footer']}  ·  {n}", size=10, color=SHUTTLE, align="r")], "footer", anchor="b")
+                 [P(f"{c.content['meta']['footer']}  \u00b7  {n}", size=10, color=SHUTTLE, align="r")], "footer", anchor="b")
         return sl, box
     # template mode
     if tph is None:
         sys.exit("error: content layout has no title placeholder")
-    fit_title(c, sl, tph, s["title"])
-    tl, tt, tw, th = (v / 914400.0 for v in (tph.left, tph.top, tph.width, tph.height))
-    add_text(c, sl, tl, max(0.1, tt - 0.3), min(tw, 8.0), 0.28,
-             [P(kicker_text(s), size=12, color=MINER, bold=True, spc=150)], "kicker")
-    top = tt + th + 0.15
-    box = Box(tl, top, tw, max(1.5, c.H - 0.75 - top))
+    fit_title(c, sl, tph, s["title"], c.title_scale)
+    tl, tt, tw, th = ph_box(tph)
+    lft = next((ph for ph in sl.slide_layout.placeholders if ph_type(ph) == PP_PLACEHOLDER.FOOTER), None)
+    bottom = (ph_box(lft)[1] - 0.38 / K) if lft is not None else c.H - 0.75
+    top = tt + th + 0.08 / K
+    box = Box(tl, top, tw, max(1.5, bottom - top))
     remove_empty_placeholders(sl, [tph])
-    source_line(c, sl, s, tl, tw)
+    add_footer_placeholder(sl, UNIVERSITY)
+    # kicker and slide number sit in the footer bar, right-aligned
+    k = kicker_text(s) + f" \u00b7 {n}"
+    if lft is not None:
+        fx, fy, fw, fh = ph_box(lft)
+        add_text(c, sl, tl + tw - 2.9 / K, fy, 2.9 / K, fh, [P(k, size=8.5 / K, color=WHITE, font="head", align="r")],
+                 "kicker and slide number", anchor="m")
+    source_line(c, sl, s, 1.53 / K, tl + tw - 1.53 / K, y=bottom + 0.04 / K)
     return sl, box
 
 
@@ -634,43 +725,31 @@ def side_row(c, sl, x, y, w, items, step, gap=0.25):
 
 def build_title(c, s, n):
     sl, tph = new_slide(c, "title")
-    ext = []
-    if c.mode == "fallback":
-        sl.background.fill.solid()
-        sl.background.fill.fore_color.rgb = rgb(FOREST)
-        left, w = 0.9, c.W - 1.8
-        paras, _, _ = fit(lambda z: [P(s["title"], size=z, color=WHITE, font="head")], w, 1.7, [44, 42, 40], c, "title")
-        add_text(c, sl, left, 1.0, w, 1.75, paras, "title", anchor="b")
-        sub, _, _ = fit(lambda z: [P(s["subtitle"], size=z, color=KIWI)], w, 0.9, [26, 24, 22, 20], c, "subtitle")
-        add_text(c, sl, left, 2.95, w, 0.9, sub, "subtitle")
-        y0, col_main, col_quote = 4.45, WHITE, PEBBLE
-    else:
+    if c.mode == "template":
         if tph is None:
             sys.exit("error: title layout has no title placeholder")
         fit_title(c, sl, tph, s["title"])
-        sub_ph = next((ph for ph in sl.placeholders if ph_type(ph) in SUB_TYPES and ph is not tph), None)
-        keep = [tph]
-        if sub_ph is not None:
-            set_title_text(sub_ph, s["subtitle"])
-            keep.append(sub_ph)
-            sl_, st_, sw_, sh_ = sub_ph.left, sub_ph.top, sub_ph.width, sub_ph.height
-            sub_ph.left, sub_ph.top, sub_ph.width = sl_, st_, sw_
-            sub_ph.height = min(sh_, I(1.3))  # the subtitle is short; free the space below it
-            bottom, left, w = (sub_ph.top + sub_ph.height) / 914400.0, sub_ph.left / 914400.0, sub_ph.width / 914400.0
-        else:
-            bottom, left, w = (tph.top + tph.height) / 914400.0, tph.left / 914400.0, tph.width / 914400.0
-            add_text(c, sl, left, bottom + 0.1, w, 0.6, [P(s["subtitle"], size=22, font="body", color=None)], "subtitle")
-            bottom += 0.7
-        remove_empty_placeholders(sl, keep)
-        y0, col_main, col_quote = bottom + 0.1, None, None
-    avail = (c.H - 0.75 - y0) if c.mode == "template" else 2.7
-    if c.mode == "template" and avail < 1.0:
-        y0, avail = max(0.2, c.H - 0.75 - 1.0), 1.0
-    gap_after = 14 if c.mode == "fallback" else 6
-    paras_q = lambda z: [P(s["byline"], size=z, color=col_main, after=2), P(s["occasion"], size=z, color=col_main, after=gap_after),
-                         P(s["quote"], size=max(14, z - 2), italic=True, color=col_quote)]
+        sub = ph_by_idx(sl, 1)
+        body = ph_by_idx(sl, 10)
+        if sub is not None:
+            fill_ph(c, sl, sub, s["subtitle"], font="head", space_pt=6)
+        if body is not None:
+            fill_ph(c, sl, body, f"{s['byline']} \u00b7 {s['occasion']}")
+        remove_empty_placeholders(sl, [tph, sub, body])
+        add_footer_placeholder(sl, UNIVERSITY)
+        return sl
+    sl.background.fill.solid()
+    sl.background.fill.fore_color.rgb = rgb(FOREST)
+    left, w = 0.9, c.W - 1.8
+    paras, _, _ = fit(lambda z: [P(s["title"], size=z, color=WHITE, font="head")], w, 1.7, [44, 42, 40], c, "title")
+    add_text(c, sl, left, 1.0, w, 1.75, paras, "title", anchor="b")
+    sub, _, _ = fit(lambda z: [P(s["subtitle"], size=z, color=KIWI)], w, 0.9, [26, 24, 22, 20], c, "subtitle")
+    add_text(c, sl, left, 2.95, w, 0.9, sub, "subtitle")
+    avail = 2.7
+    paras_q = lambda z: [P(s["byline"], size=z, color=WHITE, after=2), P(s["occasion"], size=z, color=WHITE, after=14),
+                         P(s["quote"], size=max(14, z - 2), italic=True, color=PEBBLE)]
     paras_all, _, _ = fit(paras_q, w, avail, [18, 17, 16, 15, 14], c, "title slide text")
-    add_text(c, sl, left, y0, w, avail, paras_all, "byline, occasion and quote")
+    add_text(c, sl, left, 4.45, w, avail, paras_all, "byline, occasion and quote")
     return sl
 
 
@@ -685,13 +764,13 @@ def build_closing(c, s, n):
         add_text(c, sl, left, 3.75, w, 1.2, sub, "subtitle")
     else:
         fit_title(c, sl, tph, s["title"])
-        sub_ph = next((ph for ph in sl.placeholders if ph_type(ph) in SUB_TYPES and ph is not tph), None)
+        body = ph_by_idx(sl, 13) or next((ph for ph in sl.placeholders if ph_type(ph) in SUB_TYPES and ph is not tph), None)
         keep = [tph]
-        if sub_ph is not None:
-            set_title_text(sub_ph, s["subtitle"])
-            keep.append(sub_ph)
+        if body is not None:
+            fill_ph(c, sl, body, s["subtitle"], unbreakable=True)
+            keep.append(body)
         else:
-            tl, tt, tw, th = (v / 914400.0 for v in (tph.left, tph.top, tph.width, tph.height))
+            tl, tt, tw, th = ph_box(tph)
             add_text(c, sl, tl, tt + th + 0.1, tw, 0.9, [P(s["subtitle"], size=20, color=None)], "subtitle")
         remove_empty_placeholders(sl, keep)
     return sl
@@ -832,7 +911,7 @@ def build_flow(c, sl, s, box):
         cn.begin_connect(shapes[i], 3)
         cn.end_connect(shapes[i + 1], 1)
         cn.line.color.rgb = rgb(SHUTTLE)
-        cn.line.width = Pt(2)
+        cn.line.width = PT(2)
         etree.SubElement(cn.line._get_or_add_ln(), qn("a:tailEnd")).attrib.update({"type": "triangle", "w": "med", "len": "med"})
     if len(loop) > 1:
         xa = box.x + loop[0] * (sw + g) + sw / 2
@@ -846,7 +925,7 @@ def build_flow(c, sl, s, box):
         drop_style(ret)
         ret.fill.background()
         ret.line.color.rgb = rgb(MINER)
-        ret.line.width = Pt(2.25)
+        ret.line.width = PT(2.25)
         etree.SubElement(ret.line._get_or_add_ln(), qn("a:tailEnd")).attrib.update({"type": "triangle", "w": "med", "len": "med"})
     y += gh + gap
     for i, v in enumerate(s["variants"]):
@@ -858,7 +937,7 @@ def build_flow(c, sl, s, box):
 # --------------------------------------------------------------------------- slide types: charts
 
 def style_chart_text(c, chart, size=14):
-    chart.font.size = Pt(size)
+    chart.font.size = PT(size)
     chart.font.name = c.face["body"]
     chart.font.color.rgb = rgb(INK)
 
@@ -868,12 +947,12 @@ def style_value_axis(chart, lo, hi, unit, fmt):
     va.minimum_scale, va.maximum_scale, va.major_unit = lo, hi, unit
     va.has_major_gridlines = True
     va.major_gridlines.format.line.color.rgb = rgb(PEBBLE)
-    va.major_gridlines.format.line.width = Pt(0.75)
+    va.major_gridlines.format.line.width = PT(0.75)
     va.format.line.fill.background()
     va.major_tick_mark = XL_TICK_MARK.NONE
     va.tick_labels.number_format = fmt
     va.tick_labels.number_format_is_linked = False
-    va.tick_labels.font.size = Pt(13)
+    va.tick_labels.font.size = PT(13)
     va.tick_labels.font.color.rgb = rgb(SHUTTLE)
 
 
@@ -882,7 +961,7 @@ def style_category_axis(chart, size=14):
     ca.format.line.color.rgb = rgb(SHUTTLE)
     ca.major_tick_mark = XL_TICK_MARK.NONE
     ca.has_major_gridlines = False
-    ca.tick_labels.font.size = Pt(size)
+    ca.tick_labels.font.size = PT(size)
 
 
 def nice_unit(lo, hi, target=5):
@@ -907,7 +986,7 @@ def add_reference_series(chart, color, dash="dash"):
     tx = ser.find(qn("c:tx"))
     sppr = etree.fromstring(
         f'<c:spPr xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" '
-        f'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:ln w="22225" cap="flat">'
+        f'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:ln w="{int(22225 * K)}" cap="flat">'
         f'<a:solidFill><a:srgbClr val="{color}"/></a:solidFill><a:prstDash val="{dash}"/></a:ln></c:spPr>')
     marker = etree.fromstring('<c:marker xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:symbol val="none"/></c:marker>')
     tx.addnext(sppr)
@@ -976,7 +1055,7 @@ def build_bar_chart(c, sl, s, box):
     dl.number_format = "0." + "0" * dec
     dl.number_format_is_linked = False
     dl.position = XL_LABEL_POSITION.OUTSIDE_END
-    dl.font.size = Pt(15)
+    dl.font.size = PT(15)
     dl.font.bold = True
     lo, hi = ch["axis_min"], ch["axis_max"]
     style_value_axis(chart, lo, hi, 0.02 if hi - lo <= 0.2 else nice_unit(lo, hi), "0.00")
@@ -1001,12 +1080,12 @@ def build_line_chart(c, sl, s, box):
     chart.has_legend = True
     chart.legend.position = XL_LEGEND_POSITION.BOTTOM
     chart.legend.include_in_layout = False
-    chart.legend.font.size = Pt(14)
+    chart.legend.font.size = PT(14)
     for ser, spec in zip(chart.plots[0].series, ch["series"]):
         ser.smooth = False
         ser.marker.style = XL_MARKER_STYLE.NONE
         ser.format.line.color.rgb = rgb(series_color(c, spec["name"]))
-        ser.format.line.width = Pt(2.5)
+        ser.format.line.width = PT(2.5)
     lo, hi = ch["axis_min"], ch["axis_max"]
     style_value_axis(chart, lo, hi, 0.35 if abs(hi - lo - 1.05) < 1e-9 else nice_unit(lo, hi), "0.00")
     style_category_axis(chart, 12)
@@ -1014,7 +1093,7 @@ def build_line_chart(c, sl, s, box):
     ca.has_title = True
     ca.axis_title.text_frame.text = ch["x_label"]
     run = ca.axis_title.text_frame.paragraphs[0].runs[0]
-    run.font.size = Pt(13)
+    run.font.size = PT(13)
     run.font.bold = False
     run.font.color.rgb = rgb(SHUTTLE)
     return sl
@@ -1035,7 +1114,7 @@ def build_clustered_bar(c, sl, s, box):
     chart.has_legend = True
     chart.legend.position = XL_LEGEND_POSITION.BOTTOM
     chart.legend.include_in_layout = False
-    chart.legend.font.size = Pt(14)
+    chart.legend.font.size = PT(14)
     plot = chart.plots[0]
     plot.gap_width = 60
     plot.overlap = -5
@@ -1048,7 +1127,7 @@ def build_clustered_bar(c, sl, s, box):
     dl.number_format = fmt
     dl.number_format_is_linked = False
     dl.position = XL_LABEL_POSITION.OUTSIDE_END
-    dl.font.size = Pt(14)
+    dl.font.size = PT(14)
     dl.font.bold = True
     top = max(max(x["values"]) for x in ch["series"])
     hi = math.ceil(top * 10) / 10
@@ -1096,7 +1175,7 @@ def tick_label(v, fmt):
 class ForestPlan:
     """Geometry of one forest plot inside a region (caption, panels, rows, value column)."""
 
-    def __init__(self, c, ch, region, label_pt, value_pt):
+    def __init__(self, c, ch, region, label_pt, value_pt, tight=False, label_cap=0.32):
         self.c, self.ch, self.region = c, ch, region
         self.panels = ch["panels"]
         rows = [r for p in self.panels for r in p["rows"]]
@@ -1106,7 +1185,7 @@ class ForestPlan:
         self.label_pt, self.value_pt = label_pt, value_pt
         lab = lambda r: P(r["label"], size=label_pt, bold=bool(r.get("emphasis")))
         lab_need = max(max_line_width(lab(r)) for r in rows) + 0.2
-        self.label_w = min(max(lab_need, 0.9), 0.32 * region.w)
+        self.label_w = min(max(lab_need, 0.9), label_cap * region.w)
         self.dec = ch.get("decimals")
         self.value_w = max(max_line_width(P(value_text(r, self.dec), size=value_pt, bold=True)) for r in rows) + 0.15
         self.note_w = 0.95 if self.has_note else 0.0
@@ -1114,42 +1193,50 @@ class ForestPlan:
         cap = [P(ch["caption"], size=13, color=SHUTTLE)]
         self.cap_h = text_height(cap, region.w) + 0.12
         self.top_pad = 0.34 if (self.ref or self.has_note) else 0.0
-        self.panel_head = 0.3
-        self.tick_h = 0.27
-        self.panel_gap = 0.1
+        self.panel_head = 0.27 if tight else 0.3
+        self.tick_h = 0.25 if tight else 0.27
+        self.panel_gap = 0.06 if tight else 0.1
         fixed = self.cap_h + self.top_pad
         for p in self.panels:
             fixed += (self.panel_head if p["name"] else 0) + self.tick_h + self.panel_gap
-        self.needs = [[max(0.3, para_lines(lab(r), self.label_w - 0.1) * label_pt * LINE / 72 + 0.06) for r in p["rows"]]
+        floor, pad = (0.0, 0.03) if tight else (0.3, 0.06)
+        self.needs = [[max(floor, para_lines(lab(r), self.label_w - 0.1) * label_pt * LINE / 72 + pad) for r in p["rows"]]
                       for p in self.panels]
         self.extra = (region.h - fixed - sum(map(sum, self.needs))) / self.nrows
-        self.feasible = self.extra >= 0 and self.plot_w >= 2.4
+        self.feasible = self.extra >= 0 and self.plot_w >= (2.0 if tight else 2.4)
         pad = min(0.3, max(0.0, self.extra))
         self.row_h = [[n + pad for n in ns] for ns in self.needs]
 
 
 def plan_forest(c, ch, region, side):
-    """Pick fonts and where the side cards go; returns (plan, mode, card_step)."""
+    """Pick fonts and where the side cards go; returns (plan, mode, card_step).
+
+    Preference order: roomy rows, then tight rows, then (last resort) a wider label column."""
     fonts = ((14, 14), (14, 13), (13, 13))
-    plan = None
-    if not side:
-        for lp, vp in fonts:
-            plan = ForestPlan(c, ch, region, lp, vp)
-            if plan.feasible:
-                break
-        return plan, "none", 0
     sw = min(0.33 * region.w, 4.2)
-    for lp, vp in fonts:
-        for step in range(4):
-            row_h = side_row(c, None, 0, 0, region.w, side, step)
-            plan = ForestPlan(c, ch, Box(region.x, region.y, region.w, region.h - row_h - 0.25), lp, vp)
-            if plan.feasible and plan.extra >= 0.1:
-                return plan, "below", step
-        if side_fit_step(side, sw, region.h, 0.18) is not None:
-            right = ForestPlan(c, ch, Box(region.x, region.y, region.w - sw - 0.3, region.h), lp, vp)
-            if right.feasible:
-                return right, "right", 0
-    return plan, "below", 3
+    plan = None
+    stages = ((False, 0.32), (True, 0.32), (True, 0.4), (True, 0.46)) if c.mode == "template" else ((False, 0.32),)
+    for tight, cap in stages:
+        for lp, vp in fonts:
+            if not side:
+                plan = ForestPlan(c, ch, region, lp, vp, tight, cap)
+                if plan.feasible:
+                    return plan, "none", 0
+                continue
+            for step in range(4):
+                row_h = side_row(c, None, 0, 0, region.w, side, step)
+                plan = ForestPlan(c, ch, Box(region.x, region.y, region.w, region.h - row_h - 0.25), lp, vp, tight, cap)
+                if plan.feasible and plan.extra >= (0.0 if tight else 0.1):
+                    return plan, "below", step
+            if side_fit_step(side, sw, region.h, 0.18) is not None:
+                right = ForestPlan(c, ch, Box(region.x, region.y, region.w - sw - 0.3, region.h), lp, vp, tight, cap)
+                if right.feasible:
+                    return right, "right", 0
+    if not side:
+        return plan, "none", 0
+    row_h = side_row(c, None, 0, 0, region.w, side, 3)
+    last = stages[-1]
+    return ForestPlan(c, ch, Box(region.x, region.y, region.w, region.h - row_h - 0.25), 13, 13, *last), "below", 3
 
 
 def build_forest(c, sl, s, box):
@@ -1282,7 +1369,7 @@ def set_cell_borders(cell, top, color=PEBBLE, w_pt=0.75):
     """Hairline rules above (if top) and below the cell; these must precede the fill in tcPr."""
     tcpr = cell._tc.get_or_add_tcPr()
     for pos, tag in enumerate(["a:lnT", "a:lnB"] if top else ["a:lnB"]):
-        ln = etree.Element(qn(tag), w=str(int(w_pt * 12700)), cap="flat", cmpd="sng", algn="ctr")
+        ln = etree.Element(qn(tag), w=str(int(w_pt * 12700 * K)), cap="flat", cmpd="sng", algn="ctr")
         sf = etree.SubElement(ln, qn("a:solidFill"))
         etree.SubElement(sf, qn("a:srgbClr")).set("val", color)
         etree.SubElement(ln, qn("a:prstDash")).set("val", "solid")
@@ -1444,10 +1531,13 @@ def build(args):
     with open(args.content, encoding="utf-8") as fh:
         content = yaml.safe_load(fh)
     tmpdir = None
+    global K, BODY_AS_CAMBRIA
     if args.template:
         prs, tmpdir = load_template(args.template)
         mode = "template"
         clear_slides(prs)
+        K = prs.slide_width / 914400.0 / 13.333
+        BODY_AS_CAMBRIA = True
     else:
         prs = Presentation()
         prs.slide_width, prs.slide_height = Emu(12192000), Emu(6858000)
@@ -1455,6 +1545,9 @@ def build(args):
     c = Ctx(mode, content, prs)
     if mode == "template":
         c.layouts = pick_layouts(prs)
+        # one shrink factor for every content title keeps the title size uniform across the deck
+        c.title_scale = min(title_scale(c.layouts["content"], x["title"]) for x in content["slides"]
+                            if x["type"] not in ("title", "closing"))
         print("template layouts used: title -> '%s', content -> '%s', closing -> '%s'" % (
             c.layouts["title"].name, c.layouts["content"].name, c.layouts["closing"].name))
     only = {x.strip() for x in args.only.split(",")} if args.only else None

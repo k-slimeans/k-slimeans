@@ -70,7 +70,10 @@ Build the deck (needs `python-pptx` and `PyYAML`):
     python docs/talk/build_deck.py --content docs/talk/deck.yaml --out k-slimeans-talk.pptx                    # S&T colours, no template
     python docs/talk/build_deck.py --content docs/talk/deck.yaml --out k-slimeans-talk.pptx --template <S&T template .potx>
 
-The Missouri S&T 16:9 template is at https://brand.mst.edu/digital-templates/powerpoint/ (university sign-in). It is not committed.
+The Missouri S&T 16:9 template (`16x9 Presentation.potx`) is at https://brand.mst.edu/digital-templates/powerpoint/, behind the university sign-in.
+- Neither the template nor the deck built from it is committed, because the repo is public. Share that deck through university storage, not GitHub.
+- `docs/talk/k-slimeans-talk.pptx` in the repo is the palette-only preview.
+- In template mode, the builder uses the template's title, content and closing layouts. It scales the layout to the 10-inch slide and puts the part, speaker and slide number in the footer bar.
 
 ## Part 4. Likely questions for Cooper's parts
 
