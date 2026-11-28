@@ -1,4 +1,4 @@
-row_id,item,summary,cluster_size,members_shown,members,members_fit,generic,unsupported,fluent,notes,
+row_id,item,summary,cluster_size,members_shown,members,members_fit,generic,unsupported,fluent,notes
 bank77-01-A,bank77-01,How can I obtain a disposable virtual card?,40,10,"1. Are there any hindrances to using a disposable virtual card?
 2. Why is my disposable virtual card being denied?
 3. Why doesn't my disposable virtual card work?
@@ -8,7 +8,7 @@ bank77-01-A,bank77-01,How can I obtain a disposable virtual card?,40,10,"1. Are 
 7. I want to get a disposable virtual card.
 8. I would like to create a disposable virtual card. How do I go about doing that?
 9. Is there a disposable virtual card I can order?
-10. Will I be able to get a disposable virtual card as well?",6,0,0,1,"hinderance, card denied, doesn't work",
+10. Will I be able to get a disposable virtual card as well?",6,0,0,1,"hinderance, card denied, doesn't work"
 bank77-01-B,bank77-01,"What are the limits and requirements for obtaining and using a disposable virtual card, including how to order, use, and troubleshoot issues?",40,10,"1. Are there any hindrances to using a disposable virtual card?
 2. What can I use a virtual disposable card for?
 3. How many times can I use the disposable virtual card I have?
@@ -18,7 +18,7 @@ bank77-01-B,bank77-01,"What are the limits and requirements for obtaining and us
 7. I need a disposable virtual card, how do I get one?
 8. Will I be able to get a disposable virtual card as well?
 9. Hello! I need to order a disposable virtual card. Where can I do that at?
-10. what's the process for getting a disposable virtual card?",10,1,0,1,genric term like troubleshoot issues,
+10. what's the process for getting a disposable virtual card?",10,1,0,1,genric term like troubleshoot issues
 bank77-01-C,bank77-01,"How do I obtain a disposable virtual card?
 how secure is a disposable virtual card
 Will I be able to get a disposable virtual card as well?
@@ -32,7 +32,7 @@ What do I do to get a disposable virtual card?",39,10,"1. What are the limits fo
 7. I have a disposable virtual card here, so would you tell me what to do with it?
 8. How do I obtain a disposable virtual card?
 9. Where can I get a disposable virtual card?
-10. what's the process for getting a disposable virtual card?",6,1,1,0,Echoed members,
+10. what's the process for getting a disposable virtual card?",6,1,1,0,Echoed members
 bank77-01-D,bank77-01,"What are the options, limits, and process for obtaining and using a disposable virtual card?",40,10,"1. What are the limits to using disposable virtual cards?
 2. Why is my disposable virtual card being denied?
 3. My disposable virtual card is broken.
@@ -42,7 +42,7 @@ bank77-01-D,bank77-01,"What are the options, limits, and process for obtaining a
 7. What do I do to get a disposable virtual card?
 8. I would like to create a disposable virtual card. How do I go about doing that?
 9. Will I be able to get a disposable virtual card as well?
-10. where do I request a disposable virtual card?",7,0,0,1,,
+10. where do I request a disposable virtual card?",7,0,0,1,
 bank77-02-A,bank77-02,Can I get both a Visa and a Mastercard?,37,10,"1. How do I get a visa card?
 2. What steps must I follow to get a Visa credit card?
 3. I would prefer a visa card
@@ -52,7 +52,7 @@ bank77-02-A,bank77-02,Can I get both a Visa and a Mastercard?,37,10,"1. How do I
 7. We need both a visa and a Mastercard.
 8. I like Mastercard better.
 9. Do you offer Visa or Mastercard?
-10. Is it possible to receive a Visa and a MasterCard?",3,0,0,1,getting both card is only 3 members,
+10. Is it possible to receive a Visa and a MasterCard?",3,0,0,1,getting both card is only 3 members
 bank77-02-B,bank77-02,"It will be fine to use at any establishment that accepts Mastercard.
 Do I get to choose between Visa and Mastercard?
 I would rather the Mastercard.
@@ -66,7 +66,7 @@ Do I get a choice between Visa and Mastercard?",37,10,"1. What do I have to do t
 7. I like Mastercard better.
 8. Is it possible to receive a Visa and a MasterCard?
 9. Can you let me know if Visa is among the card scheme assignments?
-10. Do you use Mastercard or Visa?",5,1,0,0,Incorrect grammer,
+10. Do you use Mastercard or Visa?",5,1,0,0,Incorrect grammer
 bank77-02-C,bank77-02,Can I choose between Visa and Mastercard when applying for a credit card?,37,10,"1. I like to Mastercard rather than Visa.
 2. Are both Visa and Mastercard accepted?
 3. Are both Visa and Mastercard offered?
@@ -76,7 +76,7 @@ bank77-02-C,bank77-02,Can I choose between Visa and Mastercard when applying for
 7. May I choose between Visa and Mastercard?
 8. Do I get to choose between Visa and Mastercard?
 9. I like Mastercard better.
-10. Is it possible to receive a Visa and a MasterCard?",7,0,0,1,,
+10. Is it possible to receive a Visa and a MasterCard?",7,0,0,1,
 bank77-02-D,bank77-02,"""I would prefer a Mastercard and can get a Visa credit card.""",37,10,"1. Are both Visa and Mastercard accepted?
 2. Do you guys accept mastercard or visa?
 3. I want to get Visa and Mastercard
@@ -86,7 +86,7 @@ bank77-02-D,bank77-02,"""I would prefer a Mastercard and can get a Visa credit c
 7. Please give me both a visa and a master card.
 8. Is Visa or Mastercard available?
 9. Can you let me know if Visa is among the card scheme assignments?
-10. Do you use Mastercard or Visa?",4,0,0,0,Incorrect grammer,
+10. Do you use Mastercard or Visa?",4,0,0,0,Incorrect grammer
 bank77-03-A,bank77-03,How do I activate my new card?,38,10,"1. I would like to reactivate my card.
 2. Can I put my old card back into the system? I just found it/
 3. What do I need to do to activate my new card?
@@ -96,7 +96,7 @@ bank77-03-A,bank77-03,How do I activate my new card?,38,10,"1. I would like to r
 7. I just got my card and want to use it, how do I activate my card?
 8. I have a new card and I want to activate it
 9. When will my card be activated?
-10. What is the activation process on my new card?",7,0,0,1,,
+10. What is the activation process on my new card?",7,0,0,1,
 bank77-03-B,bank77-03,"What do I need to do to activate my new card?
 Can you help me do this?
 I need help with activating my card
@@ -110,7 +110,7 @@ Could you please activate my card",38,10,"1. Can I put my old card back into the
 7. I have a new card and I want to activate it
 8. Assist me please with card activation.
 9. I would like to get help from someone with activating my card.
-10. What is the process for activating my card?",9,1,0,0,Verbatim member,
+10. What is the process for activating my card?",9,1,0,0,Verbatim member
 bank77-03-C,bank77-03,How do I activate my card?,39,10,"1. I need to activate my card can you do that now?
 2. How long will it take to activate my new card?
 3. I need help activating my new card.
@@ -120,7 +120,7 @@ bank77-03-C,bank77-03,How do I activate my card?,39,10,"1. I need to activate my
 7. Activating my card
 8. How can I activate my card>
 9. What is the activation process on my new card?
-10. What do I need to do to activate my card?",9,0,0,1,,
+10. What do I need to do to activate my card?",9,0,0,1,
 bank77-03-D,bank77-03,"""How do I activate my new card?""",36,10,"1. Could you please activate my card
 2. What's the right way to activate my card?
 3. How do I activate a card I received?
@@ -130,7 +130,7 @@ bank77-03-D,bank77-03,"""How do I activate my new card?""",36,10,"1. Could you p
 7. When will my card be activated?
 8. What is the activation process on my new card?
 9. How do I activate a new card?
-10. I got my new card. How do I activate it?",10,0,0,1,,
+10. I got my new card. How do I activate it?",10,0,0,1,
 bank77-04-A,bank77-04,How many disposable cards can I have per day?,36,10,"1. How can i get multiple disposble cards.
 2. Can I make many disposable cards per day?
 3. I need to use my disposable card multiple times a day, is there a cutoff limit?
@@ -140,7 +140,7 @@ bank77-04-A,bank77-04,How many disposable cards can I have per day?,36,10,"1. Ho
 7. I would like to know any restrictions for the disposable cards.
 8. How can I create many temporary cards daily?
 9. How many disposable cards can I own?
-10. How many transactions can I do with one disposable card?",7,0,0,1,,
+10. How many transactions can I do with one disposable card?",7,0,0,1,
 bank77-04-B,bank77-04,What are the limits on the number of disposable cards and transactions allowed per day?,36,10,"1. Can I make many disposable cards per day?
 2. How do I make more than one disposable card in a day?
 3. How many disposable cards can I have?
@@ -150,7 +150,7 @@ bank77-04-B,bank77-04,What are the limits on the number of disposable cards and 
 7. Is it possible to make several disposable cards in a day?
 8. Is there a limit to how many transactions I can make on one disposable card?
 9. How do disposable cards work?
-10. how many transactions can i make with a disposable card",8,0,0,1,,
+10. how many transactions can i make with a disposable card",8,0,0,1,
 bank77-04-C,bank77-04,"If I have more than one disposable card, can I make five payments on each of them?
 How many disposable cards can I have?
 How can I create many temporary cards daily?
@@ -164,7 +164,7 @@ How many disposable cards can I make in a single day?",36,10,"1. I need to use m
 7. I have to have several disposable cards per day.
 8. Is there a limit to how many transactions I can make on one disposable card?
 9. How many disposable cards can I own?
-10. Can you explain the disposable cards to me?",9,1,0,0,Verbatim member,
+10. Can you explain the disposable cards to me?",9,1,0,0,Verbatim member
 bank77-04-D,bank77-04,What are disposable cards and what are the limits on the number of transactions and cards I can have daily?,35,10,"1. I need to use my disposable card multiple times a day, is there a cutoff limit?
 2. What's the most disposable cards I can have?
 3. Are you able to explain the restrictions of the disposable cards?
@@ -174,7 +174,7 @@ bank77-04-D,bank77-04,What are disposable cards and what are the limits on the n
 7. How many disposable cards can I make in a single day?
 8. How many disposable cards can I own?
 9. What is the limit to disposable cards you can have?
-10. How many times can I use a disposable card?",10,0,0,1,,
+10. How many times can I use a disposable card?",10,0,0,1,
 bank77-05-A,bank77-05,"Is PIN delivered separately?
 What is my card's PIN?
 I can not find my card pin.
@@ -188,7 +188,7 @@ So what about the card PIN?",37,10,"1. How do I get my PIN unlocked?
 7. Where is my PIN number located?
 8. So what about the card PIN?
 9. I cannot locate the card PIN.
-10. What do I need to do for a PIN?",10,1,0,0,Verbatim member,
+10. What do I need to do for a PIN?",10,1,0,0,Verbatim member
 bank77-05-B,bank77-05,How do I unblock or reset my PIN?,53,10,"1. What do I do with my card PIN?
 2. I don't know where to look to find my PIN.
 3. Why can't I see my PIN?
@@ -198,7 +198,7 @@ bank77-05-B,bank77-05,How do I unblock or reset my PIN?,53,10,"1. What do I do w
 7. Help me find my card pin!
 8. Is PIN delivered separately?
 9. Why can't I find my PIN?
-10. I need a new Pin how do I go about that?",1,0,0,1,,
+10. I need a new Pin how do I go about that?",1,0,0,1,
 bank77-05-C,bank77-05,How can I unblock my PIN?,73,10,"1. Will you reinstate my PIN?
 2. Can you assist me with unblocking my PIN? I put it in wrong too many times.
 3. Can you unblock my pin after too many wrong pin attempts?
@@ -208,7 +208,7 @@ bank77-05-C,bank77-05,How can I unblock my PIN?,73,10,"1. Will you reinstate my 
 7. I just got my new card but am not sure how to check its PIN.
 8. If I need a PIN for my card, where is it located?
 9. Why isn't my PIN available yet?
-10. Help me set up a new PIN?",3,0,0,1,,
+10. Help me set up a new PIN?",3,0,0,1,
 bank77-05-D,bank77-05,How can I unlock or unblock my PIN and find my card PIN?,68,10,"1. Where can I view my PIN?
 2. How do I reset my PIN?
 3. Are PIN separately?
@@ -218,7 +218,7 @@ bank77-05-D,bank77-05,How can I unlock or unblock my PIN and find my card PIN?,6
 7. I need my PIN
 8. What do I need to do for a PIN?
 9. where can user find pin?
-10. I would like to change my pin.",10,0,0,1,,
+10. I would like to change my pin.",10,0,0,1,
 bank77-06-A,bank77-06,Why is the exchange rate wrong for my international purchase?,43,10,"1. The exchange rate on my purchase is wrong.
 2. I bought something, but the exchange rate looks wrong.
 3. Why is the exchange rate wrong when I purchase something abroad?
@@ -228,7 +228,7 @@ bank77-06-A,bank77-06,Why is the exchange rate wrong for my international purcha
 7. Why was the exchange rate incorrect for an item I recently bought?
 8. I go the wrong exchange rate applied to my purchase in a foreign country.
 9. How do I cancel a previous purchase
-10. I took out cash abroad and the exchange rate isn't correct.",8,0,0,1,,
+10. I took out cash abroad and the exchange rate isn't correct.",8,0,0,1,
 bank77-06-B,bank77-06,"""The exchange rate for my foreign purchase was incorrect.""",74,10,"1. I believe my card payment exchange rate is incorrect.
 2. Hi, I have been overcharged for my payment last Saturday. I guess exchange rate was wrong.
 3. The wrong exchange rate was used when I bought something with a foriegn currency.
@@ -238,7 +238,7 @@ bank77-06-B,bank77-06,"""The exchange rate for my foreign purchase was incorrect
 7. When I got cash, my exchange rate was wrong.
 8. I took out a foreign currency and the exchange rate is wrong.
 9. The conversion rate on the ATM that I used with foreign currency was wrong.
-10. I had a wrong fee charged at this ATM.",4,0,0,1,,
+10. I had a wrong fee charged at this ATM.",4,0,0,1,
 bank77-06-C,bank77-06,"Exchange rate for my cash withdrawal is wrong
 Can you tell me current exchange rates?
 I wasn't applied the correct exchange rate for an item I bought
@@ -252,7 +252,7 @@ Why is my exchange rate wrong for an item I bought?",71,10,"1. I bought somethin
 7. The exchange rate you gave me for my cash withdrawal is wrong
 8. I feel like too much money was taken during my currency exchange.
 9. The conversion rate on the ATM that I used with foreign currency was wrong.
-10. Why did my cash get charged a fee that should not be there.",8,1,0,1,,
+10. Why did my cash get charged a fee that should not be there.",8,1,0,1,
 bank77-06-D,bank77-06,Why was the exchange rate incorrect for my foreign transaction or cash withdrawal?,67,10,"1. the card payment exchange rate is wrong
 2. This rate is too low. Are you sure your using the right exchange rate.
 3. I bought something in a foreign currency but the rate applied is wrong!
@@ -262,7 +262,7 @@ bank77-06-D,bank77-06,Why was the exchange rate incorrect for my foreign transac
 7. The wrong exchange rate was used when I bought something with a foriegn currency.
 8. I am unhappy with my purchase, how do I cancel the order?
 9. I took out a foreign currency and the exchange rate is wrong.
-10. My ecchange rate was wrong for a cash transaction.",9,0,0,1,,
+10. My ecchange rate was wrong for a cash transaction.",9,0,0,1,
 bank77-07-A,bank77-07,How can I get my physical card to work and what are the fees associated with it?,37,10,"1. Do I need to establish I am paid in GBP before a transfer?
 2. How do i get my salary in the account?
 3. I received my salary in GBP. How do I change this to my currency?
@@ -272,7 +272,7 @@ bank77-07-A,bank77-07,How can I get my physical card to work and what are the fe
 7. What is the charge for a physical card?
 8. How do I get a physical card?
 9. What are the fees to get a physical card?
-10. If I want a physical card, do I have to pay anything?",6,0,0,1,,
+10. If I want a physical card, do I have to pay anything?",6,0,0,1,
 bank77-07-B,bank77-07,"Can I use this to receive my salary?
 I receive my salary in GBP.
 How do I enable contactless pay?
@@ -286,7 +286,7 @@ How do I change this to my currency?",29,10,"1. Is there a problem with receivin
 7. I receive my salary in GBP. Do I need to configure this somehwere?
 8. How do I get my paycheck through this?
 9. My salary is in GBP; how can I note this in the app?
-10. Can I get my paycheck through here?",5,1,0,1,,
+10. Can I get my paycheck through here?",5,1,0,1,
 bank77-07-C,bank77-07,Can I use this account to receive my salary?,22,10,"1. How do I use contactless pay?
 2. I had to pay in order to do a transfer
 3. Can I get my salary through this?
@@ -296,7 +296,7 @@ bank77-07-C,bank77-07,Can I use this account to receive my salary?,22,10,"1. How
 7. Can this be used to receive my salary?
 8. Can i deposit my salary to this account?
 9. How do I get my paycheck through this?
-10. can I transfer my salary if it's in a different currency?",5,0,0,1,,
+10. can I transfer my salary if it's in a different currency?",5,0,0,1,
 bank77-07-D,bank77-07,How can I use contactless pay to receive my salary?,35,10,"1. How can I make my contactless work for the metro?
 2. Is there a problem with receiving my salary in GBP?
 3. Do I need to choose GBP to get my salary deposited properly?
@@ -306,7 +306,7 @@ bank77-07-D,bank77-07,How can I use contactless pay to receive my salary?,35,10,
 7. How do i get my salary in the account?
 8. Can i deposit my salary to this account?
 9. Is my salary eligible for this?
-10. I don't know how to top up my Google pay.",2,0,0,1,,
+10. I don't know how to top up my Google pay.",2,0,0,1,
 bank77-08-A,bank77-08,"I am still waiting for my card to arrive, and my transaction is pending. What can I do?",54,10,"1. I still don't have my card after 2 weeks.  What should I do?
 2. I ordered a card and I still haven't received it. It's been two weeks. What can I do?
 3. My transaction is still showing that is pending from my cash withdrawal.
@@ -316,7 +316,7 @@ bank77-08-A,bank77-08,"I am still waiting for my card to arrive, and my transact
 7. I deposited a check but my balance is still the same.
 8. Please help me to know the status of my card payment as its pending since a while.
 9. I would like to know why my purchases from this morning are still pending.
-10. I made a transfer and am still waiting.",0,0,1,1,,
+10. I made a transfer and am still waiting.",0,0,1,1,
 bank77-08-B,bank77-08,"My card payment is still pending.
 I'm still waiting on my card to be delivered.
 Cash withdrawal still pending?
@@ -330,7 +330,7 @@ I am still waiting for a cash withdrawal to show",45,10,"1. I am still waiting f
 7. My card payment is pending.
 8. i transfered however its still pending
 9. My transfer is still coming up as pending.
-10. ATM still has my card",8,1,0,0,Verbatim member,
+10. ATM still has my card",8,1,0,0,Verbatim member
 bank77-08-C,bank77-08,Why is my cash withdrawal being charged a fee?,45,10,"1. how long til my cash out goes through?
 2. Why do I have a pending cash withdrawal?
 3. Why does my account have a pending cash withdrawal?
@@ -340,7 +340,7 @@ bank77-08-C,bank77-08,Why is my cash withdrawal being charged a fee?,45,10,"1. h
 7. Has the check I deposited cleared to I can get the cash?
 8. Why was I charged a fee for withdrawing cash?
 9. Why did I get charged a fee when I tried to obtain cash?
-10. More fees, this time for withdrawing my own cash. Why are you robbing me?",3,0,0,1,,
+10. More fees, this time for withdrawing my own cash. Why are you robbing me?",3,0,0,1,
 bank77-08-D,bank77-08,"""Why is my ATM withdrawal still pending?""",36,10,"1. I'm still waiting on my card to be delivered.
 2. I am still waiting for a cash withdrawal to show
 3. How long with my cash withdrawal stay pending for?
@@ -350,7 +350,7 @@ bank77-08-D,bank77-08,"""Why is my ATM withdrawal still pending?""",36,10,"1. I'
 7. My card payment is still pending.
 8. Please help me to know the status of my card payment as its pending since a while.
 9. I am still waiting for a money transfer to show
-10. ATM still has my card",1,0,0,1,,
+10. ATM still has my card",1,0,0,1,
 bank77-09-A,bank77-09,What currencies can I hold money in?,94,10,"1. Can you tell me what currency I can have?
 2. Which country's currency do you support?
 3. What all currencies can be exchanged?
@@ -360,7 +360,7 @@ bank77-09-A,bank77-09,What currencies can I hold money in?,94,10,"1. Can you tel
 7. How much more do I have to pay to exchange currencies?
 8. Do I have to pay for exchanging currencies?
 9. Does it cost to exchange currencies with this card?
-10. Are there any extra hidden fees for exchanging currencies?",4,0,0,0,Incorrect grammer,
+10. Are there any extra hidden fees for exchanging currencies?",4,0,0,0,Incorrect grammer
 bank77-09-B,bank77-09,"Can I exchange currencies?
 Are there any extra fees for adding money into the international card?
 Can I change to another currency?
@@ -374,7 +374,7 @@ Do you offer a discount on multiple currency exchanges?",77,10,"1. What currenci
 7. I will need to exchange currencies frequently, will I be able to get a discount?
 8. Is there a discount for frequently exchanging currencies?
 9. Are there any fees for adding money with an international card?
-10. Are there any extra fees for adding money into the international card?",10,1,0,0,Verbatim member,Incorrect grammer
+10. Are there any extra fees for adding money into the international card?",10,1,0,0,Verbatim member; Incorrect grammer
 bank77-09-C,bank77-09,"What are the steps to check the exchange rate, process cash withdrawals, and resolve balance discrepancies related to deposits, transfers, and PIN changes?",46,10,"1. why do your exchange rates change
 2. What kind of foreign exchange rate will I get when I exchange my money?
 3. How do I change currencies to euros?
@@ -384,7 +384,7 @@ bank77-09-C,bank77-09,"What are the steps to check the exchange rate, process ca
 7. Can I get paid in a different currency?
 8. How much more do I have to pay to exchange currencies?
 9. If I need to exchange currency is there an extra fee?
-10. How much will I pay to exchange foreign currency?",0,1,1,1,PIN Change not in members,
+10. How much will I pay to exchange foreign currency?",0,1,1,1,PIN Change not in members
 bank77-09-D,bank77-09,"What currencies are supported for holding, exchanging, and adding money, and are there any fees associated with currency exchanges?",92,10,"1. I want to know how many different currencies my money can be in
 2. Can you tell me what currency I can have?
 3. May I exchange currencies with this?
@@ -394,7 +394,7 @@ bank77-09-D,bank77-09,"What currencies are supported for holding, exchanging, an
 7. When I travel, what will it cost to switch for my currency?
 8. Does it cost money for currency exchange services?
 9. Will it cost more money if my currency needs to be exchanged?
-10. Can I exchange money from abroad without additional costs?",7,0,0,1,,
+10. Can I exchange money from abroad without additional costs?",7,0,0,1,
 bank77-10-A,bank77-10,"""How can I transfer funds into my bank account?""",107,10,"1. Can I link another card to my account?
 2. Can I use my account without verifying my identity?
 3. Will my friend be able to top off my account?
@@ -404,7 +404,7 @@ bank77-10-A,bank77-10,"""How can I transfer funds into my bank account?""",107,1
 7. How do I go forth on transferring money into my account?
 8. I don't understand how to top up my account, can you please explain the process?
 9. How do I send my account money through transfer?
-10. How do I deposit cash into my account?",5,0,0,1,,
+10. How do I deposit cash into my account?",5,0,0,1,
 bank77-10-B,bank77-10,"How do I transfer money to my account?
 Can I use my American Express to add money to my account?
 How do I transfer money using a credit card?
@@ -418,7 +418,7 @@ Is my cash withdrawal pending?",109,10,"1. To add money to my account, what curr
 7. How can I transfer money from an outside bank?
 8. Need to deposit a cheque into my account
 9. When will I see my new balance after making my bank transfer?
-10. I was charged for a cash withdrawal.",4,1,0,0,Incomplete meaning in question,
+10. I was charged for a cash withdrawal.",4,1,0,0,Incomplete meaning in question
 bank77-10-C,bank77-10,"How can I transfer money into my account and what are the available methods for top-ups, including cash, cheques, and bank transfers?",110,10,"1. How do I link to my credit card with you?
 2. Can I link another card to my account?
 3. Which credit or debit cards can I use to top up?
@@ -428,7 +428,7 @@ bank77-10-C,bank77-10,"How can I transfer money into my account and what are the
 7. I want to top my account by using a bank transfer. How would that work?
 8. How can I fund my top-up account using my bank account?
 9. Are there ways to transfer money into my account?
-10. I would like to transfer money from my other bank account into this one.",5,1,0,1,,
+10. I would like to transfer money from my other bank account into this one.",5,1,0,1,
 bank77-10-D,bank77-10,"How can I transfer or add money to my account using various methods like credit cards, bank transfers, or cheques?",70,10,"1. What us the fee to transfer money from my bank?
 2. To add money to my account, what currencies can I use?
 3. What is the process for using my credit card to transfer money?
@@ -438,4 +438,4 @@ bank77-10-D,bank77-10,"How can I transfer or add money to my account using vario
 7. Can I add funds to the card directly from my bank account?
 8. How can I transfer funds from my bank to my top up account?
 9. How do I transfer money to my account?
-10. What type of deposits do you accept into my account?",5,0,0,1,,
+10. What type of deposits do you accept into my account?",5,0,0,1,
