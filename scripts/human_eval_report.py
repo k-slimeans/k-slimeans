@@ -16,7 +16,7 @@ key (`summary_audit_key_<dataset>.csv`, made by `make_audit_sheet.py --write-key
    reproduce the key's flag on every row, or the script stops.
 
 The report names the raters, the n per dataset and the fixed sample of 40 summaries per dataset. After filling
-`category` (paraphrase, generalisation, inflection_tokenisation, unshown_members, unsupported; `unshown_members`
+`category` (paraphrase, generalisation, inflection_tokenisation, unshown_members, cluster_talk, unsupported; `unshown_members`
 only makes sense in the reverse CSV), COPY the CSVs out of `--out-dir` (for example to `results/human_eval_filled/`),
 fill the copies, and run again with `--categories` and the copies to add the counts per category, separately for
 each file. The script rewrites its own outputs on every run, so it refuses a `--categories` path that is one of them.

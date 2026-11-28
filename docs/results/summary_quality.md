@@ -1,7 +1,7 @@
 # Summary quality: coverage, genericity and unsupported content, scored apart from fluency (issue #34)
 
-Status: **automatic scores done for all runs, including the clearer-prompt (v2) runs at all three sizes; hand check by the human rater
-pending; an AI-rater stand-in (two Claude Sonnet 5.5 instances, not a human rating) is reported in section 5 and is not a validation of the automatic scores.**
+Status: **automatic scores done for all runs, including the clearer-prompt (v2) runs at all three sizes. Hand check done by two human raters
+(section 5, Nov 27). The earlier AI-rater stand-in (two Claude Sonnet 5.5 instances, not a human rating) stays in section 5 as a labelled comparison.**
 Everything below is descriptive and preliminary. It says what the scores measure on the logged runs; it does not say why the clusterings
 differ (that is #47) or how the scores relate to clustering outcome (that is #50).
 
@@ -283,10 +283,99 @@ the cluster, negative margin) and unsupported. No member stayed; 313 went to clu
 
 In all three the cluster's members had left by the end of the step's Lloyd block and the cluster that carries the same id afterwards is made mostly of other queries (the "gained" counts). These are single seed-0 cases; they illustrate the kept/lost link and do not establish how often this happens (the tables do).
 
-## 5. Hand check: pending (human rater)
+## 5. Hand check: two human raters
 
-The October request was an audit of representative summaries against the automatic scores. The materials exist; **the human rater's ratings have not been made**, so
-there is no hand-check agreement number yet. The human check remains the planned validation of the automatic scores. The AI-rater stand-in below was made because the human rater could not rate before the progress report; it does not replace the human check and the blank sheets are untouched for it.
+The October request was an audit of representative summaries against the automatic scores. The final feedback (#84) asked for two team members to rate the 40 summaries of each dataset independently, blind to the method. It also asked for their agreement, a comparison with the automatic measures, and whether the unsupported-content measure wrongly flags reasonable paraphrases.
+
+### Results (Samiksha `is-sami`, Nabin `naween321`; 40 summaries per dataset)
+
+**Design.**
+- Two team members each rated both blank sheets by `docs/summary_audit_rubric.md`. Each summary was read against 10 shown members, with the method hidden.
+- Ratings: the number of shown members the summary fits (`members_fit`), and generic, unsupported and fluent as yes or no. The hand labels are as in the rubric: low coverage means fewer than half of the shown members fit, and not fluent is fluent = 0.
+- The numbers come from `scripts/human_eval_report.py` (commands below). Its checks all pass: the raters changed only the rating columns, every value is in range, and every cluster's member count matches.
+- One BANKING77 `fluent` cell is empty (row `bank77-05-D`, `naween321`); that row is left out of that property.
+- Nabin's first submission was made with an AI tool. It was discarded, and he re-rated both sheets by hand (Nov 27). Only the manual pass is used (limits below).
+
+**Agreement between the two raters** (Cohen's kappa, raw agreement in brackets; n = 40, BANKING77 not fluent n = 39):
+
+| property | CLINC150 | BANKING77 |
+| --- | ---: | ---: |
+| low coverage | 0.70 (0.85) | 0.36 (0.78) |
+| generic | 0.07 (0.50) | -0.09 (0.62) |
+| unsupported | 0.26 (0.65) | -0.10 (0.80) |
+| not fluent | 0.06 (0.75) | 0.25 (0.67) |
+| `members_fit` count: identical / Spearman / mean absolute difference | 20 of 40 / 0.70 / 1.52 | 8 of 40 / 0.53 / 2.42 |
+
+- **Coverage is where the raters agree.** On CLINC150 they give the same low-coverage label to 34 of 40 summaries.
+- **Generic and not fluent split them,** mostly over LSA's five-sentence extracts:
+  - Samiksha marks LSA's extracts generic in 7 of 10 (CLINC150) and 10 of 10 (BANKING77), and not fluent in 9 of 10 and 8 of 10. Nabin marks none of them generic.
+  - On the 30 Qwen3 summaries of CLINC150 the raters agree on not fluent for 29 of 30 (Samiksha 0, Nabin 1).
+  - Generic still splits there: Samiksha marks 15 of 30, Nabin 4.
+- **Unsupported agrees weakly on CLINC150 and not at all on BANKING77,** where the raters mark only 3 and 5 summaries.
+
+**Human against the automatic flags** (kappa, raw agreement in brackets). Columns: Samiksha / Nabin / consensus. The consensus is the rows on which both raters agree on that property; its n is given.
+
+| property | CLINC150 | BANKING77 |
+| --- | --- | --- |
+| low coverage | 0.36 (0.68) / 0.46 (0.72) / 0.48 (0.74; n 34) | 0.26 (0.75) / -0.12 (0.78) / -0.05 (0.84; n 31) |
+| generic | 0.23 (0.60) / 0.26 (0.75) / 0.48 (0.85; n 20) | -0.09 (0.62) / 0.47 (0.95) / 0.00 (0.96; n 25) |
+| unsupported | 0.16 (0.62) / -0.26 (0.47) / -0.20 (0.58; n 26) | 0.48 (0.95) / -0.04 (0.85) / no positives (1.00; n 32) |
+| not fluent | -0.29 (0.55) / 0.06 (0.75) / -0.06 (0.70; n 30) | 0.04 (0.68) / 0.28 (0.69) / 0.15 (0.77; n 26) |
+
+Counts on CLINC150, automatic flag / Samiksha / Nabin:
+- low coverage 23 / 18 / 18;
+- generic 12 / 22 / 4;
+- unsupported 9 / 16 / 14;
+- not fluent 9 / 9 / 3.
+
+The not-fluent flags fall on Qwen3 summaries (9 of 30), which both raters read as fluent, while Samiksha's not-fluent marks fall on LSA's extracts. On BANKING77 every automatic flag is rare (1 to 7 of 40), so those kappas rest on a handful of summaries.
+
+**Does the unsupported flag wrongly flag reasonable paraphrases? Partly: on CLINC150, 4 of the 9 flagged summaries are reasonable paraphrases or generalisations, and none is invented content.**
+
+For each flagged summary, the words that set the flag off were sorted into a category. The categories are those of #34, plus `cluster_talk`, added because the five did not fit summaries that describe the cluster or the task. One reader did the sorting, without double coding. The tables are in `results/human_eval_filled/` (untracked, because they carry the key).
+
+| | paraphrase | generalisation | cluster talk | unshown members | unsupported |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| CLINC150, flagged (9) | 2 | 2 | 5 | 0 | 0 |
+| CLINC150, rater says unsupported, flag silent (16) | 0 | 2 | 2 | 11 | 1 |
+| BANKING77, flagged (1) | 0 | 0 | 0 | 0 | 1 |
+| BANKING77, rater says unsupported, flag silent (7) | 0 | 0 | 0 | 6 | 1 |
+
+**Flagged on CLINC150 (9).**
+- Two paraphrases: "express my gratitude and appreciation" for thank-you requests, and "request someone to repeat" for the repeat intent.
+- Two generalisations: "travel planning" and "travel time estimation" for flight and airport questions.
+- Both raters judged 3 of these 4 supported; the fourth split them.
+- The other 5 are cluster talk, four of them the 4B's "What is the main topic of the following cluster of questions?" and its variants. The flag fires on them only because "cluster", "topic" and "main" occur in no member. Samiksha marks all 5 unsupported and Nabin none, so the raters split on whether talk about the cluster is "unsupported information".
+- Both raters judged supported 3 of the 9 flagged summaries (33%), all among the paraphrases and generalisations.
+
+**Flagged on BANKING77 (1).** A 1.7B summary that adds "PIN changes" and "balance discrepancies", which no member mentions. It is sorted as unsupported; the raters split.
+
+**Rater says unsupported, flag silent.** Mostly a property of the sheets, not a miss by the flag. In 11 of 16 (CLINC150) and 6 of 7 (BANKING77) cases, the words the rater objected to occur only in members the rater was not shown, because the sheets show 10. Nine of those 17 are LSA extracts, which are member sentences by construction. The genuine misses are one summary per dataset that recombines details of two members into a claim no member makes: "How can I use contactless pay to receive my salary?" (BANKING77) and a Dallas-to-Los Angeles flight "for under $300" (CLINC150). This is the failure the lexical measure cannot see (section 4).
+
+**What the hand check changes about how #50 uses the automatic scores.**
+- **Low coverage:**
+  - It is the one property with a stable human reading: the raters agree with each other (kappa 0.70 on CLINC150) and moderately with the flag (consensus 0.48).
+  - The flag marks more summaries than either rater (23 against 18 and 18).
+  - So the coverage half of the "readable but a poor representative" share (`synthesis.md` section 12) is roughly what a reader would see, with the flag on the strict side.
+- **Generic:** the raters disagree with each other (kappa 0.07 and -0.09), so there is no human reference to check it against. Read the automatic genericity as its own definition (a duplicate, a mention of the cluster, or a non-positive specificity margin), not as a human judgment.
+- **Unsupported:**
+  - It does not track human judgment on CLINC150 (consensus kappa -0.20). In this sample it flags paraphrases, generalisations and cluster talk, not invented content.
+  - It misses the recombinations that a reader catches.
+  - #50 should therefore read the unsupported share as "words outside the members' vocabulary". On CLINC150 that mostly signals cluster talk, not hallucination.
+- **Not fluent:**
+  - The proxy is stricter than both raters on the Qwen3 summaries (9 of 30 flagged; the raters mark 0 and 1).
+  - "Fluent" in `synthesis.md` section 12 is the proxy's definition, and a reader would call more of those summaries fluent.
+
+**Limits.**
+- Two raters, 40 summaries per dataset (10 per method), and few positives on BANKING77, so every kappa is rough.
+- Nabin's first submission was AI-generated. He re-rated by hand after seeing it, so anchoring cannot be excluded.
+  - His manual sheets differ from that version on 32 of 40 (BANKING77) and 35 of 40 (CLINC150) summaries.
+  - They agree with the AI-rater stand-in about as much as Samiksha does: the same `members_fit` count on 13 to 17 of 40, against 24 to 27 for the discarded version.
+- Samiksha's sheets were in a public pull request before Nabin's manual pass. His agreement with her is moderate (the same count on 8 and 20 of 40), with no sign of copying.
+- Blinding is imperfect (section 6): LSA's extracts are recognisable as member sentences.
+- One reader sorted the paraphrase categories, without double coding. The v2 summaries are not in the sheets.
+
+### Materials
 
 - Rubric, written before any summary was read for this audit: `docs/summary_audit_rubric.md`.
 - Sample (`scripts/make_audit_sheet.py`, seed 0): 10 gold intents per dataset, 4 well-, 3 mixed-, 3 poorly-recovered, then for each intent the
@@ -298,7 +387,7 @@ there is no hand-check agreement number yet. The human check remains the planned
   `make_audit_sheet.py ... --write-key results/audit_keys` (command in section 7). The keys were regenerated locally (untracked) to unblind the AI ratings; the regenerated sheets are byte-identical to the committed blank ones, so nothing in the sheets changed. The human rater should rate from the sheets alone and not open the keys. The BANKING77 sheet uses the
   approximate final partition.
 - After the human rating, `python scripts/audit_agreement.py SHEET results/audit_keys/summary_audit_key_<dataset>.csv` prints, per property (low coverage, generic, unsupported, not fluent), the 2 x 2 table, raw agreement and
-  Cohen's kappa. One rater; with 40 summaries per dataset the numbers will be rough.
+  Cohen's kappa for one sheet; `scripts/human_eval_report.py` (below) does every rater and the comparisons between them.
 
 ### Scoring the human ratings
 
@@ -328,7 +417,7 @@ mkdir -p results/human_eval_filled && cp results/human_eval/paraphrase_*.csv res
 
 The category counts are given per file, so the flagged and the reverse summaries are counted separately. `--sheet-pattern` and `--kind` (for example `--kind "AI ratings"`) let the same script run on other raters' sheets, for example the AI raters.
 
-### AI-rater stand-in (not a human rating)
+### AI-rater stand-in (not a human rating; kept as a comparison)
 
 **What was done.** Two independent Claude Sonnet 5.5 instances each rated both blank sheets (40 summaries per dataset) by `docs/summary_audit_rubric.md`. Each saw only the rubric and the sheets: blind to the method, the key, the automatic scores and every other file, and blind to the other rater. Their filled sheets are
 `summary_audit_ai_rater_1_<dataset>.csv` and `summary_audit_ai_rater_2_<dataset>.csv` (same rows and columns as the blank sheets; checked row by row against the blank sheets, with identical `row_id`, summary, cluster size and members, and no empty rating cell). Rater 1 matched its ratings to rows by position, which is safe because the row order is the same in the `.md` and `.csv` sheets, as checked.
@@ -379,7 +468,7 @@ The sample is not random over clusters (it is 10 gold intents chosen by recovery
 - The rubric was written for a human rater; the AI raters applied it as written and may have read parts of it differently from a person.
 - Blinding is imperfect for the same reasons as in section 6 (LSA rows look like member sentences, the 0.6B quotes its answers, the 4B's "main theme of the cluster"); a model rater can notice these too. The v2 runs are not in the sheets.
 
-**What this supports and does not.** It supports a first look at where the automatic flags and a careful reading of the same summaries agree (not fluent on both datasets; low coverage and generic agree on one dataset and not the other, with the flags marking more summaries on CLINC150) and where they measure different things (the unsupported flag against a reader's judgement on CLINC150, where they disagree; on BANKING77 its agreement rests on 1 to 2 positives; and the coverage flag's strictness). It also shows the sheets and rubric can be applied end to end and the agreement code runs on real ratings. It does **not** validate the automatic scores, does not stand in for the human hand check requested in October, and should not be quoted as a hand-check result or as an inter-rater study (#9). When the human rater has rated, their agreement numbers replace these as the hand-check result, and the AI ratings can be reported next to them as a comparison.
+**What this supports and does not.** It supports a first look at where the automatic flags and a careful reading of the same summaries agree (not fluent on both datasets; low coverage and generic agree on one dataset and not the other, with the flags marking more summaries on CLINC150) and where they measure different things (the unsupported flag against a reader's judgement on CLINC150, where they disagree; on BANKING77 its agreement rests on 1 to 2 positives; and the coverage flag's strictness). It also shows the sheets and rubric can be applied end to end and the agreement code runs on real ratings. It does **not** validate the automatic scores, does not stand in for the human hand check requested in October, and should not be quoted as a hand-check result or as an inter-rater study (#9). The two human raters' results at the top of this section are the hand-check result. These AI ratings stay as a comparison only.
 
 ## 6. Limitations
 
