@@ -430,8 +430,8 @@ slides:
   minutes: 1
   type: placeholder
   title: "The human evaluation: two blind raters, 40 summaries per dataset"
-  todo: "Design (rubric, blinding, sample) and the agreement between the raters: TODO(#34) numbers."
-  sources: ["docs/summary_audit_rubric.md", "summary_quality.md §5", "#34"]
+  todo: "Two team members, blind to the method, rubric written first. Rater agreement (kappa, CLINC150 / BANKING77): low coverage 0.70 / 0.36; generic 0.07 / −0.09; unsupported 0.26 / −0.10; not fluent 0.06 / 0.25. Most of the generic and not-fluent split is over LSA's five-sentence extracts."
+  sources: ["summary_quality.md §5", "docs/summary_audit_rubric.md"]
   notes: |
     [1:00] TODO(#34, Samiksha).
 
@@ -441,8 +441,8 @@ slides:
   minutes: 1
   type: placeholder
   title: "Human judgments against the automatic scores"
-  todo: "Each rater and the consensus against the automatic flags: TODO(#34)."
-  sources: ["summary_quality.md §5", "#34"]
+  todo: "Where both raters agree, against the flags (kappa, CLINC150): low coverage 0.48, generic 0.48 (20 summaries), unsupported −0.20, not fluent −0.06. The fluency proxy is stricter than both raters on the Qwen3 summaries."
+  sources: ["summary_quality.md §5"]
   notes: |
     [1:00] TODO(#34, Samiksha).
 
@@ -452,8 +452,8 @@ slides:
   minutes: 1
   type: placeholder
   title: "Does the unsupported-content flag punish paraphrases?"
-  todo: "The paraphrase check: flagged summaries both raters judged supported, by category: TODO(#34)."
-  sources: ["summary_quality.md §5", "#34"]
+  todo: "Partly. Of 9 flagged CLINC150 summaries: 2 paraphrases and 2 generalisations (3 judged supported by both raters), 5 cluster talk, none invented. Rater-only ‘unsupported’ marks are mostly words in members the raters were not shown (17 of 23)."
+  sources: ["summary_quality.md §5"]
   notes: |
     [1:00] TODO(#34, Samiksha).
 
@@ -575,7 +575,7 @@ slides:
     items:
       - "When it stands in for its members: it moves little and **protects** the cluster; it does not improve it."
       - "When it moves members, step 1 **helped mixed clusters and hurt pure ones**, and our quality scores couldn't tell which in advance."
-      - "**Readable ≠ representative**: 36% to 44% of the fluent Qwen3 summaries fail coverage or specificity (LSA 14%). Human check: TODO(#34)."
+      - "**Readable ≠ representative**: 36% to 44% of the fluent Qwen3 summaries fail coverage or specificity (LSA 14%). Two human raters back the coverage flag."
       - "Failed stand-ins hurt at step 1 (swap test). That they decide the final score is **not shown**; the prompt's wording mattered more than size."
   right:
     heading: "Is the extra cost justified?"

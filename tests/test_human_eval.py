@@ -189,9 +189,10 @@ def test_paraphrase_summary_ignores_unrated_and_counts_supported():
 
 
 def test_category_counts_and_unknown_category():
-    table = pd.DataFrame({"category": ["paraphrase", "paraphrase", "unsupported", np.nan, "generalisation"]})
+    table = pd.DataFrame({"category": ["paraphrase", "paraphrase", "unsupported", np.nan, "generalisation", "cluster_talk"]})
     counts = category_counts(table)
     assert counts["paraphrase"] == 2 and counts["unsupported"] == 1 and counts["generalisation"] == 1
+    assert counts["cluster_talk"] == 1
     assert counts["unlabelled"] == 1 and counts["unshown_members"] == 0
     with pytest.raises(ValueError, match="unknown categories"):
         category_counts(pd.DataFrame({"category": ["synonym"]}))

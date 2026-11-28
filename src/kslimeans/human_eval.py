@@ -28,7 +28,10 @@ import pandas as pd
 from .summary_audit import HAND_LABELS, compare_raters, compare_with_key, hand_label
 from .summary_quality import UNSUPPORTED_LEMMA_SHARE, _blob, analyze_corpus, content_lemmas, summary_lines, unsupported_content
 
-CATEGORIES = ("paraphrase", "generalisation", "inflection_tokenisation", "unshown_members", "unsupported")
+CATEGORIES = ("paraphrase", "generalisation", "inflection_tokenisation", "unshown_members", "cluster_talk", "unsupported")
+"""Hand categories for the paraphrase check. `cluster_talk`: the absent words describe the cluster or the task
+("What is the main topic of the following cluster of questions?", an echoed instruction) rather than its members,
+so they are neither a paraphrase nor invented content."""
 RATING_COLUMN = {"low_coverage": "members_fit", "generic": "generic", "unsupported": "unsupported", "not_fluent": "fluent"}
 """The sheet column each hand label is read from."""
 

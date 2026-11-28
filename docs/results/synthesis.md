@@ -183,7 +183,8 @@ Step 1, mean over seeds [95% interval over seeds] of the summary step's `d_membe
 - "Same model, two prompts" is a contrast of two runs whose prompts differ in several ways and whose summaries differ in every cluster. Its subsets (by the old run's flag, by purity) were chosen after seeing the tables above, and no correction was made for them.
 - The v2 0.6B and v2 1.7B have no #33 replay and appear only at the method level. The v2 runs have no k-means reference of their own in the joined data, so their dACC is quoted from `prompt_test.md`. The seconds of the v2 runs are not comparable with the old runs' and the v2 1.7B timing is not clean (#46 Section 8.4).
 - Per-cluster cost is tokens only: the logs have one timed `summarize_batch` call per step, so seconds per summary exist only as run totals (inflated, #35). Per-cluster tokens mostly follow cluster size; cost was not analysed per cluster beyond the method level.
-- No multiplicity correction; no hand check of #34's scores yet (pending), so the unsupported and generic flags carry their own known looseness, and the "?" and verbatim-copy proxies are the ones the v2 summaries trip most.
+- No multiplicity correction. The flags carry their own known looseness, and the v2 summaries trip the "?" and verbatim-copy proxies most.
+- **The #34 hand check (`summary_quality.md` section 5)** shows two raters agree with the low-coverage flag (consensus kappa 0.48 on CLINC150), and that flag marks a few more summaries than they do. They agree neither with each other on generic nor with the unsupported flag, which on CLINC150 flags paraphrases, generalisations and cluster talk rather than invented content.
 - Version 2 regenerated every committed `synthesis_*` table. The rows of the four October runs are unchanged except in the correlations of drift and cosine over all steps, where 35 (rho), 44 (lower bound) and 43 (upper bound) of 768 values moved by more than 1e-6, by at most 7.4e-5, and no interval changed whether it includes 0; the #33 per-cluster file was recomputed for this run, and the differences are float rounding in the replay. Counts, strata, methods and the help tables are identical to the printed digits.
 - Section 9 is the reading of all the evidence at this date. It will change with the Nov 17 review and the remaining runs (seeds 5-9, #33 for the other v2 sizes, arXiv).
 
@@ -360,5 +361,9 @@ The question is when a generated summary provides a useful centroid, and when it
 
 Placeholders, to be filled before the final version:
 
-- `TODO(#34)`: the human evaluation of the summaries (`summary_quality.md` section 5). It will say whether the human ratings agree with the automatic proxies, and so whether "fluent" and "poor representative" in Section 12 can be read as a human would, and how far the automatic scores can be used as a stand-in.
+- #34, done (`summary_quality.md` section 5). Two human raters, 40 summaries per dataset. How it bears on Section 12:
+  - **Coverage half of "poor representative":** a reader sees it about as the flag does, which is slightly the stricter of the two (on CLINC150, raters' kappa 0.70; consensus against the flag 0.48).
+  - **Genericity half:** it has no stable human reading (raters' kappa 0.07).
+  - **"Fluent":** the proxy is stricter than both raters on the Qwen3 summaries, so a reader would call more of them fluent.
+  - **Unsupported share:** it should be read as words outside the members' vocabulary, not as invented content.
 - `TODO(#50 case studies)`: Samiksha's `synthesis_case_studies.md`. It will add worked clusters across the chain (summary, movement, assignments, outcome) beyond the four here, and a check of whether the three patterns of Section 12 recur.
